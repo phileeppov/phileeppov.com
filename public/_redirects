@@ -1,2 +1,9 @@
-/           /portfolio.pdf  302
 /portfolio  /portfolio.pdf  302
+
+# До запуска: все страницы сайта ведут на PDF. Запуск — удалить строки ниже до конца файла.
+/           /portfolio.pdf  302
+/manifesto  /portfolio.pdf  302
+/manifesto/ /portfolio.pdf  302
+/about      /portfolio.pdf  302
+/about/     /portfolio.pdf  302
+/work/*     /portfolio.pdf  302

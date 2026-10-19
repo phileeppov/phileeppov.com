@@ -1,0 +1,83 @@
+---
+// Шаблон кейса — site.md §3. Тексты и кадры — src/data/cases.ts. Без дизайна: порядок блоков и кадров по картам картинок.
+import { getImage } from "astro:assets";
+import Base from "../../layouts/Base.astro";
+import Shots from "../../components/Shots.astro";
+import { cases, shot } from "../../data/cases";
+
+export function getStaticPaths() {
+  return cases.map((c, i) => ({
+    params: { slug: c.slug },
+    props: { c, prev: cases[i - 1], next: cases[i + 1] },
+  }));
+}
+
+const { c, prev, next } = Astro.props;
+const og = await getImage({ src: shot(c.slug, c.hero[0].img), width: 1200, format: "jpg" });
+---
+
+<Base title={c.name} description={c.description} image={og.src}>
+  <main>
+    <section>
+      <p>Filed under<br />{c.principle}</p>
+      <h1>{c.name}</h1>
+      <p>{c.description}</p>
+      <p>{c.mark}</p>
+      <Shots slug={c.slug} shots={c.hero} eager />
+    </section>
+
+    <section>
+      <h2>What was broken before</h2>
+      {c.tension.map((b) => (typeof b === "string" ? <p>{b}</p> : <Shots slug={c.slug} shots={b} />))}
+    </section>
+
+    <section>
+      <h2>What I decided</h2>
+      <p>{c.thesis}</p>
+    </section>
+
+    <section>
+      <p>{c.role}</p>
+    </section>
+
+    <section>
+      <h2>What I decided, and why</h2>
+      {
+        c.decisions.map((d) => (
+          <article>
+            <h3>{d.title}</h3>
+            {d.blocks.map((b) => (typeof b === "string" ? <p>{b}</p> : <Shots slug={c.slug} shots={b} />))}
+          </article>
+        ))
+      }
+    </section>
+
+    <section>
+      {c.happened.map((b) => (typeof b === "string" ? <p>{b}</p> : <Shots slug={c.slug} shots={b} />))}
+    </section>
+
+    <section>
+      <h2>The final screens</h2>
+      {c.artifacts.caption && <p>{c.artifacts.caption}</p>}
+      <Shots slug={c.slug} shots={c.artifacts.shots} />
+      {c.notes?.map((n) => <p><small>{n}</small></p>)}
+    </section>
+
+    <nav>
+      {prev && <a href={`/work/${prev.slug}/`}>← Previous: {prev.name}</a>}
+      <a href="/#work">Back to all work</a>
+      {next && <a href={`/work/${next.slug}/`}>Next: {next.name} →</a>}
+    </nav>
+
+    <section>
+      <p>If this is the kind of decision-making your product needs —</p>
+      <a href="/#review">Send a link, get a video review →</a>
+    </section>
+  </main>
+</Base>
+
+<style>
+  nav a {
+    display: block;
+  }
+</style>

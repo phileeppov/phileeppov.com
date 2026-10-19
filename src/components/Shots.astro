@@ -1,0 +1,36 @@
+---
+// Группа кадров кейса. Раскладка (крупно, мелко, со смещением) — в фазе дизайна, по картам картинок.
+import { Image } from "astro:assets";
+import { shot, type Shot } from "../data/cases";
+
+interface Props {
+  slug: string;
+  shots: Shot[];
+  eager?: boolean;
+}
+
+const { slug, shots, eager = false } = Astro.props;
+---
+
+<div class="shots">
+  {
+    shots.map((h) => (
+      <figure>
+        <Image
+          src={shot(slug, h.img)}
+          alt=""
+          widths={[640, 1280, 2000]}
+          sizes="100vw"
+          loading={eager ? "eager" : "lazy"}
+        />
+        {h.caption && <figcaption>{h.caption}</figcaption>}
+      </figure>
+    ))
+  }
+</div>
+
+<style>
+  figure {
+    margin: 0;
+  }
+</style>

@@ -1,11 +1,17 @@
 ---
 import "../styles/tokens.css";
+import Footer from "../components/Footer.astro";
 
 interface Props {
   title?: string;
+  description: string;
+  image?: string; // абсолютный или корневой путь к картинке для превью ссылки
 }
 
-const { title = "phileeppov" } = Astro.props;
+const { title, description, image } = Astro.props;
+const fullTitle = title ? `${title} · phileeppov` : "phileeppov";
+const canonical = new URL(Astro.url.pathname, Astro.site);
+const ogImage = image ? new URL(image, Astro.site) : undefined;
 ---
 
 <!doctype html>
@@ -13,10 +19,23 @@ const { title = "phileeppov" } = Astro.props;
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{title}</title>
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="phileeppov" />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    {ogImage && <meta property="og:image" content={ogImage} />}
+    <meta name="twitter:card" content={ogImage ? "summary_large_image" : "summary"} />
   </head>
   <body>
+    <header>
+      <a href="/">phileeppov</a>
+    </header>
     <slot />
+    <Footer />
   </body>
 </html>
 
@@ -35,5 +54,13 @@ const { title = "phileeppov" } = Astro.props;
   }
   body {
     margin: 0;
+    padding: 24px;
+  }
+  main {
+    max-width: var(--measure);
+  }
+  img {
+    max-width: 100%;
+    height: auto;
   }
 </style>

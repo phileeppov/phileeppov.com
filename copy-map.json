@@ -1,5 +1,43 @@
 {
+  "ignore": ["phileeppov", "nikita@phileeppov.com"],
+  "shared": {
+    "caseTemplate": {
+      "sections": ["3"],
+      "skip": [
+        "HERO BLOCK", "TENSION", "THESIS", "ROLE", "KEY DECISIONS", "WHAT HAPPENED", "ARTIFACTS",
+        "STAMP IMPRESSION", "NAVIGATION", "FINAL CTA",
+        "[1-2 sentences", "[1-2 paragraphs", "[1-3 sentences", "phil 0X ppov",
+        "01. [Decision name]", "02. [Decision name]", "(Two strong decisions", "Previous: [project name]"
+      ]
+    },
+    "cards": [
+      { "file": "../Кейсы/Medal.md", "sections": ["08"], "allow": true },
+      { "file": "../Кейсы/Sports Club.md", "sections": ["02"], "allow": true },
+      { "file": "../Кейсы/Ailekmed.md", "sections": ["02"], "allow": true },
+      { "file": "../Кейсы/Mavatars.md", "sections": ["02"], "allow": true }
+    ]
+  },
   "pages": {
-    "/": { "sections": ["1.1"], "ignore": [] }
+    "/": {
+      "sources": [{ "sections": ["1.1", "1.2", "1.3", "1.4", "1.5", "1.6", "1.7"] }, { "use": "cards" }]
+    },
+    "/manifesto/": { "sources": [{ "sections": ["2", "1.7"] }] },
+    "/about/": { "sources": [{ "sections": ["4", "1.7"] }] },
+    "/work/medal/": {
+      "sources": [{ "file": "../Кейсы/Medal.md", "sections": ["08"] }, { "use": "caseTemplate" }, { "sections": ["1.7"] }],
+      "ignore": ["Back to all work", "Next: SPORTS CLUB →"]
+    },
+    "/work/sports-club/": {
+      "sources": [{ "file": "../Кейсы/Sports Club.md", "sections": ["02"] }, { "use": "caseTemplate" }, { "sections": ["1.7"] }],
+      "ignore": ["Concept", "Shipped"]
+    },
+    "/work/ailekmed/": {
+      "sources": [{ "file": "../Кейсы/Ailekmed.md", "sections": ["02"] }, { "use": "caseTemplate" }, { "sections": ["1.7"] }],
+      "ignore": ["Screens localized to English for this case", "© OpenStreetMap contributors"]
+    },
+    "/work/mavatars/": {
+      "sources": [{ "file": "../Кейсы/Mavatars.md", "sections": ["02"] }, { "use": "caseTemplate" }, { "sections": ["1.7"] }],
+      "ignore": ["← Previous: Ailekmed", "Back to all work"]
+    }
   }
 }

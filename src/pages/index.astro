@@ -1,31 +1,100 @@
 ---
-// Заготовка: только hero из site.md §1.1, без дизайна. Нужна, чтобы проверить сборку,
-// скриншоты и copy-check. На проде корень всё равно ведёт на PDF через public/_redirects.
+// site.md §1 — главная. Тексты дословно, без дизайна: вёрстка и движение — в фазе дизайна.
+import { Image } from "astro:assets";
 import Base from "../layouts/Base.astro";
+import ReviewForm from "../components/ReviewForm.astro";
+import { cases, shot } from "../data/cases";
 ---
 
-<Base>
+<Base description="I design the product and its brand together, from zero. Async by default. Calls when useful.">
   <main>
-    <h1>
-      I work with founders who'd rather ship something that's theirs
-      than ship something that's safe.
-    </h1>
-    <p>
-      I design the product and its brand together, from zero.
-      Async by default. Calls when useful.
-    </p>
-    <p>
-      Five years. Medal.tv at 3M daily users, a crypto wallet,
-      a fantasy sports league, a pharmacy.
-    </p>
-    <a href="#">Send a link, get a video review →</a>
+    <section>
+      <h1>
+        I work with founders who'd rather ship something that's theirs
+        than ship something that's safe.
+      </h1>
+      <p>
+        I design the product and its brand together, from zero.
+        Async by default. Calls when useful.
+      </p>
+      <p>
+        Five years. Medal.tv at 3M daily users, a crypto wallet,
+        a fantasy sports league, a pharmacy.
+      </p>
+      <a href="#review">Send a link, get a video review →</a>
+    </section>
+
+    <section>
+      <p>Five principles I work by:</p>
+      <ol>
+        <li>01. Every decision has an author.</li>
+        <li>02. The brief is wrong until proven right.</li>
+        <li>03. Make the call, then check it.</li>
+        <li>04. Character is not a layer.</li>
+        <li>05. The safe version is already taken.</li>
+      </ol>
+      <a href="/manifesto/">→ Read full manifesto</a>
+    </section>
+
+    <section id="work">
+      {
+        cases.map((c) => (
+          <a href={`/work/${c.slug}/`}>
+            <Image src={shot(c.slug, c.card)} alt="" widths={[640, 1280]} sizes="(min-width: 1024px) 50vw, 100vw" />
+            <h2>{c.name}</h2>
+            <p>{c.thesis}</p>
+            <p>{c.principle}</p>
+          </a>
+        ))
+      }
+    </section>
+
+    <section>
+      <h2>HOW I WORK</h2>
+      <p>
+        You send me your product.<br />
+        A landing page, an onboarding flow, a product that doesn't exist yet.<br />
+        Whatever you're stuck on.
+      </p>
+      <p>
+        I send back a video review within 48 hours.<br />
+        What I see, what I'd do, what it would cost.<br />
+        If we're not aligned, we stop there. You keep the review.
+      </p>
+      <p>
+        If we are, we work async.<br />
+        Video updates, shared Figma, decisions in writing.<br />
+        Calls when useful.
+      </p>
+      <p>
+        A pharmacy website went from my spec to launch in six weeks.<br />
+        Longer partnerships run on a monthly retainer, after the first project.
+      </p>
+    </section>
+
+    <section>
+      <p>
+        I'm Nikita. I can't ship work I wouldn't sign.<br />
+        So I design alone, async, and only with founders who feel the same.<br />
+        For code I team up with a developer I've shipped with,<br />
+        and I'm taking more of it on myself, this site included.
+      </p>
+      <a href="/about/">→ More about me</a>
+    </section>
+
+    <ReviewForm />
   </main>
 </Base>
 
 <style>
-  main {
-    padding: 24px;
-    max-width: var(--measure);
+  ol {
+    list-style: none;
+    padding: 0;
+  }
+  #work a {
+    display: block;
+    color: inherit;
+    text-decoration: none;
   }
   h1 {
     font-size: var(--text-display);

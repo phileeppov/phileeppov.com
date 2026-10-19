@@ -21,7 +21,12 @@ try {
     const page = await browser.newPage({ viewport: vp });
     for (const route of routes) {
       await page.goto(BASE_URL + route, { waitUntil: "networkidle" });
-      await page.evaluate(() => document.fonts.ready);
+      // Ленивые картинки ниже первого экрана сами не грузятся — снимок полной высоты вышел бы с дырами.
+      await page.evaluate(async () => {
+        for (const img of document.images) img.loading = "eager";
+        await Promise.all([...document.images].map((img) => img.decode().catch(() => {})));
+        await document.fonts.ready;
+      });
       const slug = route === "/" ? "index" : route.replace(/^\/|\/$/g, "").replaceAll("/", "__");
       const file = join(OUT, `${slug}@${vp.width}.png`);
       await page.screenshot({ path: file, fullPage: true });

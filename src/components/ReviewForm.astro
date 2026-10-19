@@ -1,0 +1,89 @@
+---
+// site.md §1.6. Отправка — POST /api/review, обработчик в worker/index.js, письмо на gmail.
+// Тексты подтверждения и ошибки — черновик, в site.md их нет: ждут утверждения Ника.
+---
+
+<section id="review">
+  <h2>Send me your product. Get a video review in return.</h2>
+  <p>
+    A link is enough: a landing page, Notion, Figma, anything that shows
+    what you're working on. No call needed to start.
+  </p>
+
+  <form method="post" action="/api/review" data-review-form>
+    <p>
+      <label for="review-link">What's the link?</label>
+      <input id="review-link" name="link" type="text" required maxlength="2000" autocomplete="url" aria-describedby="review-link-help" />
+      <small id="review-link-help">url / Notion / Figma / GitHub, anything</small>
+    </p>
+    <p>
+      <label for="review-stuck">What's stuck?</label>
+      <input id="review-stuck" name="stuck" type="text" maxlength="500" aria-describedby="review-stuck-help" />
+      <small id="review-stuck-help">one line: "onboarding feels off" / "landing not converting" / "0→1, need direction"</small>
+    </p>
+    <p>
+      <label for="review-contact">How do I reach you back?</label>
+      <input id="review-contact" name="contact" type="text" required maxlength="200" autocomplete="email" aria-describedby="review-contact-help" />
+      <small id="review-contact-help">email or @telegram</small>
+    </p>
+    <!-- Ловушка для ботов: человек это поле не видит и не заполняет. -->
+    <input class="trap" name="company" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" />
+    <input type="hidden" name="t" value="" />
+    <button type="submit">SEND</button>
+  </form>
+
+  <p data-state="sent" hidden>Got it. The review comes back to the contact you left.</p>
+  <p data-state="error" hidden>That didn't go through. Write to nikita@phileeppov.com instead.</p>
+</section>
+
+<script>
+  const form = document.querySelector<HTMLFormElement>("[data-review-form]");
+  const sent = document.querySelector<HTMLElement>('[data-state="sent"]');
+  const error = document.querySelector<HTMLElement>('[data-state="error"]');
+
+  if (form && sent && error) {
+    // Время открытия формы: слишком быстрая отправка — бот.
+    const t = form.elements.namedItem("t");
+    if (t instanceof HTMLInputElement) t.value = String(Date.now());
+
+    if (new URLSearchParams(location.search).has("sent")) {
+      form.hidden = true;
+      sent.hidden = false;
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      error.hidden = true;
+      const button = form.querySelector("button");
+      if (button) button.disabled = true;
+      try {
+        const res = await fetch(form.action, {
+          method: "POST",
+          body: new FormData(form),
+          headers: { Accept: "application/json" },
+        });
+        if (!res.ok) throw new Error(String(res.status));
+        form.hidden = true;
+        sent.hidden = false;
+      } catch {
+        error.hidden = false;
+      } finally {
+        if (button) button.disabled = false;
+      }
+    });
+  }
+</script>
+
+<style>
+  .trap {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+  label,
+  small {
+    display: block;
+  }
+</style>
