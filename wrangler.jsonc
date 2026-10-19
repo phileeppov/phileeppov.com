@@ -1,0 +1,9 @@
+// Конфиг для Workers Builds: имя — существующий Worker, статика — dist/.
+// Домены (phileeppov.com, www) настроены в панели Cloudflare, здесь их нет.
+{
+  "name": "phileeppov",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./dist"
+  }
+}

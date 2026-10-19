@@ -1,0 +1,35 @@
+---
+// Заготовка: только hero из site.md §1.1, без дизайна. Нужна, чтобы проверить сборку,
+// скриншоты и copy-check. На проде корень всё равно ведёт на PDF через public/_redirects.
+import Base from "../layouts/Base.astro";
+---
+
+<Base>
+  <main>
+    <h1>
+      I work with founders who'd rather ship something that's theirs
+      than ship something that's safe.
+    </h1>
+    <p>
+      I design the product and its brand together, from zero.
+      Async by default. Calls when useful.
+    </p>
+    <p>
+      Five years. Medal.tv at 3M daily users, a crypto wallet,
+      a fantasy sports league, a pharmacy.
+    </p>
+    <a href="#">Send a link, get a video review →</a>
+  </main>
+</Base>
+
+<style>
+  main {
+    padding: 24px;
+    max-width: var(--measure);
+  }
+  h1 {
+    font-size: var(--text-display);
+    font-weight: 400;
+    line-height: 1;
+  }
+</style>

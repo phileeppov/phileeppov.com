@@ -1,0 +1,23 @@
+/* Токены бренда. Источник — brand.md §08–09. Меняются только здесь. */
+
+:root {
+  /* Шрифты. Веб-лицензий нет — системные заглушки. Имена "Mabry Pro" и "Englisch" сюда
+     не вписывать: desktop-версии стоят у Ника в системе, и скриншоты покажут то, чего нет у посетителей.
+     Когда появятся веб-файлы: @font-face в src/styles/fonts.css, имя семейства — первым в стек. */
+  --font-base: "Helvetica Neue", Arial, system-ui, sans-serif;
+  --font-anomaly: Georgia, "Times New Roman", serif; /* только italic, только аномалия */
+
+  /* Шкала (черновик brand.md §09). Между Display и Lead ничего нет. */
+  --text-display: clamp(64px, 5.5vw, 80px);
+  --text-lead: clamp(28px, 2.2vw, 32px);
+  --text-body: clamp(17px, 1.25vw, 18px);
+  --text-meta: 13px;
+  --tracking: 0;
+  --measure: 65ch; /* 55–70 знаков */
+
+  /* Цвет. Страница нейтральная; emerald только в движении, токен — когда тон зафиксируют. */
+  --color-black: #0a0a0a;
+  --color-off-white: #f2f2f0;
+  --color-text: var(--color-black);
+  --color-bg: var(--color-off-white);
+}
