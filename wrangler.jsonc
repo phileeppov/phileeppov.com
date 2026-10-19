@@ -1,9 +1,15 @@
 // Конфиг для Workers Builds: имя — существующий Worker, статика — dist/.
-// Домены (phileeppov.com, www) настроены в панели Cloudflare, здесь их нет.
+// Значения повторяют панель Cloudflare на 20.10.2026, чтобы деплой из GitHub ничего в ней не менял.
 {
   "name": "phileeppov",
-  "compatibility_date": "2026-10-01",
+  "compatibility_date": "2026-10-17",
   "assets": {
     "directory": "./dist"
-  }
+  },
+  "workers_dev": true,
+  "preview_urls": false,
+  "routes": [
+    { "pattern": "phileeppov.com", "custom_domain": true },
+    { "pattern": "www.phileeppov.com", "custom_domain": true }
+  ]
 }
