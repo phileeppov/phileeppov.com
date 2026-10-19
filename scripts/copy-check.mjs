@@ -129,8 +129,12 @@ try {
         .map((el) => el.getAttribute("placeholder") || el.getAttribute("aria-label") || el.getAttribute("alt"))
         .join("\n"),
     );
-    const pageText = norm(visible);
-    const pageAll = norm(visible + "\n" + attrs);
+    // Скрытые состояния (подтверждение формы, ошибка) — тоже текст страницы, просто показываются позже.
+    const states = await page.evaluate(() =>
+      [...document.querySelectorAll("[hidden]")].map((el) => el.textContent).join("\n"),
+    );
+    const pageText = norm(visible + "\n" + states);
+    const pageAll = norm(visible + "\n" + states + "\n" + attrs);
     const ignore = [...(config.ignore || []), ...(entry.ignore || [])].map(norm);
 
     const missing = [];
