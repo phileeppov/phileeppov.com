@@ -4,7 +4,17 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { ROOT, BASE_URL, listRoutes, startPreview, launchBrowser } from "./lib/site.mjs";
 
+// The brand folder (site.md and case files) lives outside the repo; its path goes in .env.local, which is not committed.
+try {
+  process.loadEnvFile(join(ROOT, ".env.local"));
+} catch {
+  // No .env.local: BRAND_DIR may still come from the environment.
+}
 const BRAND_DIR = process.env.BRAND_DIR;
+if (!BRAND_DIR) {
+  console.error("Set BRAND_DIR (the brand folder with site.md) in .env.local or the environment.");
+  process.exit(1);
+}
 const config = JSON.parse(readFileSync(join(ROOT, "copy-map.json"), "utf8"));
 const map = config.pages;
 

@@ -5,3 +5,5 @@ dist/
 .wrangler/
 .env
 .env.*
+# Agent instructions for this machine: local only, never in the public repo.
+CLAUDE.md
