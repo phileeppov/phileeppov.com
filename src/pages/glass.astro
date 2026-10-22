@@ -650,6 +650,21 @@ import "../styles/onest.css";
     filter: none;
     background: var(--tray);
   }
+  /* На iPhone — полноценная тёмная кнопка: сохранить файл можно только через неё. */
+  .share.is-save {
+    width: 100%;
+    align-self: stretch;
+    /* Вплотную к «Record video», как кнопки в .actions (8px), а не через общий gap панели. */
+    margin-top: -6px;
+    padding: 12px 16px;
+    background: var(--btn-dark);
+    box-shadow: var(--btn-edge);
+    color: var(--color-off-white);
+  }
+  .share.is-save:hover {
+    background: var(--btn-dark);
+    filter: brightness(1.12);
+  }
   .share[hidden] {
     display: none;
   }
@@ -775,6 +790,9 @@ import "../styles/onest.css";
     .controls {
       gap: 10px;
       padding: 16px;
+    }
+    .share.is-save {
+      margin-top: -2px;
     }
     .controls > .hint:not(.caption) {
       display: none;

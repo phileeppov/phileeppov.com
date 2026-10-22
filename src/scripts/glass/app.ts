@@ -598,13 +598,17 @@ pngButton.addEventListener("click", () => {
   out.width = out.height = EXPORT_PX;
   const phase = phaseAt(performance.now());
   frameInto(out, withTurn(target(params), phase), phase);
-  out.toBlob((blob) => {
+  const done = (blob: Blob | null) => {
     if (blob) {
-      download(blob, "glass-icon.png");
+      save(blob, "glass-icon.png");
       track("png");
     }
     draw();
-  }, "image/png");
+  };
+  // iOS пускает в «Поделиться» надёжно только в том же такте, что и нажатие, а toBlob отвечает позже —
+  // там PNG собираем синхронно.
+  if (ios) done(dataUrlToBlob(out.toDataURL("image/png")));
+  else out.toBlob(done, "image/png");
 });
 
 videoButton.addEventListener("click", async () => {
@@ -678,7 +682,7 @@ videoButton.addEventListener("click", async () => {
 
     const mp4 = type.startsWith("video/mp4");
     if (chunks.length) {
-      download(new Blob(chunks, { type }), `glass-icon${wide ? "-wide" : ""}.${mp4 ? "mp4" : "webm"}`);
+      save(new Blob(chunks, { type }), `glass-icon${wide ? "-wide" : ""}.${mp4 ? "mp4" : "webm"}`);
       track(wide ? "video-wide" : "video");
       // X берёт видео в MP4 и MOV; WebM пишут браузеры без записи в MP4 (Firefox).
       if (!mp4) message = "Saved as WebM. For X, record in Chrome or Safari.";
@@ -704,19 +708,51 @@ videoButton.addEventListener("click", async () => {
 // подпись автора дизайнеры стирают как водяной знак.
 const SHARE_URL = "https://phileeppov.com/glass";
 const SHARE_TEXT = "made with";
+const SHARE_POST = `${SHARE_TEXT} ${SHARE_URL.replace("https://", "")}`;
+const SHARE_LABEL = shareButton.textContent;
 // Телефон — системное «Поделиться» с файлом. На компьютере в этом меню X обычно нет, поэтому там — буфер и редактор X.
 const touch = matchMedia("(pointer: coarse)").matches;
+// iPhone и iPad (iPad представляется Маком, выдаёт его сенсор). Обычное скачивание там уводит файл в «Файлы»,
+// а браузер X открывает картинку на весь экран. Поэтому сохраняем через «Поделиться»: в меню «Save Image» в «Фото»
+// и сразу X (само меню проверено Ником на iPhone в Safari и в браузере X, 23.10.2026; «Download PNG» сразу в меню — нет).
+const ios =
+  /iPhone|iPad|iPod/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
 let lastExport: { blob: Blob; name: string; video: boolean } | null = null;
+
+async function save(blob: Blob, name: string) {
+  const file = new File([blob], name, { type: blob.type });
+  if (!ios || !navigator.canShare?.({ files: [file] })) return download(blob, name);
+  lastExport = { blob, name, video: blob.type.startsWith("video/") };
+  shareButton.hidden = true;
+  // Меню «Поделиться» открывается только сразу после нажатия, а видео пишется 4 с — для него сразу кнопка.
+  if (lastExport.video) return offerSave();
+  try {
+    await navigator.share({ files: [file], text: SHARE_POST });
+  } catch (e) {
+    // Закрыл меню или тапнул дважды (меню уже открыто) — ничего. Не пустило по другой причине — та же кнопка.
+    const reason = (e as DOMException).name;
+    if (reason !== "AbortError" && reason !== "InvalidStateError") offerSave();
+  }
+}
+
+// На iPhone кнопка под экспортом — не тихая ссылка, а полноценная: без неё файл не сохранить.
+function offerSave() {
+  shareButton.textContent = lastExport?.video ? "Save video" : "Save image";
+  shareButton.classList.add("is-save");
+  shareButton.hidden = false;
+}
 
 shareButton.addEventListener("click", async () => {
   if (!lastExport) return;
-  track("share");
+  // На iPhone эта кнопка — «сохранить», а не «поделиться»: в счётчик share не идёт.
+  if (!ios) track("share");
   const file = new File([lastExport.blob], lastExport.name, { type: lastExport.blob.type });
-  if (touch && navigator.canShare?.({ files: [file] })) {
+  if ((touch || ios) && navigator.canShare?.({ files: [file] })) {
     try {
-      await navigator.share({ files: [file], text: `${SHARE_TEXT} ${SHARE_URL.replace("https://", "")}` });
-    } catch {
-      // Закрыл меню — ничего не делаем.
+      await navigator.share({ files: [file], text: SHARE_POST });
+    } catch (e) {
+      // Закрыл меню — ничего. На iPhone без меню файл не сохранить, поэтому при сбое — обычное скачивание.
+      if (ios && (e as DOMException).name !== "AbortError") download(file, file.name);
     }
     return;
   }
@@ -767,8 +803,18 @@ function download(blob: Blob, name: string) {
     return;
   }
   lastExport = { blob, name, video: blob.type.startsWith("video/") };
-  if (touch) shareButton.textContent = "Share";
+  // Кнопка могла остаться iPhone-кнопкой «Save …» от прошлого экспорта — возвращаем ссылку.
+  shareButton.classList.remove("is-save");
+  shareButton.textContent = touch ? "Share" : SHARE_LABEL;
   shareButton.hidden = false;
+}
+
+// Синхронная замена toBlob для iOS (см. «Download PNG»).
+function dataUrlToBlob(url: string) {
+  const bytes = atob(url.slice(url.indexOf(",") + 1));
+  const out = new Uint8Array(bytes.length);
+  for (let i = 0; i < bytes.length; i++) out[i] = bytes.charCodeAt(i);
+  return new Blob([out], { type: "image/png" });
 }
 
 function say(text: string) {
