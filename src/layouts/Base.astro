@@ -6,9 +6,15 @@ interface Props {
   title?: string;
   description: string;
   image?: string; // абсолютный или корневой путь к картинке для превью ссылки
+  bare?: boolean; // без общей шапки и подвала — страница рисует свои (сейчас только /glass)
 }
 
-const { title, description, image } = Astro.props;
+const { title, description, image, bare = false } = Astro.props;
+
+// Cloudflare Web Analytics — без cookies и баннера (decisions 2026.10, 20.10.2026). Токен из сниппета
+// в панели Cloudflare → Web Analytics (режим «с ручной установкой» с 22.10.2026: автовставка в статику Workers
+// не срабатывала — 0 просмотров за сутки); он публичный, виден в HTML. Пусто — счётчика нет.
+const CF_BEACON_TOKEN = "27d5695a86404e1fbcae52ee34c79f43";
 const fullTitle = title ? `${title} · phileeppov` : "phileeppov";
 const canonical = new URL(Astro.url.pathname, Astro.site);
 const ogImage = image ? new URL(image, Astro.site) : undefined;
@@ -29,13 +35,28 @@ const ogImage = image ? new URL(image, Astro.site) : undefined;
     <meta property="og:url" content={canonical} />
     {ogImage && <meta property="og:image" content={ogImage} />}
     <meta name="twitter:card" content={ogImage ? "summary_large_image" : "summary"} />
+    <slot name="head" />
+    {
+      CF_BEACON_TOKEN && (
+        <script
+          is:inline
+          defer
+          src="https://static.cloudflareinsights.com/beacon.min.js"
+          data-cf-beacon={JSON.stringify({ token: CF_BEACON_TOKEN })}
+        />
+      )
+    }
   </head>
   <body>
-    <header>
-      <a href="/">phileeppov</a>
-    </header>
+    {
+      !bare && (
+        <header>
+          <a href="/">phileeppov</a>
+        </header>
+      )
+    }
     <slot />
-    <Footer />
+    {!bare && <Footer />}
   </body>
 </html>
 

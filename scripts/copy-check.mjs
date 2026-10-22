@@ -123,6 +123,9 @@ try {
     const exp = collect(entry);
 
     await page.goto(BASE_URL + route, { waitUntil: "networkidle" });
+    // Свёрнутые блоки (<details>, например Advanced на /glass) раскрываем — их текст тоже сверяется.
+    await page.evaluate(() => document.querySelectorAll("details").forEach((d) => (d.open = true)));
+    await page.waitForTimeout(100);
     const visible = await page.evaluate(() => document.body.innerText);
     const attrs = await page.evaluate(() =>
       [...document.querySelectorAll("[placeholder], [aria-label], img[alt]")]
