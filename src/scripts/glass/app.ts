@@ -76,6 +76,7 @@ const applyVolume = () => {
 };
 let logoColor: LogoColor = "original";
 let demo = true; // пока человек не загрузил свой логотип
+let from: "file" | "drop" | "paste" = "file"; // откуда пришёл логотип — для счётчика, уходит вместе с upload
 let logoLuma = 0; // средняя яркость логотипа 0..1 — тёмный логотип на тёмном фоне красим в белый
 let autoColor = false; // цвет переключили мы, а не человек
 let recording = false;
@@ -152,7 +153,10 @@ async function loadUrl(url: string) {
     URL.revokeObjectURL(url);
   }
   say("");
-  if (!demo) track("upload");
+  if (!demo) {
+    track("upload");
+    track(`from:${from}`);
+  }
   fitColorToBackground();
   applyColor();
   draw();
@@ -438,7 +442,10 @@ function setColor(c: LogoColor, auto = false) {
 
 fileInput.addEventListener("change", () => {
   const file = fileInput.files?.[0];
-  if (file) loadFile(file);
+  if (file) {
+    from = "file";
+    loadFile(file);
+  }
   fileInput.value = "";
 });
 
@@ -459,7 +466,10 @@ document.addEventListener("drop", (e) => {
   dragDepth = 0;
   root.classList.remove("is-over");
   const file = e.dataTransfer?.files[0];
-  if (file) loadFile(file);
+  if (file) {
+    from = "drop";
+    loadFile(file);
+  }
 });
 
 // --- Пресеты ---
@@ -566,11 +576,45 @@ const clearPreset = (e: Event) => {
 root.addEventListener("input", clearPreset);
 root.addEventListener("change", clearPreset);
 
+// --- Какие ручки трогают ---
+
+// В счётчик — тронул ли человек ручку за визит, по одному разу: без значений и без числа сдвигов.
+// Имена — как на экране (liquid на экране — Blend). Пресеты и сброс двойным кликом меняют поля из кода —
+// такие события (isTrusted = false) в счёт не идут.
+const KNOB_NAMES: Record<string, string> = {
+  liquid: "blend",
+  size: "logo-size",
+  edge: "edge-width",
+  spread: "length",
+  volume: "depth",
+  sides: "edges",
+  color: "logo-color",
+  format: "video-format",
+};
+const touched = new Set<string>();
+const trackKnob = (e: Event) => {
+  const input = e.target as HTMLInputElement;
+  if (!e.isTrusted || !input.name || input.name === "preset") return;
+  const name = KNOB_NAMES[input.name] ?? input.name;
+  if (touched.has(name)) return;
+  touched.add(name);
+  track(`knob:${name}`);
+};
+root.addEventListener("input", trackKnob);
+root.addEventListener("change", trackKnob);
+// Раскрыл Advanced сам — а не панель открылась, потому что он оставил её раскрытой в прошлый раз.
+advanced.querySelector("summary")!.addEventListener("click", () => {
+  if (advanced.open || touched.has("advanced")) return;
+  touched.add("advanced");
+  track("advanced");
+});
+
 // Фигма копирует «Copy as SVG» текстом — принимаем и текст, и картинку из буфера.
 document.addEventListener("paste", (e) => {
   const data = e.clipboardData;
   if (!data) return;
   const file = [...data.files].find((f) => f.type.startsWith("image/"));
+  from = "paste";
   if (file) return void loadFile(file);
   const text = data.getData("text/plain").trim();
   if (recording) return;

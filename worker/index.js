@@ -17,10 +17,15 @@ export default {
   },
 };
 
-// Счётчик /glass: сколько скачали PNG и видео, нажали Share, выбрали пресет. Храним только название
+// Счётчик /glass: сколько скачали PNG и видео, нажали Share, выбрали пресет, какие ручки тронули
+// (по разу за визит), раскрыли ли Advanced, откуда пришёл логотип. Храним только название
 // события и дату — без логотипа, IP и данных о человеке. Ответ всегда пустой: страница его не ждёт,
 // и сбой базы не должен ничего ломать.
-const EVENT = /^(png|video|video-wide|share|upload|ping|preset:(studio|melt|prism|lens|night))$/;
+const KNOBS =
+  "refraction|blend|logo-size|dispersion|edge-width|angle|length|spin|motion|depth|thickness|background|logo-color|shape|edges|video-format";
+const EVENT = new RegExp(
+  `^(png|video|video-wide|share|upload|ping|advanced|preset:(studio|melt|prism|lens|night)|knob:(${KNOBS})|from:(file|drop|paste))$`,
+);
 
 async function track(request, env) {
   if (request.method !== "POST") return new Response(null, { status: 405, headers: { Allow: "POST" } });
