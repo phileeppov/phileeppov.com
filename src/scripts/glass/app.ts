@@ -81,6 +81,24 @@ let logoLuma = 0; // средняя яркость логотипа 0..1 — т�
 let autoColor = false; // цвет переключили мы, а не человек
 let recording = false;
 
+// Что человек уже тронул за визит: ручки, Advanced и ссылки уходят в счётчик по разу.
+const touched = new Set<string>();
+
+// Ссылки на себя (data-link в разметке): по какой ушли — портфолио, X, почта. Стоит до WebGL:
+// без него инструмент не работает, а ссылки работают — и переходы считаем.
+// Средняя кнопка мыши открывает вкладку без click — её ловит auxclick; правая — нет.
+const trackLink = (e: MouseEvent) => {
+  if (!(e.target instanceof Element)) return;
+  const link = e.target.closest<HTMLAnchorElement>("a[data-link]");
+  if (!link || (e.type === "auxclick" && e.button !== 1)) return;
+  const name = `link:${link.dataset.link}`;
+  if (touched.has(name)) return;
+  touched.add(name);
+  track(name);
+};
+document.addEventListener("click", trackLink);
+document.addEventListener("auxclick", trackLink);
+
 let renderer: GlassRenderer;
 try {
   renderer = new GlassRenderer(canvas);
@@ -591,7 +609,6 @@ const KNOB_NAMES: Record<string, string> = {
   color: "logo-color",
   format: "video-format",
 };
-const touched = new Set<string>();
 const trackKnob = (e: Event) => {
   const input = e.target as HTMLInputElement;
   if (!e.isTrusted || !input.name || input.name === "preset") return;

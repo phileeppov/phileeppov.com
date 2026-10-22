@@ -18,13 +18,14 @@ export default {
 };
 
 // Счётчик /glass: сколько скачали PNG и видео, нажали Share, выбрали пресет, какие ручки тронули
-// (по разу за визит), раскрыли ли Advanced, откуда пришёл логотип. Храним только название
+// (по разу за визит), раскрыли ли Advanced, откуда пришёл логотип, по каким ссылкам на себя ушли. Храним только название
 // события и дату — без логотипа, IP и данных о человеке. Ответ всегда пустой: страница его не ждёт,
 // и сбой базы не должен ничего ломать.
 const KNOBS =
   "refraction|blend|logo-size|dispersion|edge-width|angle|length|spin|motion|depth|thickness|background|logo-color|shape|edges|video-format";
+const LINKS = "wordmark|x-handle|portfolio|x-name|email|linkedin|github";
 const EVENT = new RegExp(
-  `^(png|video|video-wide|share|upload|ping|advanced|preset:(studio|melt|prism|lens|night)|knob:(${KNOBS})|from:(file|drop|paste))$`,
+  `^(png|video|video-wide|share|upload|ping|advanced|preset:(studio|melt|prism|lens|night)|knob:(${KNOBS})|from:(file|drop|paste)|link:(${LINKS}))$`,
 );
 
 async function track(request, env) {
