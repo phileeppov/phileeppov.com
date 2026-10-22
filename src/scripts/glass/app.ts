@@ -152,6 +152,7 @@ async function loadUrl(url: string) {
     URL.revokeObjectURL(url);
   }
   say("");
+  if (!demo) track("upload");
   fitColorToBackground();
   applyColor();
   draw();
@@ -530,7 +531,11 @@ function applyPreset(name: string) {
 }
 
 for (const input of root.querySelectorAll<HTMLInputElement>("input[name=preset]")) {
-  input.addEventListener("change", () => input.checked && applyPreset(input.value));
+  input.addEventListener("change", () => {
+    if (!input.checked) return;
+    applyPreset(input.value);
+    track(`preset:${input.value}`);
+  });
 }
 
 // Advanced помнит, раскрыт ли он, — у каждого посетителя в его браузере.
@@ -594,7 +599,10 @@ pngButton.addEventListener("click", () => {
   const phase = phaseAt(performance.now());
   frameInto(out, withTurn(target(params), phase), phase);
   out.toBlob((blob) => {
-    if (blob) download(blob, "glass-icon.png");
+    if (blob) {
+      download(blob, "glass-icon.png");
+      track("png");
+    }
     draw();
   }, "image/png");
 });
@@ -671,6 +679,7 @@ videoButton.addEventListener("click", async () => {
     const mp4 = type.startsWith("video/mp4");
     if (chunks.length) {
       download(new Blob(chunks, { type }), `glass-icon${wide ? "-wide" : ""}.${mp4 ? "mp4" : "webm"}`);
+      track(wide ? "video-wide" : "video");
       // X берёт видео в MP4 и MOV; WebM пишут браузеры без записи в MP4 (Firefox).
       if (!mp4) message = "Saved as WebM. For X, record in Chrome or Safari.";
     } else {
@@ -701,6 +710,7 @@ let lastExport: { blob: Blob; name: string; video: boolean } | null = null;
 
 shareButton.addEventListener("click", async () => {
   if (!lastExport) return;
+  track("share");
   const file = new File([lastExport.blob], lastExport.name, { type: lastExport.blob.type });
   if (touch && navigator.canShare?.({ files: [file] })) {
     try {
@@ -731,6 +741,16 @@ shareButton.addEventListener("click", async () => {
 });
 
 // --- Мелочи ---
+
+// Анонимный счётчик: на сервер уходит только название события — без логотипа и данных о человеке
+// (/api/event, worker/index.js). Выстрелил и забыл: страница ответа не ждёт.
+function track(name: string) {
+  try {
+    navigator.sendBeacon?.("/api/event", name);
+  } catch {
+    // Не отправилось — не страшно.
+  }
+}
 
 function download(blob: Blob, name: string) {
   const a = document.createElement("a");
