@@ -7,3 +7,5 @@ dist/
 .env.*
 # Agent instructions for this machine: local only, never in the public repo.
 CLAUDE.md
+CLAUDE.local.md
+.claude/
