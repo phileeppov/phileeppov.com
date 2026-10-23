@@ -1,5 +1,5 @@
-// Конфиг для Workers Builds: имя — существующий Worker, статика — dist/.
-// Значения повторяют панель Cloudflare на 20.10.2026, чтобы деплой из GitHub ничего в ней не менял.
+// Config for Workers Builds: the name is the existing Worker, static assets are dist/.
+// Values match the Cloudflare dashboard as of 20.10.2026, so deploys from GitHub change nothing there.
 {
   "name": "phileeppov",
   "main": "worker/index.js",
@@ -8,12 +8,12 @@
     "directory": "./dist",
     "binding": "ASSETS",
     "not_found_handling": "404-page",
-    // Worker отвечает только за форму; всё остальное — статика и _redirects без него.
+    // The Worker handles only /api/* (the form and the /glass event counter); everything else is served from static assets and _redirects without invoking it.
     "run_worker_first": ["/api/*"]
   },
-  // Письма с формы — только на подтверждённый адрес Email Routing.
+  // Form emails go only to the verified Email Routing address.
   "send_email": [{ "name": "MAIL", "destination_address": "phileeppov@gmail.com" }],
-  // Счётчик событий /glass (скачивания, Share, пресеты) — база D1 glass-events, создана 22.10.2026.
+  // /glass event counter (downloads, Share, presets, knobs, links): D1 database glass-events, created 22.10.2026.
   "d1_databases": [
     { "binding": "EVENTS", "database_name": "glass-events", "database_id": "9ea9422c-be05-4e08-89e7-46c2285f28f3" }
   ],

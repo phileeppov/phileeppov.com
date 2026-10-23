@@ -1,9 +1,9 @@
 import { defineConfig } from "astro/config";
 
-// Статическая сборка: dist/ целиком уходит в Cloudflare Workers (static assets).
+// Static build: all of dist/ goes to Cloudflare Workers (static assets).
 export default defineConfig({
   site: "https://phileeppov.com",
   output: "static",
-  // На машине Ника "localhost" у Node — только IPv6 [::1], а Chrome идёт на 127.0.0.1 и получает отказ.
+  // On the dev machine Node resolves "localhost" to IPv6 [::1] only, while Chrome goes to 127.0.0.1 and is refused.
   server: { host: "127.0.0.1" },
 });

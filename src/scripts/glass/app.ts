@@ -1,16 +1,16 @@
-// Страница /glass: загрузка логотипа, ползунки, экспорт PNG и видео. Всё в браузере, ничего не уходит на сервер.
+// The /glass page: logo upload, sliders, PNG and video export. Everything runs in the browser; nothing goes to a server.
 import { GlassRenderer, LOGO_FILL, SDF_SPREAD, type GlassParams, type Shape, type Background, type Sides } from "./renderer";
 import { buildSdf } from "./sdf";
 
-const LAYER = 1024; // текстуры логотипа, px
+const LAYER = 1024; // logo textures, px
 const EXPORT_PX = 1024;
 const VIDEO_PX = 1080;
-const SUPERSAMPLE = 2; // PNG считается вдвое крупнее и сжимается — края без лесенок. Видео так не тянет 60 кадров.
-const PERIOD = 4000; // одна петля анимации, мс
+const SUPERSAMPLE = 2; // PNG is rendered at 2x and scaled down, so edges aren't jagged. Video can't keep 60 fps this way.
+const PERIOD = 4000; // one animation loop, ms
 const TAU = Math.PI * 2;
 
-// Логотип по умолчанию — ☺ из бренда (brand.md §06), пока человек не загрузил свой.
-// Добрый: глаза-дуги, как будто жмурится, мягкая неглубокая улыбка (выбор из десяти вариантов, 22.10.2026).
+// Default logo: the brand's ☺, until the user uploads their own.
+// Friendly: arc eyes, as if squinting, and a soft shallow smile (picked from ten variants).
 const DEMO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><g fill="none" stroke="#0a0a0a" stroke-width="7" stroke-linecap="round"><circle cx="50" cy="50" r="42"/><path d="M31 46Q37 37 43 46M57 46Q63 37 69 46"/><path d="M34 59Q50 72 66 59"/></g></svg>`;
 
 type LogoColor = "original" | "black" | "white";
@@ -31,7 +31,7 @@ const BG: Record<"light" | "dark", [number, number, number]> = {
 };
 const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-// Что выбрано в полях. Для шейдера переводится в числа (target), на экране догоняется плавно (ease).
+// What is selected in the inputs. Converted to numbers for the shader (target), eased smoothly on screen (ease).
 interface State {
   shape: Shape;
   refraction: number;
@@ -69,24 +69,24 @@ let angleDeg = 45;
 let spin = false;
 let volumeOn = false;
 let thickness = 0.5;
-// Толщина остаётся, когда объём выключают: плавно уходит только depth, и объём растворяется, а не схлопывается.
+// Thickness stays when volume is turned off: only depth eases out, so the volume fades instead of collapsing.
 const applyVolume = () => {
   params.volume = thickness;
   params.depth = volumeOn ? 1 : 0;
 };
 let logoColor: LogoColor = "original";
-let demo = true; // пока человек не загрузил свой логотип
-let from: "file" | "drop" | "paste" = "file"; // откуда пришёл логотип — для счётчика, уходит вместе с upload
-let logoLuma = 0; // средняя яркость логотипа 0..1 — тёмный логотип на тёмном фоне красим в белый
-let autoColor = false; // цвет переключили мы, а не человек
+let demo = true; // until the user uploads their own logo
+let from: "file" | "drop" | "paste" = "file"; // where the logo came from, for the counter; sent along with upload
+let logoLuma = 0; // average logo luminance 0..1; a dark logo on a dark background is turned white
+let autoColor = false; // the color was switched by the code, not by the user
 let recording = false;
 
-// Что человек уже тронул за визит: ручки, Advanced и ссылки уходят в счётчик по разу.
+// What the user has already touched this visit: knobs, Advanced and links are counted once each.
 const touched = new Set<string>();
 
-// Ссылки на себя (data-link в разметке): по какой ушли — портфолио, X, почта. Стоит до WebGL:
-// без него инструмент не работает, а ссылки работают — и переходы считаем.
-// Средняя кнопка мыши открывает вкладку без click — её ловит auxclick; правая — нет.
+// Author links (data-link in the markup): which one was followed — portfolio, X, email. Runs before WebGL:
+// without it the tool doesn't work, but the links do, so clicks are still counted.
+// Middle click opens a tab without firing click, so auxclick catches it; right click doesn't count.
 const trackLink = (e: MouseEvent) => {
   if (!(e.target instanceof Element)) return;
   const link = e.target.closest<HTMLAnchorElement>("a[data-link]");
@@ -104,13 +104,13 @@ try {
   renderer = new GlassRenderer(canvas);
 } catch {
   root.classList.add("is-unsupported");
-  throw new Error("WebGL недоступен");
+  throw new Error("WebGL is not available");
 }
 
-// --- Логотип ---
+// --- Logo ---
 
 async function loadFile(file: File) {
-  if (recording) return; // логотип не меняется посреди записи видео
+  if (recording) return; // the logo doesn't change mid-recording
   demo = false;
   if (autoColor) setColor("original");
   if (file.type === "image/svg+xml" || file.name.toLowerCase().endsWith(".svg")) {
@@ -122,7 +122,7 @@ async function loadFile(file: File) {
   }
 }
 
-// SVG без width/height браузер рисует крошечным — проставляем размер из viewBox.
+// Browsers render an SVG without width/height at a tiny size, so set the size from viewBox.
 async function loadSvg(text: string) {
   const doc = new DOMParser().parseFromString(text, "image/svg+xml");
   const svg = doc.documentElement;
@@ -139,8 +139,8 @@ async function loadSvg(text: string) {
   await loadUrl(URL.createObjectURL(blob));
 }
 
-// Слои с прозрачностью из Фигмы (opacity, fill-opacity, stroke-opacity) ставим в 100%:
-// полупрозрачный логотип стекло почти не видит — и сам он, и преломление выходят бледными.
+// Layers with transparency from Figma (opacity, fill-opacity, stroke-opacity) are set to 100%:
+// the glass barely sees a semi-transparent logo, so both the logo and the refraction come out pale.
 const OPACITY = ["opacity", "fill-opacity", "stroke-opacity"];
 function solidify(svg: Element) {
   for (const el of [svg, ...svg.querySelectorAll("*")]) {
@@ -165,7 +165,7 @@ async function loadUrl(url: string) {
   try {
     buildLogo(img, trim(img));
   } catch {
-    // Например, SVG с <foreignObject> (размытие фона из Фигмы) — браузер не даёт прочитать пиксели.
+    // For example, an SVG with <foreignObject> (background blur from Figma): the browser won't let us read the pixels.
     return say("Couldn't open that image.");
   } finally {
     URL.revokeObjectURL(url);
@@ -181,7 +181,7 @@ async function loadUrl(url: string) {
   kick();
 }
 
-// Пустые поля вокруг логотипа срезаем: эффект виден, только когда рисунок доходит до кромки.
+// Trim empty margins around the logo: the effect only shows when the artwork reaches the rim.
 function trim(img: HTMLImageElement) {
   const k = Math.min(1, 1024 / Math.max(img.naturalWidth, img.naturalHeight));
   const w = Math.max(1, Math.round(img.naturalWidth * k));
@@ -202,7 +202,7 @@ function trim(img: HTMLImageElement) {
   return { x: x0 / k, y: y0 / k, w: (x1 - x0 + 1) / k, h: (y1 - y0 + 1) / k };
 }
 
-// Две текстуры: поле расстояний для формы и цвет, раздвинутый за край — чтобы размытая кромка не темнела.
+// Two textures: a distance field for the shape, and color extended past the edge so the blurred rim doesn't darken.
 function buildLogo(img: HTMLImageElement, crop: { x: number; y: number; w: number; h: number }) {
   const k = (LAYER * LOGO_FILL) / Math.max(crop.w, crop.h);
   const w = crop.w * k;
@@ -211,7 +211,7 @@ function buildLogo(img: HTMLImageElement, crop: { x: number; y: number; w: numbe
     ctx.drawImage(img, crop.x, crop.y, crop.w, crop.h, (LAYER - w) / 2, (LAYER - h) / 2, w, h);
 
   const shape = pixels(LAYER, LAYER, place);
-  // PNG целиком полупрозрачный — дотягиваем альфу до полной по самому плотному пикселю.
+  // If the whole PNG is semi-transparent, scale alpha up to full based on the most opaque pixel.
   let maxAlpha = 0;
   for (let i = 3; i < shape.length; i += 4) if (shape[i] > maxAlpha) maxAlpha = shape[i];
   if (maxAlpha > 0 && maxAlpha < 250) for (let i = 3; i < shape.length; i += 4) shape[i] = (shape[i] * 255) / maxAlpha;
@@ -259,7 +259,7 @@ function applyColor() {
   params.tint = logoColor === "black" ? hexToRgb(tokens.getPropertyValue("--color-black")) : logoColor === "white" ? [1, 1, 1] : null;
 }
 
-// --- Отрисовка ---
+// --- Rendering ---
 
 let t0 = performance.now();
 let frame = 0;
@@ -273,7 +273,7 @@ function phaseAt(now: number) {
   return animated() ? ((now - t0) % PERIOD) / PERIOD : 0;
 }
 
-// Состояние полей → числа для шейдера. Угол — без прокрутки, её добавляет withTurn.
+// Input state → numbers for the shader. The angle excludes spin; withTurn adds it.
 function target(st: State): GlassParams {
   if (st.tint) lastTint = st.tint;
   return {
@@ -297,15 +297,15 @@ function target(st: State): GlassParams {
   };
 }
 
-// Прокрутка: один оборот за петлю, у двух сторон — пол-оборота, рисунок повторяется.
+// Spin: one turn per loop; with two sides, half a turn, since the pattern repeats.
 function withTurn(p: GlassParams, phase: number): GlassParams {
   const turn = spinning() ? phase * TAU * (params.sides === "two" ? 0.5 : 1) : 0;
   return { ...p, angle: p.angle + turn };
 }
 
-// Плавность: каждое число на экране догоняет выбранное с постоянной времени EASE —
-// стекло перетекает из квадрата в круг, из одних сторон в другие, а не прыгает.
-const EASE = 90; // мс
+// Easing: each on-screen value chases its target with time constant EASE,
+// so the glass flows from square to circle and from one set of sides to another instead of jumping.
+const EASE = 90; // ms
 const EASED = ["n", "refraction", "dispersion", "edge", "motion", "size", "tintMix", "sideMix", "sideTwo", "angle", "spread", "liquid", "volume", "depth"] as const;
 let shown: GlassParams | null = null;
 
@@ -334,7 +334,7 @@ function previewSize() {
   return Math.min(Math.round(css * Math.min(devicePixelRatio, 2)), 1400);
 }
 
-// Кадр без догоняния — для ресайза и после экспорта.
+// A frame without easing, for resize and after export.
 function draw() {
   if (recording) return;
   if (!shown) shown = target(params);
@@ -352,7 +352,7 @@ function loop(now: number) {
   if (moving || animated()) frame = requestAnimationFrame(loop);
 }
 
-// Запустить перерисовку, если цикл стоит.
+// Start redrawing if the loop is idle.
 function kick() {
   if (frame || recording) return;
   last = performance.now();
@@ -361,18 +361,18 @@ function kick() {
 
 new ResizeObserver(() => draw()).observe(stage);
 
-// --- Управление ---
+// --- Controls ---
 
-// Значения берём из полей: браузер может вернуть их после перезагрузки.
+// Read values from the inputs: the browser may restore them after a reload.
 for (const input of root.querySelectorAll<HTMLInputElement>("input[type=range]")) {
   const box = input.parentElement!;
   const val = box.querySelector<HTMLElement>(".val");
   const set = () => {
     const v = Number(input.value);
     const min = Number(input.min);
-    // --p — положение ручки 0..1 для вёрстки, .val — число, которое видно, пока тянешь.
+    // --p is the thumb position 0..1 for the CSS; .val is the number shown while dragging.
     box.style.setProperty("--p", String((v - min) / (Number(input.max) - min)));
-    // Число — атрибутом, а не текстом: это показание, а не копирайт страницы (copy-check сверяет текст).
+    // The number goes in an attribute, not text: it's a reading, not page copy (copy-check verifies the text).
     if (val) val.dataset.v = input.name === "angle" ? `${Math.round(v)}°` : v.toFixed(2);
     if (input.name === "angle") angleDeg = v;
     else if (input.name === "thickness") {
@@ -386,7 +386,7 @@ for (const input of root.querySelectorAll<HTMLInputElement>("input[type=range]")
     set();
     kick();
   });
-  // Двойной клик по ползунку — вернуть значение по умолчанию.
+  // Double-click a slider to reset it to the default value.
   input.addEventListener("dblclick", () => {
     input.value = input.defaultValue;
     input.dispatchEvent(new Event("input", { bubbles: true }));
@@ -420,7 +420,7 @@ for (const input of root.querySelectorAll<HTMLInputElement>("input[type=radio]")
     if (input.name === "sides") {
       params.sides = input.value as Sides;
       root.dataset.sides = input.value;
-      // Угол и прокрутка без выбранных сторон ничего не меняют — выключаем по-настоящему, не только видом.
+      // Angle and spin do nothing without selected sides, so disable them for real, not just visually.
       for (const el of root.querySelectorAll<HTMLInputElement>(".directional input")) el.disabled = input.value === "all";
     }
     if (input.name === "background") {
@@ -443,8 +443,8 @@ for (const input of root.querySelectorAll<HTMLInputElement>("input[type=radio]")
 }
 applyColor();
 
-// Тёмный логотип на тёмном фоне пропадает — красим в белый, и обратно, когда фон снова светлый.
-// Решаем по яркости самого логотипа, а не только для демо-смайлика.
+// A dark logo disappears on a dark background: turn it white, and back when the background is light again.
+// Decided by the logo's own luminance, not just for the demo smiley.
 function fitColorToBackground() {
   const dark = params.background === "dark";
   if (dark && (logoColor === "black" || (logoColor === "original" && logoLuma < 0.3))) setColor("white", true);
@@ -467,7 +467,7 @@ fileInput.addEventListener("change", () => {
   fileInput.value = "";
 });
 
-// Файл можно бросить куда угодно на страницу; пока несёшь — сцена подсвечена.
+// A file can be dropped anywhere on the page; while it's being dragged, the stage is highlighted.
 let dragDepth = 0;
 document.addEventListener("dragenter", (e) => {
   if (!e.dataTransfer?.types.includes("Files")) return;
@@ -490,37 +490,37 @@ document.addEventListener("drop", (e) => {
   }
 });
 
-// --- Пресеты ---
+// --- Presets ---
 
-// Готовые виды одним кликом. Studio стоит по умолчанию и в разметке — первый экран сразу «вау».
+// Ready-made looks in one click. Studio is the default, in the markup too, so the first screen wows right away.
 type Preset = { ranges: Record<string, number>; radios: Record<string, string>; checks: Record<string, boolean> };
-// Каждый пресет задаёт форму, стороны, фон, объём и прокрутку целиком — иначе вид зависел бы от предыдущего.
+// Each preset sets shape, sides, background, volume and spin in full; otherwise the look would depend on the previous one.
 const PRESETS: Record<string, Preset> = {
-  // Логотип натекает в два противоположных угла — как нота у Apple.
+  // The logo flows into two opposite corners, like Apple's music note.
   studio: {
     ranges: { size: 0.66, refraction: 1.5, dispersion: 0.95, edge: 0.18, liquid: 0.75, angle: 45, spread: 0.6, thickness: 0.35, motion: 0.5 },
     radios: { sides: "two", background: "light", shape: "squircle" },
     checks: { volume: true, spin: false },
   },
-  // Натекает во все углы, радужные пятна.
+  // Flows into all corners, rainbow patches.
   melt: {
     ranges: { size: 0.6, refraction: 1.2, dispersion: 0.9, edge: 0.22, liquid: 0.85, thickness: 0.45, motion: 0.7 },
     radios: { sides: "all", background: "light", shape: "squircle" },
     checks: { volume: true, spin: false },
   },
-  // Тонкая радуга по всей кромке, логотип почти не тронут — без тяжёлой рамки его цвета.
+  // Thin rainbow along the whole rim, logo almost untouched, without a heavy frame in its color.
   prism: {
     ranges: { size: 0.62, refraction: 1.05, dispersion: 1, edge: 0.14, liquid: 0, thickness: 0.6, motion: 0.5 },
     radios: { sides: "all", background: "light", shape: "squircle" },
     checks: { volume: true, spin: false },
   },
-  // Круглая линза — как штамп бренда (brand.md §06).
+  // Round lens, like the brand stamp.
   lens: {
     ranges: { size: 0.6, refraction: 0.85, dispersion: 1, edge: 0.28, liquid: 0.15, thickness: 0.5, motion: 0.4 },
     radios: { sides: "all", background: "light", shape: "circle" },
     checks: { volume: true, spin: false },
   },
-  // Тёмный фон; тёмный логотип сам станет белым.
+  // Dark background; a dark logo turns white on its own.
   night: {
     ranges: { size: 0.62, refraction: 1.3, dispersion: 1, edge: 0.2, liquid: 0.75, thickness: 0.6, motion: 0.5 },
     radios: { sides: "all", background: "dark", shape: "squircle" },
@@ -530,7 +530,7 @@ const PRESETS: Record<string, Preset> = {
 const PRESET_KEYS = new Set(Object.values(PRESETS).flatMap((p) => [...Object.keys(p.ranges), ...Object.keys(p.radios), ...Object.keys(p.checks)]));
 let applyingPreset = false;
 
-// Пресет ставит значения в сами поля — стекло перетекает к нему тем же догонянием, что и от ползунков.
+// A preset writes values into the inputs themselves, so the glass eases to it the same way as with the sliders.
 function applyPreset(name: string) {
   const preset = PRESETS[name];
   if (!preset) return;
@@ -566,7 +566,7 @@ for (const input of root.querySelectorAll<HTMLInputElement>("input[name=preset]"
   });
 }
 
-// Advanced помнит, раскрыт ли он, — у каждого посетителя в его браузере.
+// Advanced remembers whether it's open, per visitor, in their own browser.
 const advanced = root.querySelector<HTMLDetailsElement>("[data-advanced]")!;
 try {
   if (localStorage.getItem("glass-advanced") === "open") {
@@ -575,17 +575,17 @@ try {
     requestAnimationFrame(() => requestAnimationFrame(() => advanced.classList.remove("instant")));
   }
 } catch {
-  // Хранилище недоступно — просто свёрнут.
+  // Storage unavailable: it just stays collapsed.
 }
 advanced.addEventListener("toggle", () => {
   try {
     localStorage.setItem("glass-advanced", advanced.open ? "open" : "closed");
   } catch {
-    // Не запомнили — не страшно.
+    // Not saved; that's fine.
   }
 });
 
-// Тронул настройку, которую задаёт пресет, — выбор пресета снимается: вид уже свой.
+// Touching a setting a preset controls clears the preset selection: the look is now custom.
 const clearPreset = (e: Event) => {
   const name = (e.target as HTMLInputElement).name;
   if (applyingPreset || !PRESET_KEYS.has(name)) return;
@@ -594,11 +594,11 @@ const clearPreset = (e: Event) => {
 root.addEventListener("input", clearPreset);
 root.addEventListener("change", clearPreset);
 
-// --- Какие ручки трогают ---
+// --- Which knobs get touched ---
 
-// В счётчик — тронул ли человек ручку за визит, по одному разу: без значений и без числа сдвигов.
-// Имена — как на экране (liquid на экране — Blend). Пресеты и сброс двойным кликом меняют поля из кода —
-// такие события (isTrusted = false) в счёт не идут.
+// The counter gets whether the user touched a knob this visit, once each: no values, no number of moves.
+// Names match the screen (liquid is Blend on screen). Presets and the double-click reset change inputs from code;
+// those events (isTrusted = false) aren't counted.
 const KNOB_NAMES: Record<string, string> = {
   liquid: "blend",
   size: "logo-size",
@@ -619,14 +619,14 @@ const trackKnob = (e: Event) => {
 };
 root.addEventListener("input", trackKnob);
 root.addEventListener("change", trackKnob);
-// Раскрыл Advanced сам — а не панель открылась, потому что он оставил её раскрытой в прошлый раз.
+// The user opened Advanced, rather than it opening because they left it open last time.
 advanced.querySelector("summary")!.addEventListener("click", () => {
   if (advanced.open || touched.has("advanced")) return;
   touched.add("advanced");
   track("advanced");
 });
 
-// Фигма копирует «Copy as SVG» текстом — принимаем и текст, и картинку из буфера.
+// Figma's "Copy as SVG" copies text, so accept both text and an image from the clipboard.
 document.addEventListener("paste", (e) => {
   const data = e.clipboardData;
   if (!data) return;
@@ -642,9 +642,9 @@ document.addEventListener("paste", (e) => {
   }
 });
 
-// --- Экспорт ---
+// --- Export ---
 
-// Кадр считается в SUPERSAMPLE раз крупнее и сжимается в итоговый размер.
+// The frame is rendered SUPERSAMPLE times larger and scaled down to the final size.
 function frameInto(out: HTMLCanvasElement, p: GlassParams, phase: number) {
   renderer.setSize(out.width * SUPERSAMPLE);
   renderer.render(p, phase);
@@ -666,8 +666,8 @@ pngButton.addEventListener("click", () => {
     }
     draw();
   };
-  // iOS пускает в «Поделиться» надёжно только в том же такте, что и нажатие, а toBlob отвечает позже —
-  // там PNG собираем синхронно.
+  // iOS only reliably opens the Share sheet in the same tick as the tap, and toBlob responds later,
+  // so there the PNG is built synchronously.
   if (ios) done(dataUrlToBlob(out.toDataURL("image/png")));
   else out.toBlob(done, "image/png");
 });
@@ -682,24 +682,24 @@ videoButton.addEventListener("click", async () => {
   if (!type) return say("This browser can't record video. Try Chrome or Safari.");
 
   recording = true;
-  // Обнулить обязательно: иначе kick() после записи считает цикл живым, и превью замирает.
+  // Must reset: otherwise kick() after recording thinks the loop is alive, and the preview freezes.
   cancelAnimationFrame(frame);
   frame = 0;
   root.classList.add("is-recording");
   videoButton.disabled = pngButton.disabled = true;
   say(params.background === "none" ? "Recording on light: video can't be transparent." : "Recording…");
 
-  // Если браузер не потянет запись (кодек, 1080p, битрейт), страница не должна остаться с выключенными кнопками.
+  // If the browser can't handle recording (codec, 1080p, bitrate), the page must not be left with disabled buttons.
   let message = "";
   try {
-    // Без фона видео не бывает: прозрачный режим пишем на светлом. Неподвижное видео смысла не имеет — качаем форму.
+    // Video always has a background: transparent mode records on light. A still video makes no sense, so the shape moves.
     const base = target({
       ...params,
       ...(params.background === "none" ? { background: "light" as const, bg: BG.light } : {}),
       motion: animated() ? params.motion : 0.5,
     });
 
-    // Wide — кадр 1920×1080 для ленты X: квадрат с иконкой по центру, поля того же цвета, что фон.
+    // Wide is a 1920×1080 frame for the X feed: the icon square centered, margins in the background color.
     const wide = root.querySelector<HTMLInputElement>("input[name=format]:checked")?.value === "wide";
     const frameCanvas = wide ? document.createElement("canvas") : null;
     const frameCtx = frameCanvas?.getContext("2d");
@@ -745,7 +745,7 @@ videoButton.addEventListener("click", async () => {
     if (chunks.length) {
       save(new Blob(chunks, { type }), `glass-icon${wide ? "-wide" : ""}.${mp4 ? "mp4" : "webm"}`);
       track(wide ? "video-wide" : "video");
-      // X берёт видео в MP4 и MOV; WebM пишут браузеры без записи в MP4 (Firefox).
+      // X takes MP4 and MOV video; browsers that can't record MP4 (Firefox) write WebM.
       if (!mp4) message = "Saved as WebM. For X, record in Chrome or Safari.";
     } else {
       message = "This browser can't record video. Try Chrome or Safari.";
@@ -763,19 +763,18 @@ videoButton.addEventListener("click", async () => {
   }
 });
 
-// --- Поделиться в X ---
+// --- Share on X ---
 
-// Тексты — из плана запуска («Glass — запуск» §11, после фокус-группы): в заготовке только адрес, без @ —
-// подпись автора дизайнеры стирают как водяной знак.
+// The prefilled post credits only the URL, not an @handle: designers strip a handle like a watermark.
 const SHARE_URL = "https://phileeppov.com/glass";
 const SHARE_TEXT = "made with";
 const SHARE_POST = `${SHARE_TEXT} ${SHARE_URL.replace("https://", "")}`;
 const SHARE_LABEL = shareButton.textContent;
-// Телефон — системное «Поделиться» с файлом. На компьютере в этом меню X обычно нет, поэтому там — буфер и редактор X.
+// On phones, the system Share sheet with the file. On desktop X is usually not in that menu, so there it's the clipboard and the X composer.
 const touch = matchMedia("(pointer: coarse)").matches;
-// iPhone и iPad (iPad представляется Маком, выдаёт его сенсор). Обычное скачивание там уводит файл в «Файлы»,
-// а браузер X открывает картинку на весь экран. Поэтому сохраняем через «Поделиться»: в меню «Save Image» в «Фото»
-// и сразу X (само меню проверено Ником на iPhone в Safari и в браузере X, 23.10.2026; «Download PNG» сразу в меню — нет).
+// iPhone and iPad (iPad reports itself as a Mac; the touchscreen gives it away). A regular download there sends the file to Files,
+// and X's in-app browser opens the image full screen. So save via the Share sheet: it has Save Image to Photos
+// and X right there (the sheet itself was tested on iPhone in Safari and in X's in-app browser; "Download PNG" straight into the sheet was not).
 const ios =
   /iPhone|iPad|iPod/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
 let lastExport: { blob: Blob; name: string; video: boolean } | null = null;
@@ -785,18 +784,18 @@ async function save(blob: Blob, name: string) {
   if (!ios || !navigator.canShare?.({ files: [file] })) return download(blob, name);
   lastExport = { blob, name, video: blob.type.startsWith("video/") };
   shareButton.hidden = true;
-  // Меню «Поделиться» открывается только сразу после нажатия, а видео пишется 4 с — для него сразу кнопка.
+  // The Share sheet only opens right after a tap, and video takes 4 s to record, so for video show the button right away.
   if (lastExport.video) return offerSave();
   try {
     await navigator.share({ files: [file], text: SHARE_POST });
   } catch (e) {
-    // Закрыл меню или тапнул дважды (меню уже открыто) — ничего. Не пустило по другой причине — та же кнопка.
+    // Sheet closed, or tapped twice (sheet already open): do nothing. Blocked for any other reason: show the same button.
     const reason = (e as DOMException).name;
     if (reason !== "AbortError" && reason !== "InvalidStateError") offerSave();
   }
 }
 
-// На iPhone кнопка под экспортом — не тихая ссылка, а полноценная: без неё файл не сохранить.
+// On iPhone the button under export is a full button, not a quiet link: without it the file can't be saved.
 function offerSave() {
   shareButton.textContent = lastExport?.video ? "Save video" : "Save image";
   shareButton.classList.add("is-save");
@@ -805,19 +804,19 @@ function offerSave() {
 
 shareButton.addEventListener("click", async () => {
   if (!lastExport) return;
-  // На iPhone эта кнопка — «сохранить», а не «поделиться»: в счётчик share не идёт.
+  // On iPhone this button means save, not share, so it isn't counted as share.
   if (!ios) track("share");
   const file = new File([lastExport.blob], lastExport.name, { type: lastExport.blob.type });
   if ((touch || ios) && navigator.canShare?.({ files: [file] })) {
     try {
       await navigator.share({ files: [file], text: SHARE_POST });
     } catch (e) {
-      // Закрыл меню — ничего. На iPhone без меню файл не сохранить, поэтому при сбое — обычное скачивание.
+      // Sheet closed: do nothing. On iPhone the file can't be saved without the sheet, so on failure fall back to a regular download.
       if (ios && (e as DOMException).name !== "AbortError") download(file, file.name);
     }
     return;
   }
-  // Ссылка на редактор X умеет только текст и адрес; картинку кладём в буфер, видео — перетащить из загрузок.
+  // The X composer link only takes text and a URL; the image goes to the clipboard, the video has to be dragged in from downloads.
   let hint = "Attach the video you just downloaded.";
   if (!lastExport.video) {
     try {
@@ -827,7 +826,7 @@ shareButton.addEventListener("click", async () => {
       hint = "Attach the image you just downloaded.";
     }
   }
-  // Отдельным окном поверх страницы — подсказка на странице остаётся видна.
+  // A separate window over the page, so the hint on the page stays visible.
   const tab = window.open(
     `https://x.com/intent/post?text=${encodeURIComponent(SHARE_TEXT)}&url=${encodeURIComponent(SHARE_URL)}`,
     "_blank",
@@ -837,15 +836,15 @@ shareButton.addEventListener("click", async () => {
   say(tab ? hint : "Pop-up blocked. Allow pop-ups to open X.");
 });
 
-// --- Мелочи ---
+// --- Misc ---
 
-// Анонимный счётчик: на сервер уходит только название события — без логотипа и данных о человеке
-// (/api/event, worker/index.js). Выстрелил и забыл: страница ответа не ждёт.
+// Anonymous counter: only the event name goes to the server, no logo and no data about the user
+// (/api/event, worker/index.js). Fire and forget: the page doesn't wait for a response.
 function track(name: string) {
   try {
     navigator.sendBeacon?.("/api/event", name);
   } catch {
-    // Не отправилось — не страшно.
+    // Not sent; that's fine.
   }
 }
 
@@ -854,23 +853,23 @@ function download(blob: Blob, name: string) {
   a.href = URL.createObjectURL(blob);
   a.download = name;
   a.click();
-  // На iOS скачивание подтверждают вручную — ссылку держим минуту, а не секунду.
+  // On iOS a download is confirmed by hand, so keep the URL for a minute, not a second.
   setTimeout(() => URL.revokeObjectURL(a.href), 60_000);
-  // После сохранения появляется «поделиться»: делиться можно только по нажатию, файл к этому моменту готов.
-  // WebM X, скорее всего, не примет — кнопку не показываем, подсказка про Chrome и Safari остаётся.
+  // After saving, Share appears: sharing only works on a tap, and by then the file is ready.
+  // X most likely won't accept WebM, so don't show the button; the Chrome and Safari hint stays.
   if (blob.type.includes("webm")) {
     lastExport = null;
     shareButton.hidden = true;
     return;
   }
   lastExport = { blob, name, video: blob.type.startsWith("video/") };
-  // Кнопка могла остаться iPhone-кнопкой «Save …» от прошлого экспорта — возвращаем ссылку.
+  // The button may still be the iPhone "Save …" button from the last export, so turn it back into a link.
   shareButton.classList.remove("is-save");
   shareButton.textContent = touch ? "Share" : SHARE_LABEL;
   shareButton.hidden = false;
 }
 
-// Синхронная замена toBlob для iOS (см. «Download PNG»).
+// Synchronous toBlob replacement for iOS (see "Download PNG").
 function dataUrlToBlob(url: string) {
   const bytes = atob(url.slice(url.indexOf(",") + 1));
   const out = new Uint8Array(bytes.length);

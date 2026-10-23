@@ -1,8 +1,8 @@
 ---
-// Инструмент: логотип → иконка в стекле. Тексты — site.md §7.
-// Исключение из правила островков (CLAUDE.md, «Сборка»): эффект здесь — сама страница, поэтому WebGL работает и на телефоне.
-// Шрифт страницы — Onest (решение Никиты 22.10.2026); у остального сайта — свой стек из tokens.css.
-// Шапка и подвал свои: вордмарк в режиме версий (brand.md §07, phil 01 ppov — мини-проект №01).
+// Tool: logo → glass icon. Copy: site.md §7.
+// Exception: elsewhere heavy effects load as desktop-only islands; here the effect is the page itself, so WebGL runs on phones too.
+// The page font is Onest; the rest of the site uses its own stack from tokens.css.
+// Custom header and footer: the wordmark in version mode (phil 01 ppov is mini-project #01).
 import Base from "../layouts/Base.astro";
 import "../styles/onest.css";
 ---
@@ -13,8 +13,8 @@ import "../styles/onest.css";
     <link rel="apple-touch-icon" href="/glass-touch-icon.png" />
   </Fragment>
 
-  <!-- Ссылки на себя: вордмарк — портфолио, хендл — профиль X. Всё наружу — в новой вкладке,
-       чтобы загруженный логотип и настройки не терялись. -->
+  <!-- Author links: wordmark → portfolio, handle → X profile. Every link off this page opens in a new tab,
+       so the uploaded logo and settings aren't lost. -->
   <header class="top">
     <a class="mark" href="/" target="_blank" rel="noopener" aria-label="phil01ppov, portfolio" title="Portfolio" data-link="wordmark">phil<i>01</i>ppov</a>
     <nav>
@@ -138,7 +138,7 @@ import "../styles/onest.css";
 </script>
 
 <style>
-  /* Весь текст страницы — Onest, трекинг −4% (решение Никиты 22.10.2026). Стили страницы грузятся только на /glass. */
+  /* All page text is Onest, tracking −4%. Page styles load only on /glass. */
   :global(html) {
     font-family: "Onest", var(--font-base);
     letter-spacing: -0.04em;
@@ -153,8 +153,8 @@ import "../styles/onest.css";
     text-decoration: none;
   }
 
-  /* Шапка: вордмарк слева, две ссылки справа. */
-  /* Шапка лежит поверх страницы, а не над ней: сцена начинается от верха экрана, и иконка с первого кадра в центре. */
+  /* Header: wordmark on the left, two links on the right. */
+  /* The header sits over the page, not above it: the stage starts at the top of the screen, so the icon is centered from the first frame. */
   .top {
     position: absolute;
     z-index: 2;
@@ -171,7 +171,7 @@ import "../styles/onest.css";
     font-weight: 500;
     transition: opacity 120ms ease-out;
   }
-  /* Вордмарк ведёт на портфолио — отзывается на наведение, как ссылка. */
+  /* The wordmark leads to the portfolio, so it responds to hover like a link. */
   .mark:hover {
     opacity: 0.6;
   }
@@ -184,7 +184,7 @@ import "../styles/onest.css";
     align-items: center;
     gap: 16px;
   }
-  /* Portfolio — маленькая белая капсула, как кнопки в плашке: главный путь к портфолио. */
+  /* Portfolio is a small white pill, like the buttons in the panel: the main path to the portfolio. */
   .top nav .work {
     padding: 6px 14px;
     border-radius: 999px;
@@ -210,7 +210,7 @@ import "../styles/onest.css";
     max-width: none;
     display: grid;
     grid-template-columns: minmax(0, 1fr) 280px;
-    /* Сцена тянется на две строки — рядом с плашкой и подвалом: так она держит иконку в центре экрана до самого низа. */
+    /* The stage spans two rows, next to the panel and the footer, so it keeps the icon centered on screen all the way down. */
     grid-template-areas:
       "stage intro"
       "stage controls"
@@ -218,7 +218,7 @@ import "../styles/onest.css";
     gap: 24px 40px;
     align-items: start;
   }
-  /* Заголовок — над плашкой, в правой колонке; отступ сверху — под ссылки шапки. */
+  /* Title above the panel, in the right column; the top padding makes room for the header links. */
   .intro {
     grid-area: intro;
     padding: 56px 4px 0;
@@ -235,8 +235,8 @@ import "../styles/onest.css";
     font-size: var(--text-body);
   }
 
-  /* Сцена закреплена: пока крутишь настройки, иконка всегда перед глазами. */
-  /* Сцена — высотой в экран и прилипает к верху: иконка всегда стоит посередине экрана. */
+  /* The stage is pinned: while you adjust settings, the icon is always in view. */
+  /* The stage is full viewport height and sticks to the top, so the icon always sits in the middle of the screen. */
   .stage-wrap {
     grid-area: stage;
     align-self: stretch;
@@ -260,7 +260,7 @@ import "../styles/onest.css";
     text-align: center;
     font-size: 12px;
   }
-  /* Файл несут над страницей — подсвечиваем сцену: бросить можно куда угодно. */
+  /* A file is being dragged over the page: highlight the stage, it can be dropped anywhere. */
   :global(.is-over) .stage canvas {
     outline: 2px dashed var(--ink);
     outline-offset: -10px;
@@ -270,7 +270,7 @@ import "../styles/onest.css";
     width: 100%;
     height: 100%;
     border-radius: 24px;
-    /* Шахматка видна только в режиме без фона — показывает, что PNG прозрачный. */
+    /* The checkerboard shows only in no-background mode, to show the PNG is transparent. */
     background: repeating-conic-gradient(var(--color-off-white) 0 25%, color-mix(in srgb, var(--color-black) 6%, var(--color-off-white)) 0 50%) 0 0 / 24px 24px;
   }
   .unsupported {
@@ -287,8 +287,8 @@ import "../styles/onest.css";
     padding: 24px;
   }
 
-  /* Все настройки — одна мягкая плашка (референс 1): почти белая, большое скругление,
-     светлая кромка сверху и широкая мягкая тень. */
+  /* All settings in one soft panel: near-white, large radius,
+     a light top edge and a wide soft shadow. */
   .controls {
     grid-area: controls;
     display: flex;
@@ -310,9 +310,9 @@ import "../styles/onest.css";
     width: 1px;
     height: 1px;
   }
-  /* Чёрно-белое, но не плоское до сухости: мягкий чёрный, скругления, обводки 0.5px.
-     Стилизация страницы — отдельной задачей, когда инструмент будет закончен. */
-  /* На body, а не на .glass: шапка и подвал тоже берут эти цвета. */
+  /* Black and white, but not flat and sterile: soft black, rounded corners, 0.5px strokes.
+     Page styling is a separate task once the tool is finished. */
+  /* On body, not .glass: the header and footer use these colors too. */
   :global(body) {
     --ink: color-mix(in srgb, var(--color-black) 88%, var(--color-off-white));
     --hair: color-mix(in srgb, var(--color-black) 22%, transparent);
@@ -320,12 +320,12 @@ import "../styles/onest.css";
     --raised: color-mix(in srgb, white 70%, var(--color-off-white));
     --panel: color-mix(in srgb, white 40%, var(--color-off-white));
     --tick: color-mix(in srgb, var(--color-black) 6%, transparent);
-    /* Белая поднятая поверхность (референс 1): тонкая кромка, блик сверху, короткая мягкая тень. */
+    /* Raised white surface: thin edge, highlight on top, short soft shadow. */
     --raise: inset 0 1px 0 #fff, 0 0 0 0.5px color-mix(in srgb, var(--color-black) 10%, transparent),
       0 1px 2px color-mix(in srgb, var(--color-black) 6%, transparent),
       0 3px 8px -3px color-mix(in srgb, var(--color-black) 12%, transparent);
-    /* Тёмная кнопка как выбранный пункт «General Knowledge» (референс 2): чуть светлее чёрного,
-       сверху тонкий блик, по краю 0.5px. */
+    /* Dark button: slightly lighter than black,
+       a thin highlight on top, 0.5px along the edge. */
     --btn-dark: linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 100%);
     --btn-edge: inset 0 0.5px 0 rgb(255 255 255 / 0.16), 0 0 0 0.5px rgb(0 0 0 / 0.5),
       0 1px 2px rgb(0 0 0 / 0.14);
@@ -372,9 +372,9 @@ import "../styles/onest.css";
   .status:empty {
     display: none;
   }
-  /* Ползунок (макет Никиты): серая капсула с делениями, белая ручка-капсула с подписью.
-     Поверх — прозрачный настоящий range: мышь, палец, клавиатура и скринридер работают как обычно.
-     Ширина ручки у range и у видимой ручки одна (--tw), поэтому позиции совпадают. */
+  /* Slider: a gray pill with ticks, a white pill thumb with a label.
+     A transparent native range sits on top: mouse, touch, keyboard and screen readers work as usual.
+     The range thumb and the visible thumb share one width (--tw), so their positions match. */
   .range {
     --tw: 104px;
     --p: 0.5;
@@ -386,7 +386,7 @@ import "../styles/onest.css";
     box-shadow: inset 0 1px 2px color-mix(in srgb, var(--color-black) 7%, transparent),
       inset 0 0 0 0.5px color-mix(in srgb, var(--color-black) 6%, transparent);
   }
-  /* Деления: светлые по всей длине, пройденные — темнее. */
+  /* Ticks: light along the whole length, darker where passed. */
   .range::before,
   .range::after {
     content: "";
@@ -455,7 +455,7 @@ import "../styles/onest.css";
   .val::after {
     content: attr(data-v);
   }
-  /* Пока тянешь или крутишь с клавиатуры — вместо подписи число. */
+  /* While dragging or adjusting with the keyboard, the number replaces the label. */
   .range:has(input:active) .name,
   .range:has(input:focus-visible) .name {
     opacity: 0;
@@ -468,7 +468,7 @@ import "../styles/onest.css";
     outline: 2px solid var(--ink);
     outline-offset: 2px;
   }
-  /* Сегменты: углублённый лоток, выбранный — заливка. */
+  /* Segments: a recessed tray, the selected one is filled. */
   fieldset {
     border: 0;
     padding: 0;
@@ -476,7 +476,7 @@ import "../styles/onest.css";
     display: flex;
     flex-wrap: wrap;
   }
-  /* Подписи групп и переключателей — medium: это названия. */
+  /* Group and toggle labels are medium: they are names. */
   legend,
   .check span {
     font-weight: 500;
@@ -486,8 +486,8 @@ import "../styles/onest.css";
     padding: 0;
     margin-bottom: 6px;
   }
-  /* Выбранная капсула — одна на лоток и переезжает к новому варианту (как сегменты в iOS):
-     --n — сколько вариантов, --i — какой выбран. */
+  /* One selected pill per tray, sliding to the new option (like iOS segmented controls):
+     --n is how many options, --i is which one is selected. */
   .seg {
     --n: 2;
     --i: 0;
@@ -553,7 +553,7 @@ import "../styles/onest.css";
   .seg:has(> label:nth-child(5) input:checked) {
     --i: 4;
   }
-  /* Ничего не выбрано (пресет снят ручной правкой) — капсулы нет. */
+  /* Nothing selected (preset cleared by a manual change): no pill. */
   .seg:not(:has(input:checked))::before {
     opacity: 0;
   }
@@ -568,13 +568,13 @@ import "../styles/onest.css";
     outline: 2px solid var(--ink);
     outline-offset: 1px;
   }
-  /* Угол и прокрутка имеют смысл, только когда стороны выбраны; толщина — когда включён объём. */
+  /* Angle and spin only matter when sides are selected; thickness only when volume is on. */
   [data-volume="off"] .thick,
   [data-sides="all"] .directional {
     opacity: 0.35;
     pointer-events: none;
   }
-  /* Галочки — переключатели. */
+  /* Checkboxes as toggles. */
   .check {
     display: flex;
     justify-content: space-between;
@@ -636,7 +636,7 @@ import "../styles/onest.css";
     opacity: 0.4;
     cursor: default;
   }
-  /* «Поделиться» — маленькая ссылка под кнопками, появляется после первого сохранения. */
+  /* Share is a small link under the buttons, shown after the first save. */
   .share {
     width: auto;
     align-self: center;
@@ -650,11 +650,11 @@ import "../styles/onest.css";
     filter: none;
     background: var(--tray);
   }
-  /* На iPhone — полноценная тёмная кнопка: сохранить файл можно только через неё. */
+  /* On iPhone it's a full dark button: it's the only way to save the file. */
   .share.is-save {
     width: 100%;
     align-self: stretch;
-    /* Вплотную к «Record video», как кнопки в .actions (8px), а не через общий gap панели. */
+    /* Close to "Record video", like the buttons in .actions (8px), not with the panel's shared gap. */
     margin-top: -6px;
     padding: 12px 16px;
     background: var(--btn-dark);
@@ -674,7 +674,7 @@ import "../styles/onest.css";
       transform: translateY(-6px);
     }
   }
-  /* Пока пишется видео, кнопка заполняется за одну петлю — видно, сколько ждать. */
+  /* While video records, the button fills over one loop, so you can see how long to wait. */
   :global(.is-recording) [data-video] {
     opacity: 1;
     background:
@@ -691,8 +691,8 @@ import "../styles/onest.css";
     padding-inline: 0;
   }
 
-  /* Advanced: вторичные настройки свёрнуты, чтобы кнопки скачивания были на первом экране.
-     Раскрывается плавно (interpolate-size; где не поддерживается — сразу). */
+  /* Advanced: secondary settings are collapsed so the download buttons stay on the first screen.
+     Opens smoothly (interpolate-size; instantly where it isn't supported). */
   .glass {
     interpolate-size: allow-keywords;
   }
@@ -738,7 +738,7 @@ import "../styles/onest.css";
   .advanced.instant::details-content {
     transition: none;
   }
-  /* Поля по бокам — чтобы тени ручек и лотков не обрезались. */
+  /* Side padding so thumb and tray shadows aren't clipped. */
   .adv-body {
     display: flex;
     flex-direction: column;
@@ -747,7 +747,7 @@ import "../styles/onest.css";
     padding: 12px 6px 6px;
   }
 
-  /* Подвал: подпись ☺ (brand.md §10 — один раз на поверхность) и ссылки. */
+  /* Footer: the ☺ signature (once per surface) and links. */
   .bottom {
     grid-area: foot;
     display: grid;
@@ -762,7 +762,7 @@ import "../styles/onest.css";
     font-size: var(--text-body);
     font-weight: 500;
   }
-  /* Имя — ссылка на X: видно, что нажимается, но без синего браузерного подчёркивания. */
+  /* The name links to X: clearly clickable, but without the blue browser underline. */
   .made a {
     opacity: 1;
     text-decoration: underline;
@@ -775,7 +775,7 @@ import "../styles/onest.css";
     text-decoration-color: currentColor;
   }
 
-  /* Невысокий экран ноутбука: плотнее, чтобы Download PNG оставалась на первом экране. */
+  /* Short laptop screen: tighter, so Download PNG stays on the first screen. */
   @media (min-width: 761px) and (max-height: 820px) {
     .intro {
       padding-top: 44px;
@@ -811,7 +811,7 @@ import "../styles/onest.css";
     .intro {
       padding: 0;
     }
-    /* На телефоне иконка прилипает к верху экрана, настройки прокручиваются под ней. */
+    /* On phones the icon sticks to the top of the screen, and the settings scroll under it. */
     .stage-wrap {
       position: sticky;
       align-self: start;

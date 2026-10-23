@@ -1,6 +1,6 @@
-// Кейсы: тексты дословно из «Работа/Личный бренд/Кейсы/<работа>.md», раздел с текстом для сайта.
-// Кадры — из «Кейсы/Кадры/<работа>», место каждого — по карте картинок в том же файле.
-// Строка в абзаце — как в источнике, переносы строк источника заменены пробелами. Сверка — npm run copy-check.
+// Cases: copy comes verbatim from the case notes kept outside this repo (the section with the site copy).
+// Shots come from each case's shot folder; each shot is placed by the shot map in the same note.
+// Each paragraph string matches the source, with source line breaks replaced by spaces. Check: npm run copy-check.
 
 export type Shot = { img: string; caption?: string };
 export type Block = string | Shot[];
@@ -158,7 +158,6 @@ export const cases: Case[] = [
     ],
     happened: ["160 people got the card in the first ten weeks. They show it at the counter."],
     artifacts: { shots: s("IMG-08", "IMG-09", "IMG-10") },
-    // Утверждено в cases.md §05 и decisions.md, 14.10.2026.
     notes: ["Screens localized to English for this case", "© OpenStreetMap contributors"],
   },
   {
@@ -204,11 +203,11 @@ export const cases: Case[] = [
   },
 ];
 
-// Кадры: src/assets/cases/<slug>/<ID>.png.
+// Shots: src/assets/cases/<slug>/<ID>.png.
 const files = import.meta.glob<{ default: ImageMetadata }>("../assets/cases/*/*.png", { eager: true });
 
 export function shot(slug: string, id: string): ImageMetadata {
   const file = files[`../assets/cases/${slug}/${id}.png`];
-  if (!file) throw new Error(`Нет кадра ${slug}/${id}.png`);
+  if (!file) throw new Error(`Missing shot ${slug}/${id}.png`);
   return file.default;
 }

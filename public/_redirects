@@ -1,6 +1,6 @@
 /portfolio  /portfolio.pdf  302
 
-# До запуска: все страницы сайта ведут на PDF. Запуск — удалить строки ниже до конца файла.
+# Before launch: every site page redirects to the PDF. To launch, delete the lines below to the end of the file.
 /           /portfolio.pdf  302
 /manifesto  /portfolio.pdf  302
 /manifesto/ /portfolio.pdf  302

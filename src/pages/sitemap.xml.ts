@@ -1,4 +1,4 @@
-// sitemap.xml без пакетов: все страницы сайта, кроме 404.
+// sitemap.xml without a sitemap package: every site page except 404.
 import type { APIRoute } from "astro";
 import { cases } from "../data/cases";
 

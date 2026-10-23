@@ -5,15 +5,15 @@ import Footer from "../components/Footer.astro";
 interface Props {
   title?: string;
   description: string;
-  image?: string; // абсолютный или корневой путь к картинке для превью ссылки
-  bare?: boolean; // без общей шапки и подвала — страница рисует свои (сейчас только /glass)
+  image?: string; // absolute or root-relative image path for the link preview
+  bare?: boolean; // no shared header and footer, the page draws its own (only /glass for now)
 }
 
 const { title, description, image, bare = false } = Astro.props;
 
-// Cloudflare Web Analytics — без cookies и баннера (decisions 2026.10, 20.10.2026). Токен из сниппета
-// в панели Cloudflare → Web Analytics (режим «с ручной установкой» с 22.10.2026: автовставка в статику Workers
-// не срабатывала — 0 просмотров за сутки); он публичный, виден в HTML. Пусто — счётчика нет.
+// Cloudflare Web Analytics: no cookies, no banner. The token comes from the snippet
+// in the Cloudflare dashboard → Web Analytics (manual install mode since 22.10.2026: auto-injection into Workers static assets
+// did not work, 0 views in a day); it is public and visible in the HTML. Empty means no counter.
 const CF_BEACON_TOKEN = "27d5695a86404e1fbcae52ee34c79f43";
 const fullTitle = title ? `${title} · phileeppov` : "phileeppov";
 const canonical = new URL(Astro.url.pathname, Astro.site);

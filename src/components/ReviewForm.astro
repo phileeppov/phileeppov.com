@@ -1,6 +1,6 @@
 ---
-// site.md §1.6. Отправка — POST /api/review, обработчик в worker/index.js, письмо на gmail.
-// Тексты подтверждения и ошибки — site.md §1.6, «Состояния формы».
+// site.md §1.6. Submit: POST /api/review, handled in worker/index.js, email to gmail.
+// Confirmation and error copy: site.md §1.6, form states.
 ---
 
 <section id="review">
@@ -26,7 +26,7 @@
       <input id="review-contact" name="contact" type="text" required maxlength="200" autocomplete="email" aria-describedby="review-contact-help" />
       <small id="review-contact-help">email or @telegram</small>
     </p>
-    <!-- Ловушка для ботов: человек это поле не видит и не заполняет. -->
+    <!-- Bot trap: a person doesn't see this field and doesn't fill it in. -->
     <input class="trap" name="company" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" />
     <input type="hidden" name="t" value="" />
     <button type="submit">SEND</button>
@@ -42,7 +42,7 @@
   const error = document.querySelector<HTMLElement>('[data-state="error"]');
 
   if (form && sent && error) {
-    // Время открытия формы: слишком быстрая отправка — бот.
+    // Time the form was opened: a submit that comes too fast is a bot.
     const t = form.elements.namedItem("t");
     if (t instanceof HTMLInputElement) t.value = String(Date.now());
 

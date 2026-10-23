@@ -1,9 +1,9 @@
-// Поле расстояний из альфы картинки: евклидово преобразование Фельценшвальба — Хуттенлохера,
-// отдельно снаружи и внутри формы. Полупрозрачные пиксели края дают субпиксельную точность.
+// Distance field from the image alpha: the Felzenszwalb-Huttenlocher Euclidean distance transform,
+// run separately outside and inside the shape. Semi-transparent edge pixels give subpixel accuracy.
 
 const INF = 1e20;
 
-// Один проход по строке или столбцу: квадраты расстояний до ближайшей «нулевой» точки.
+// One pass over a row or column: squared distances to the nearest "zero" point.
 function pass(grid: Float64Array, offset: number, stride: number, n: number, f: Float64Array, v: Uint32Array, z: Float64Array) {
   v[0] = 0;
   z[0] = -INF;
@@ -38,8 +38,8 @@ function transform(grid: Float64Array, size: number) {
   for (let y = 0; y < size; y++) pass(grid, y * size, 1, size, f, v, z);
 }
 
-// alpha — RGBA квадратного холста size×size. Возвращает байты: 128 — край, больше — внутри,
-// spread текселей расстояния на половину диапазона.
+// rgba: RGBA of a square size × size canvas. Returns bytes: 128 is the edge, higher is inside,
+// with `spread` texels of distance spanning half the byte range.
 export function buildSdf(rgba: Uint8ClampedArray, size: number, spread: number): Uint8Array {
   const n = size * size;
   const outer = new Float64Array(n);
@@ -53,7 +53,7 @@ export function buildSdf(rgba: Uint8ClampedArray, size: number, spread: number):
   transform(inner, size);
   const out = new Uint8Array(n);
   for (let i = 0; i < n; i++) {
-    const d = Math.sqrt(inner[i]) - Math.sqrt(outer[i]); // > 0 внутри
+    const d = Math.sqrt(inner[i]) - Math.sqrt(outer[i]); // > 0 inside
     out[i] = Math.max(0, Math.min(255, Math.round(128 + (d / spread) * 127)));
   }
   return out;

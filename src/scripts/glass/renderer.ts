@@ -1,38 +1,38 @@
-// Стекло на WebGL: суперэллипс с фаской, фаска преломляет логотип внутрь,
-// спектральные выборки дают радужную кайму. Без библиотек, WebGL 1.
-// Логотип приходит полем расстояний (SDF): край считается, а не берётся из пикселей,
-// поэтому под линзой он остаётся гладким при любом увеличении.
+// WebGL glass: a superellipse with a bevel; the bevel refracts the logo inward,
+// spectral samples give a rainbow fringe. No libraries, WebGL 1.
+// The logo comes in as a distance field (SDF): the edge is computed, not taken from pixels,
+// so it stays smooth under the lens at any magnification.
 
 export type Shape = "squircle" | "circle";
 export type Background = "light" | "dark" | "none";
 export type Sides = "all" | "two" | "one";
 
-// Всё, что можно плавно вести между значениями, — числа: форма, стороны, заливка логотипа.
+// Everything that can be animated smoothly between values is a number: shape, sides, logo fill.
 export interface GlassParams {
-  n: number; // показатель суперэллипса: 2 — круг, 5 — скруглённый квадрат
-  refraction: number; // 0..1.5 — насколько фаска тянет картинку изнутри
-  dispersion: number; // 0..1 — разлёт цветов
-  edge: number; // ширина фаски в долях полуразмера иконки
-  motion: number; // 0..1 — покачивание формы
-  size: number; // полуразмер логотипа в долях полуразмера иконки
-  tint: [number, number, number]; // цвет заливки логотипа
-  tintMix: number; // 0 — свой цвет логотипа, 1 — заливка tint
-  sideMix: number; // 0 — кромка преломляет везде, 1 — только на выбранных сторонах
-  sideTwo: number; // 0 — одна сторона, 1 — две противоположные
-  angle: number; // направление в радианах, 0 — вправо, против часовой
-  spread: number; // 0..1 — ширина зоны выбранных сторон
-  liquid: number; // 0..1 — смаз натекает в край, по толще идут волны
-  volume: number; // толщина плиты, 0..1
-  depth: number; // 0 — плоское стекло, 1 — с объёмом
+  n: number; // superellipse exponent: 2 is a circle, 5 is a rounded square
+  refraction: number; // 0..1.5, how far the bevel pulls the image from inside
+  dispersion: number; // 0..1, color spread
+  edge: number; // bevel width as a fraction of the icon half-size
+  motion: number; // 0..1, shape wobble
+  size: number; // logo half-size as a fraction of the icon half-size
+  tint: [number, number, number]; // logo fill color
+  tintMix: number; // 0: the logo's own color, 1: tint fill
+  sideMix: number; // 0: the rim refracts everywhere, 1: only on the selected sides
+  sideTwo: number; // 0: one side, 1: two opposite sides
+  angle: number; // direction in radians, 0 is right, counterclockwise
+  spread: number; // 0..1, width of the selected-sides zone
+  liquid: number; // 0..1, the smear flows into the edge, waves move through the glass
+  volume: number; // slab thickness, 0..1
+  depth: number; // 0: flat glass, 1: with volume
   background: Background;
-  bg: [number, number, number]; // цвет фона для light/dark, 0..1
+  bg: [number, number, number]; // background color for light/dark, 0..1
 }
 
-// Иконка занимает 80% кадра: по 10% на тень и воздух.
+// The icon takes 80% of the frame, leaving 10% per side for the shadow and breathing room.
 export const ICON_SCALE = 0.8;
-// Логотип занимает такую долю текстуры по длинной стороне; поля — под спад SDF.
+// Share of the texture the logo takes along its long side; the margins leave room for the SDF falloff.
 export const LOGO_FILL = 0.86;
-// Насколько далеко от края SDF ещё различает расстояние, в текселях.
+// How far from the edge the SDF still resolves distance, in texels.
 export const SDF_SPREAD = 32;
 
 const VERT = `
@@ -52,43 +52,43 @@ precision mediump float;
 #endif
 
 varying vec2 v_uv;
-uniform sampler2D u_sdf;    // R: 0.5 — край логотипа, больше — внутри
-uniform sampler2D u_color;  // цвет логотипа, раздвинутый за край
+uniform sampler2D u_sdf;    // R: 0.5 is the logo edge, higher is inside
+uniform sampler2D u_color;  // logo color, extended past the edge
 uniform float u_texSize;
-uniform float u_halfPx;     // полуразмер иконки в пикселях
-uniform float u_n;          // показатель суперэллипса: 2 — круг, 5 — скруглённый квадрат
+uniform float u_halfPx;     // icon half-size in pixels
+uniform float u_n;          // superellipse exponent: 2 is a circle, 5 is a rounded square
 uniform float u_edge;
 uniform float u_refract;
 uniform float u_disp;
-uniform float u_phase;      // 0..1, одна петля анимации
+uniform float u_phase;      // 0..1, one animation loop
 uniform float u_motion;
 uniform float u_size;
-uniform vec4 u_tint;        // rgb — заливка, a — насколько залить: 0 свой цвет, 1 заливка
-uniform float u_sideMix;    // 0 — везде, 1 — только выбранные стороны
-uniform float u_sideTwo;    // 0 — одна сторона, 1 — две
+uniform vec4 u_tint;        // rgb is the fill, a is how much to fill: 0 own color, 1 fill
+uniform float u_sideMix;    // 0: everywhere, 1: selected sides only
+uniform float u_sideTwo;    // 0: one side, 1: two
 uniform float u_angle;
-uniform float u_spread;     // ширина зоны сторон: 0 — узкое пятно, 1 — почти вся сторона
-uniform float u_liquid;     // 0 — смаз полосой у кромки, 1 — глиф натекает в край, по толще идут волны
-uniform float u_volume;     // толщина плиты, 0..1
-uniform float u_depth;      // 0 — плоское стекло, 1 — с объёмом; плавно, чтобы объём растворялся, а не пропадал
+uniform float u_spread;     // side zone width: 0 is a narrow spot, 1 is almost the whole side
+uniform float u_liquid;     // 0: smear as a band at the rim, 1: the glyph flows into the edge, waves move through the glass
+uniform float u_volume;     // slab thickness, 0..1
+uniform float u_depth;      // 0: flat glass, 1: with volume; continuous so the volume fades out instead of popping off
 uniform vec3 u_bg;
-uniform float u_mode;       // 0 светлый, 1 тёмный, 2 прозрачный
+uniform float u_mode;       // 0 light, 1 dark, 2 transparent
 
 const int TAPS = 32;
 const float TAU = 6.2831853;
 
-// Спектр от красного (0) к фиолетовому (1).
+// Spectrum from red (0) to violet (1).
 vec3 spectrum(float x) {
   float h = x * 0.8;
   return clamp(vec3(abs(h * 6.0 - 3.0) - 1.0, 2.0 - abs(h * 6.0 - 2.0), 2.0 - abs(h * 6.0 - 4.0)), 0.0, 1.0);
 }
 
-// Квадрат через умножение: pow(x, 2.0) при x < 0 в GLSL не определён, на части видеокарт — чёрные пиксели.
+// Square by multiplication: pow(x, 2.0) is undefined for x < 0 in GLSL and gives black pixels on some GPUs.
 float sq(float x) {
   return x * x;
 }
 
-// Расстояние до края суперэллипса (приближённое, точное у самого края) и нормаль наружу.
+// Distance to the superellipse edge (approximate, exact right at the edge) and the outward normal.
 float shape(vec2 p, out vec2 nrm) {
   vec2 a = max(abs(p), vec2(1e-4));
   vec2 an = pow(a, vec2(u_n));
@@ -100,23 +100,23 @@ float shape(vec2 p, out vec2 nrm) {
   return (f - 1.0) / gl;
 }
 
-// Без фона стекло то же, что на светлом: прозрачным остаётся только то, что снаружи.
-// Почти пустое стекло нечему преломлять — радуга превращалась в серые мазки.
-// Норма суперэллипса: 1 на краю, меньше внутри. Её уровни — уменьшенные копии формы, углы у них
-// всегда скруглены. Отступ на постоянное расстояние в углу ломается, когда он больше радиуса скругления,
-// а линза кромки этот излом увеличивает — отсюда были складки в углах.
+// With no background the glass is the same as on light: only what is outside stays transparent.
+// Nearly empty glass has nothing to refract, so the rainbow turned into gray smudges.
+// Superellipse norm: 1 at the edge, less inside. Its level sets are scaled-down copies of the shape, and their corners
+// are always rounded. A constant-distance inset breaks at a corner once it exceeds the corner radius,
+// and the rim lens magnifies that kink, which is what caused the creases in the corners.
 float snorm(vec2 p) {
   vec2 a = max(abs(p), vec2(1e-4));
   return pow(pow(a.x, u_n) + pow(a.y, u_n), 1.0 / u_n);
 }
 
 vec4 glassBase() {
-  // Тело почти как фон: у Apple стекло прозрачное, сквозь него видна подложка, а не белая плитка.
+  // The body is close to the background: Apple's glass is clear, you see the backdrop through it, not a white tile.
   if (u_mode > 0.5 && u_mode < 1.5) return vec4(mix(u_bg, vec3(1.0), 0.04), 1.0);
   return vec4(mix(u_bg, vec3(1.0), 0.05), 1.0);
 }
 
-// Логотип в точке q пространства иконки. blur — полуширина перехода края в текселях.
+// The logo at point q in icon space. blur is the half-width of the edge transition, in texels.
 vec4 content(vec2 q, float blur) {
   vec2 uv = 0.5 + q * (0.5 * ${LOGO_FILL.toFixed(2)}) / u_size;
   uv.y = 1.0 - uv.y;
@@ -127,18 +127,18 @@ vec4 content(vec2 q, float blur) {
   return logo + glassBase() * (1.0 - logo.a);
 }
 
-// --- Объём: плита толщиной h со скруглённой верхней кромкой. Луч от глаза входит в кромку,
-// преломляется и падает на дно — что там лежит, то и видно. Отсюда переливы внутри ребра. ---
+// --- Volume: a slab of thickness h with a rounded top rim. A ray from the eye enters the rim,
+// refracts and lands on the floor; whatever lies there is what you see. That gives the shimmer inside the rim. ---
 
-// Куда на дне попадёт луч, вошедший в стекло с нормалью n3.
+// Where on the floor a ray lands after entering the glass with normal n3.
 vec2 throughSlab(vec3 n3, float ior, float h) {
-  // Показатель меньше 1 даёт полное отражение, refract() возвращает ноль — разрыв на картинке.
+  // An index below 1 gives total internal reflection: refract() returns zero, leaving a break in the image.
   vec3 t = refract(vec3(0.0, 0.0, -1.0), n3, 1.0 / max(ior, 1.02));
   return t.xy / max(-t.z, 0.25) * h;
 }
 
-// Дно плиты: логотип и подложка, у края — контактная тень. Светлое кольцо каустики тут было,
-// но в углах кромка собирает лучи и растягивала его в прямые светлые полосы — убрано.
+// Slab floor: the logo and the backdrop, with a contact shadow at the edge. A bright caustic ring used to be here,
+// but at the corners the rim focuses rays and stretched it into straight bright streaks, so it was removed.
 vec4 floorAt(vec2 q, float blur) {
   vec4 c = content(q, blur);
   float contact = exp(min(snorm(q) - 1.0, 0.0) / 0.04) * 0.12 * u_depth;
@@ -146,12 +146,12 @@ vec4 floorAt(vec2 q, float blur) {
   return c;
 }
 
-// Комната, которая отражается в кромке: пол под плитой, стены, окно сверху слева и полоса света снизу справа.
+// The room reflected in the rim: floor under the slab, walls, a window at top left and a light strip at bottom right.
 vec3 studio(vec3 r) {
   float len = length(r.xy);
   vec2 dir = r.xy / max(len, 1e-4);
   float key = dot(dir, normalize(vec2(-0.55, 0.85)));
-  float ang = len > 1e-4 ? atan(dir.y, dir.x) : 0.0; // atan(0, 0) в GLSL не определён
+  float ang = len > 1e-4 ? atan(dir.y, dir.x) : 0.0; // atan(0, 0) is undefined in GLSL
   float up = smoothstep(-0.25, 0.35, r.z);
   float window = exp(-sq((ang - 2.15) / 0.22)) * up;
   float strip = exp(-sq((ang + 0.9) / 0.14)) * up;
@@ -161,15 +161,15 @@ vec3 studio(vec3 r) {
   return mix(floorC, wall, up) + vec3(window * (dark ? 0.9 : 0.35) + strip * (dark ? 0.4 : 0.18));
 }
 
-// Медленные волны в толще стекла: сумма синусов под разными углами. Фаза T — петля анимации,
-// поэтому видео зацикливается без шва.
+// Slow waves inside the glass: a sum of sines at different angles. Phase T is the animation loop,
+// so the video loops without a seam.
 vec2 waves(vec2 p, float T) {
   float a = sin(dot(p, vec2(3.1, 1.7)) + T) + sin(dot(p, vec2(-2.3, 2.9)) - T + 1.7);
   float b = sin(dot(p, vec2(1.3, -3.4)) + T + 0.6) + sin(dot(p, vec2(-3.7, -1.1)) - T + 2.4);
   return vec2(a, b) * 0.5;
 }
 
-// Шум с равномерным спектром: дрожание выборок вместо полос.
+// Noise with a uniform spectrum: sample jitter instead of banding.
 float ign(vec2 c) {
   return fract(52.9829189 * fract(dot(c, vec2(0.06711056, 0.00583715))));
 }
@@ -181,16 +181,16 @@ void main() {
 
   vec2 nrm;
   float d = shape(p, nrm);
-  float th = atan(p.y, p.x + 1e-7); // сдвиг — чтобы в самом центре не было atan(0, 0)
+  float th = atan(p.y, p.x + 1e-7); // offset so there is no atan(0, 0) at the exact center
   float wob = u_motion * (0.016 * sin(3.0 * th + T) + 0.01 * sin(2.0 * th - 2.0 * T));
   d -= wob;
-  // Глубина внутрь по уменьшенным копиям формы: 0 на краю, растёт к центру.
+  // Inward depth along scaled-down copies of the shape: 0 at the edge, growing toward the center.
   float depth = 1.0 - snorm(p) + wob;
 
   float px = 1.0 / u_halfPx;
   float texelsPerUnit = u_texSize * 0.5 * ${LOGO_FILL.toFixed(2)} / u_size;
 
-  // Снаружи: фон и мягкая тень чуть ниже иконки.
+  // Outside: the background and a soft shadow slightly below the icon.
   vec2 sn;
   float sd = max(shape(p + vec2(0.0, 0.05), sn), 0.0);
   float shadow = exp(-sd / 0.12) * (u_mode > 0.5 && u_mode < 1.5 ? 0.45 : 0.035) * (1.0 + 0.4 * u_volume * u_depth);
@@ -198,19 +198,19 @@ void main() {
   if (u_mode > 1.5) {
     outside = vec4(0.0, 0.0, 0.0, shadow);
   } else {
-    // Фон ровный: сливается со страницей, а в видео 16:9 — с полями по бокам без шва.
+    // Flat background: it blends with the page, and in 16:9 video with the side margins, without a seam.
     vec3 bg = u_bg;
     outside = vec4(bg * (1.0 - shadow), 1.0);
   }
 
-  // Внутри: фаска преломляет — выборки смещаются по нормали внутрь, каждая со своим цветом.
-  // Глубина, с которой фаска собирает картинку, не зависит от её ширины: узкая кромка
-  // сжимает широкую полосу изнутри — так глиф у края растягивается вдоль него, как у толстого стекла.
+  // Inside: the bevel refracts; samples shift inward along the normal, each with its own color.
+  // The depth the bevel gathers the image from doesn't depend on its width: a narrow rim
+  // compresses a wide band from inside, so the glyph near the edge stretches along it, like in thick glass.
   float t = clamp(depth / u_edge, 0.0, 1.0);
   float e = 1.0 - t;
 
-  // Стороны: где кромка преломляет. Маска по углу положения, а не нормали: у нормали на прямых
-  // сторонах угол один и тот же, и сторона включалась целиком. Spread — полуширина зоны.
+  // Sides: where the rim refracts. The mask uses the position angle, not the normal: on straight
+  // sides the normal angle is constant, and the whole side would switch on at once. Spread is the zone half-width.
   float side = 1.0;
   if (u_sideMix > 0.001) {
     float c = cos(th - u_angle);
@@ -218,29 +218,29 @@ void main() {
     side = mix(1.0, smoothstep(cos(hw), cos(hw * 0.35), mix(c, abs(c), u_sideTwo)), u_sideMix);
   }
   float wave = 1.0 + 0.25 * u_motion * sin(T + 1.3);
-  // Профиль: смещение быстро набирает полную силу и держит её через всю полосу — как у Apple,
-  // где кромка показывает сплошную полосу глифа, подтянутого издалека, а кайма — на её внутренней границе.
+  // Profile: the offset quickly reaches full strength and holds it across the whole band, like Apple's,
+  // where the rim shows a solid band of glyph pulled from far away, with the fringe on its inner boundary.
   float rimPull = smoothstep(0.0, 0.65, e);
-  // Liquid: затухание уходит глубоко внутрь и становится пологим — изображение не складывается
-  // в отдельную дугу, а непрерывно тянется к краю: глиф натекает в кромку перемычкой, как у Apple.
+  // Liquid: the falloff reaches deep inside and becomes gentle, so the image doesn't fold
+  // into a separate arc but stretches continuously to the edge: the glyph flows into the rim as a bridge, like Apple's.
   float flowW = mix(u_edge, 0.62, u_liquid);
   float flow = pow(1.0 - smoothstep(0.0, flowW, depth), 1.4);
-  // Волны в толще: толщина смаза гуляет вдоль кромки. В центре их нет — глиф там остаётся ровным.
+  // Waves in the glass: the smear thickness varies along the rim. None in the center, so the glyph stays even there.
   vec2 wv = waves(p, T);
   float nearEdge = 1.0 - smoothstep(0.0, 0.6, depth);
   float swell = 1.0 + 0.45 * u_liquid * wv.x * nearEdge;
-  // В углу до центра дальше, чем от середины стороны, — и луч тянется дальше, иначе углу не хватает глифа.
+  // A corner is farther from the center than a side's midpoint, so the ray reaches farther, or the corner runs short of glyph.
   float cornerReach = length(p) / max(snorm(p), 1e-3);
-  // Полоса у ребра остаётся (длинные хвосты вдоль сторон), перемычка к глифу добавляется поверх.
+  // The band at the rim stays (long tails along the sides); the bridge to the glyph is added on top.
   float k = u_refract * 0.42 * wave * swell * cornerReach * max(rimPull, flow * u_liquid) * side;
-  // Разлёт цветов ограничен сверху: иначе при большом смещении кайма расплывается широкими пятнами.
+  // Color spread is capped: otherwise, at large offsets the fringe smears into wide blotches.
   float kDisp = min(k, 0.16);
-  // Направление выборки: по нормали, а с Liquid — сходится к центру, и хвосты стекаются в угол.
+  // Sample direction: along the normal; with Liquid it converges toward the center, and the tails pool into the corner.
   vec2 dir = normalize(mix(nrm, p / max(length(p), 1e-3), 0.45 * u_liquid));
   vec2 ripple = wv * 0.05 * u_liquid * nearEdge * side;
 
-  // Объём: плита со скруглённой кромкой. Её видимую ширину и глубину задаёт Thickness,
-  // смаз фаски — по-прежнему Edge width. Луч считает смещение, показатель — от Refraction.
+  // Volume: a slab with a rounded rim. Thickness sets its visible width and depth,
+  // while Edge width still controls the bevel smear. The ray computes the offset; the index comes from Refraction.
   bool vol = u_depth > 0.001;
   float rimW = 0.05 + 0.2 * u_volume;
   float tr = clamp(depth / rimW, 0.0, 1.0);
@@ -249,12 +249,12 @@ void main() {
   vec3 n3 = normalize(vec3(nrm * slope, 1.0));
   float h = 0.1 + 0.4 * u_volume;
   float ior = 1.0 + 0.5 * u_refract;
-  // Честная плита отклоняет луч слабо — смаз у Apple сильнее физики. Поэтому с объёмом луч
-  // сквозь кромку складывается с прежним смазом фаски: линза плюс радуга.
+  // A physically accurate slab bends the ray only slightly; Apple's smear is stronger than physics. So with volume the ray
+  // through the rim is added to the existing bevel smear: lens plus rainbow.
   vec2 offC = (vol ? throughSlab(n3, ior, h) * side * wave * u_depth : vec2(0.0)) - dir * k + ripple;
 
-  // Ширина перехода края: размер пикселя в текселях там, куда смотрит выборка,
-  // плюс размытие, которое растёт с силой преломления — у стекла кромка мягкая.
+  // Edge transition width: the pixel size in texels where the sample lands,
+  // plus blur that grows with refraction strength, since glass has a soft rim.
   vec2 q0 = p + offC;
 #ifdef GL_OES_standard_derivatives
   float foot = length(fwidth(q0)) * texelsPerUnit * 0.4;
@@ -264,17 +264,17 @@ void main() {
   float reach = length(offC);
   float blur = max(foot, 0.35) + reach * 0.035 * texelsPerUnit;
 
-  // Порядок цветов в кайме. Чёрный глиф на светлом и светлый на тёмном дают дополнительные
-  // цвета друг к другу — на тёмном кайма выходила жёлто-оранжевой. Разворачиваем, чтобы везде как у Apple.
-  // В полосе у ребра изображение сложено, на перемычке Liquid — нет, и порядок цветов в них противоположный.
-  // Разворачиваем по зоне с плавным переходом: у ребра голубое внутри и красное снаружи, вокруг перемычки голубой ореол.
+  // Color order in the fringe. A black glyph on light and a light glyph on dark give complementary
+  // colors; on dark the fringe came out yellow-orange. We flip the order so it matches Apple's everywhere.
+  // In the band at the rim the image is folded, on the Liquid bridge it isn't, so their color orders are opposite.
+  // Flip per zone with a smooth transition: cyan inside and red outside at the rim, a cyan halo around the bridge.
   float zone = mix(-1.0, 1.0, smoothstep(u_edge * 0.6, u_edge * 1.3, depth) * step(0.001, u_liquid));
   float order = (u_mode > 0.5 && u_mode < 1.5 ? -1.0 : 1.0) * zone;
 
   vec4 inside;
   if (reach < 1e-4) {
-    // С объёмом дно рисуем так же, как в цикле, — иначе там, где маска сторон гасит смаз,
-    // пропадала контактная тень и на стекле появлялась прямая ступенька тона.
+    // With volume, draw the floor the same way as in the loop; otherwise, where the side mask kills the smear,
+    // the contact shadow would disappear and a straight step in tone would show up on the glass.
     inside = vol ? floorAt(p, blur) : content(p, blur);
   } else {
     vec3 acc = vec3(0.0);
@@ -285,15 +285,15 @@ void main() {
     for (int i = 0; i < TAPS; i++) {
       float x = (float(i) + jitter) / float(TAPS);
       vec3 w = spectrum(x);
-      // Красный уходит глубже, синий — ближе к краю: снаружи красная кайма, внутри голубая, как на референсе.
-      // Небольшой разброс вдоль кромки смягчает резкие срезы глифа.
+      // Red goes deeper, blue stays closer to the edge: red fringe outside, cyan inside.
+      // A small spread along the rim softens hard cuts in the glyph.
       float along = (fract(x * 7.31 + jitter) - 0.5) * 0.25;
       float spread = (0.5 - x) * order;
       vec2 off = -dir * (k + kDisp * u_disp * spread * 0.9) + ripple;
       vec4 c;
       if (vol) {
         off += throughSlab(n3, ior + u_disp * 0.3 * spread, h) * side * wave * u_depth;
-        // Разброс вдоль кромки переходит к плоскому варианту вместе с u_depth — иначе в момент выключения он прыгал.
+        // The along-rim spread blends into the flat version with u_depth; otherwise it jumped at the moment volume was turned off.
         c = floorAt(p + off + tng * mix(k, length(off), u_depth) * along, blur);
       } else {
         c = content(p + off + tng * k * along, blur);
@@ -304,31 +304,31 @@ void main() {
     }
     float a = aacc / float(TAPS);
     inside = vec4(min(acc / wsum, vec3(a)), a);
-    // Сочнее: усредняя выборки, кайма теряет насыщенность — возвращаем её, только там, где есть смаз.
+    // Richer color: averaging the samples desaturates the fringe, so restore saturation, only where there is smear.
     float luma = dot(inside.rgb, vec3(0.299, 0.587, 0.114));
     inside.rgb = clamp(luma + (inside.rgb - luma) * 1.7, 0.0, a);
   }
 
   vec2 L = normalize(vec2(-0.55, 0.85));
   float lit = 0.55 + 0.45 * dot(nrm, L);
-  // Тонкий блик у самого края — у снятого стекла он есть всегда.
+  // A thin glint right at the edge; photographed glass always has one.
   float glint = exp(-sq((-d - 0.012) / (2.0 * px)));
-  // Плоская кромка: светлая полоса с тонким бликом внутри и серым контуром снаружи.
+  // Flat rim: a light band with a thin glint inside and a gray outline outside.
   float band = smoothstep(0.035, 0.0, -d);
   vec4 flatRim = mix(inside, vec4(1.0), clamp(glint * (0.35 + 0.55 * lit) + band * 0.12, 0.0, 1.0));
   if (vol) {
     vec4 v = inside;
-    // Отражение комнаты по Френелю — слабое: стекло у Apple прозрачное, а не глянцевый пластик.
+    // Fresnel reflection of the room, kept weak: Apple's glass is clear, not glossy plastic.
     vec3 refl = reflect(vec3(0.0, 0.0, -1.0), n3);
     float fres = (0.04 + 0.96 * pow(max(1.0 - n3.z, 0.0), 3.0)) * step(tr, 0.999);
     v = mix(v, vec4(studio(refl), 1.0), clamp(fres, 0.0, 1.0) * 0.55);
-    // Шов, где кромка переходит в плоскость: со стороны света блик, с обратной — тень.
+    // The seam where the rim meets the flat top: a highlight on the lit side, a shadow on the opposite side.
     float seam = exp(-sq((depth - rimW) / (1.4 * px)));
     float toLight = dot(nrm, L);
     v = mix(v, vec4(1.0), seam * max(toLight, 0.0) * 0.6);
     v.rgb *= 1.0 - seam * max(-toLight, 0.0) * 0.2;
     v = mix(v, vec4(1.0), glint * (0.25 + 0.5 * lit));
-    // Объём растворяется в плоское стекло вместе с u_depth — без скачка в конце.
+    // The volume dissolves into flat glass with u_depth, with no jump at the end.
     inside = mix(flatRim, v, u_depth);
   } else {
     inside = flatRim;
@@ -408,7 +408,7 @@ export class GlassRenderer {
     return prog;
   }
 
-  // sdf — size×size байт (128 — край), color — холст того же размера с цветом, раздвинутым за край.
+  // sdf is size × size bytes (128 is the edge); color is a canvas of the same size with color extended past the edge.
   setLogo(sdf: Uint8Array, color: HTMLCanvasElement, size: number) {
     const gl = this.gl;
     this.texSize = size;

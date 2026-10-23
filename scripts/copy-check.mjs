@@ -1,5 +1,5 @@
-// Сверка текста страниц с site.md и файлами кейсов. Тексты не переписываем — расхождение = ошибка.
-// Какая страница каким разделам соответствует — copy-map.json. Страницы без записи пропускаются.
+// Checks page text against site.md and the case files. Copy is never rewritten here: a mismatch is an error.
+// Which page maps to which sections: copy-map.json. Pages without an entry are skipped.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { ROOT, BASE_URL, listRoutes, startPreview, launchBrowser } from "./lib/site.mjs";
@@ -24,24 +24,24 @@ const norm = (s) =>
     .normalize("NFC")
     .replace(/[‘’]/g, "'")
     .replace(/[“”]/g, '"')
-    .replace(/[→←]/g, "") // стрелки — оформление, могут быть иконкой
+    .replace(/[→←]/g, "") // arrows are decoration and may be an icon
     .replace(/\s+/g, " ")
     .trim();
 
-// Раздел по номеру: "1.1" → от «### 1.1 — …» до следующего заголовка того же или старшего уровня.
+// Section by number: "1.1" → from "### 1.1 — …" to the next heading of the same or higher level.
 function section(md, id) {
   const lines = md.split(/\r?\n/);
   const start = lines.findIndex((l) => new RegExp(`^#{2,4} ${id.replace(".", "\\.")} — `).test(l));
-  if (start < 0) throw new Error(`Нет раздела ${id}`);
+  if (start < 0) throw new Error(`Section ${id} not found`);
   const level = lines[start].match(/^#+/)[0].length;
   const end = lines.findIndex((l, i) => i > start && /^#+ /.test(l) && l.match(/^#+/)[0].length <= level);
   return lines.slice(start + 1, end < 0 ? undefined : end);
 }
 
-// Из блоков кода раздела: абзацы (hard) и подписи элементов (soft).
-// [ Кнопка ] с заглавной — текст кнопки, hard. [ подсказка ] со строчной — плейсхолдер, soft.
-// [Заглушка] без пробелов, строки по-русски и линии ─── — служебное, пропускаем.
-// Вне блоков кода берём только заголовки решений кейса: **01. Название**.
+// From the section's code blocks: paragraphs (hard) and element labels (soft).
+// [ Button ] capitalized: button text, hard. [ hint ] lowercase: placeholder, soft.
+// [Stub] without spaces, lines in Russian and ─── rules are annotations: skipped.
+// Outside code blocks, only case decision titles are taken: **01. Title**.
 function expected(lines) {
   const hard = [];
   const soft = [];
@@ -78,8 +78,8 @@ function expected(lines) {
   return { hard: hard.filter(Boolean), soft: soft.filter(Boolean) };
 }
 
-// Источники страницы: {file?, sections, skip?, allow?} или {use: имя из shared}.
-// allow — текст можно показывать, но он не обязателен (карточки кейсов на главной).
+// Page sources: {file?, sections, skip?, allow?} or {use: a name from shared}.
+// allow: the text may appear but is not required (case cards on the home page).
 function sources(entry) {
   const list = entry.sources || [{ file: entry.file, sections: entry.sections }];
   return list.flatMap((s) => (s.use ? [config.shared[s.use]].flat() : [s]));
@@ -111,14 +111,14 @@ function collect(entry) {
   return exp;
 }
 
-const label = (entry) => sources(entry).map((s) => `${s.file || "site.md"} ${s.sections.join(", ")}${s.allow ? " (можно)" : ""}`).join(" + ");
+const label = (entry) => sources(entry).map((s) => `${s.file || "site.md"} ${s.sections.join(", ")}${s.allow ? " (optional)" : ""}`).join(" + ");
 
 const routes = listRoutes();
 const mapped = routes.filter((r) => map[r]);
-for (const r of routes.filter((r) => !map[r])) console.log(`– ${r}: нет в copy-map.json, пропускаю`);
-for (const r of Object.keys(map).filter((r) => !routes.includes(r))) console.log(`! ${r}: есть в copy-map.json, но страницы нет`);
+for (const r of routes.filter((r) => !map[r])) console.log(`– ${r}: not in copy-map.json, skipping`);
+for (const r of Object.keys(map).filter((r) => !routes.includes(r))) console.log(`! ${r}: in copy-map.json, but the page does not exist`);
 if (!mapped.length) {
-  console.log("\nСопоставленных страниц нет — сверять нечего.");
+  console.log("\nNo mapped pages, nothing to check.");
   process.exit(0);
 }
 
@@ -133,7 +133,7 @@ try {
     const exp = collect(entry);
 
     await page.goto(BASE_URL + route, { waitUntil: "networkidle" });
-    // Свёрнутые блоки (<details>, например Advanced на /glass) раскрываем — их текст тоже сверяется.
+    // Open collapsed blocks (<details>, e.g. Advanced on /glass): their text is checked too.
     await page.evaluate(() => document.querySelectorAll("details").forEach((d) => (d.open = true)));
     await page.waitForTimeout(100);
     const visible = await page.evaluate(() => document.body.innerText);
@@ -142,7 +142,7 @@ try {
         .map((el) => el.getAttribute("placeholder") || el.getAttribute("aria-label") || el.getAttribute("alt"))
         .join("\n"),
     );
-    // Скрытые состояния (подтверждение формы, ошибка) — тоже текст страницы, просто показываются позже.
+    // Hidden states (form confirmation, error) are page text too, just shown later.
     const states = await page.evaluate(() =>
       [...document.querySelectorAll("[hidden]")].map((el) => el.textContent).join("\n"),
     );
@@ -168,10 +168,10 @@ try {
     const ok = !missing.length && !extra.length;
     if (!ok) failed = true;
     console.log(`\n${ok ? "✓" : "✗"} ${route} ← ${label(entry)}`);
-    for (const p of missing) console.log(`  нет на странице или текст отличается:\n    «${p}»`);
-    for (const l of extra) console.log(`  на странице, но нет в разделе:\n    «${l}»`);
-    for (const p of caseOnly) console.log(`  ~ совпадает без учёта регистра:\n    «${p}»`);
-    for (const p of softMissing) console.log(`  ~ подсказка не найдена (плейсхолдер или подпись, проверь):\n    «${p}»`);
+    for (const p of missing) console.log(`  not on the page or the text differs:\n    «${p}»`);
+    for (const l of extra) console.log(`  on the page but not in the section:\n    «${l}»`);
+    for (const p of caseOnly) console.log(`  ~ matches only when ignoring case:\n    «${p}»`);
+    for (const p of softMissing) console.log(`  ~ hint not found (placeholder or label, check it):\n    «${p}»`);
   }
 } finally {
   await browser.close();

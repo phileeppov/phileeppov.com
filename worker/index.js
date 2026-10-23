@@ -1,11 +1,11 @@
-// Worker сайта: принимает форму видео-ревью и шлёт письмо на gmail через Email Routing.
-// Плюс анонимный счётчик событий /glass (/api/event → база D1 glass-events).
-// Всё остальное отдаёт статика (wrangler.jsonc, run_worker_first только для /api/*).
+// Site Worker: takes the video review form and sends an email to gmail via Email Routing.
+// Plus an anonymous event counter for /glass (/api/event → D1 database glass-events).
+// Everything else is served as static assets (wrangler.jsonc, run_worker_first only for /api/*).
 import { EmailMessage } from "cloudflare:email";
 
 const FROM = "form@phileeppov.com";
 const TO = "phileeppov@gmail.com";
-const MIN_FILL_MS = 3000; // быстрее — бот
+const MIN_FILL_MS = 3000; // faster means a bot
 const LIMITS = { link: 2000, stuck: 500, contact: 200 };
 
 export default {
@@ -17,10 +17,10 @@ export default {
   },
 };
 
-// Счётчик /glass: сколько скачали PNG и видео, нажали Share, выбрали пресет, какие ручки тронули
-// (по разу за визит), раскрыли ли Advanced, откуда пришёл логотип, по каким ссылкам на себя ушли. Храним только название
-// события и дату — без логотипа, IP и данных о человеке. Ответ всегда пустой: страница его не ждёт,
-// и сбой базы не должен ничего ломать.
+// /glass counter: PNG and video downloads, Share clicks, preset picks, which knobs were touched
+// (once per visit), whether Advanced was opened, where the logo came from, which author links were followed. Only the event
+// name and the date are stored: no logo, IP or personal data. The response is always empty: the page doesn't wait for it,
+// and a database failure must not break anything.
 const KNOBS =
   "refraction|blend|logo-size|dispersion|edge-width|angle|length|spin|motion|depth|thickness|background|logo-color|shape|edges|video-format";
 const LINKS = "wordmark|x-handle|portfolio|x-name|email|linkedin|github";
@@ -43,7 +43,7 @@ async function track(request, env) {
       ).bind(day, name),
     ]);
   } catch {
-    // Не записали — не страшно.
+    // Not recorded; that's fine.
   }
   return new Response(null, { status: 204 });
 }
@@ -60,7 +60,7 @@ async function review(request, env) {
   const field = (name) => String(form.get(name) ?? "").trim();
   const data = { link: field("link"), stuck: field("stuck"), contact: field("contact") };
 
-  // Ловушки для ботов: делаем вид, что всё прошло, письмо не шлём.
+  // Bot traps: pretend it went through, but send no email.
   const openedAt = Number(field("t"));
   if (field("company") || (openedAt && Date.now() - openedAt < MIN_FILL_MS)) return reply(request, 200);
 
@@ -78,7 +78,7 @@ async function review(request, env) {
   return reply(request, 200);
 }
 
-// С JS форма ждёт JSON; без JS — редирект обратно с ?sent.
+// With JS the form expects JSON; without JS, redirect back with ?sent.
 function reply(request, status, error) {
   const wantsJson = (request.headers.get("Accept") || "").includes("application/json");
   if (wantsJson) return Response.json(error ? { ok: false, error } : { ok: true }, { status });
