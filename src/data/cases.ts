@@ -116,7 +116,9 @@ export const cases: Case[] = [
         ],
       },
     ],
-    happened: ["It launched publicly and ran tournaments with live ETH stakes."],
+    happened: [
+      "It launched publicly and ran tournaments with real ETH stakes. By PlayMini's numbers, the token passed $1M in market cap after a fair launch, and Club Round, the community raise, brought in 86 ETH.",
+    ],
     artifacts: { shots: s("IMG-09", "IMG-10") },
   },
   {
