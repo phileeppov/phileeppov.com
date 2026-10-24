@@ -18,7 +18,7 @@ if (!BRAND_DIR) {
 const config = JSON.parse(readFileSync(join(ROOT, "copy-map.json"), "utf8"));
 const map = config.pages;
 
-const CYRILLIC = /[а-яё]/i;
+const CYRILLIC = /\p{Script=Cyrillic}/u;
 const norm = (s) =>
   s
     .normalize("NFC")
@@ -85,11 +85,21 @@ function sources(entry) {
   return list.flatMap((s) => (s.use ? [config.shared[s.use]].flat() : [s]));
 }
 
+// Case notes live in their own folder outside the repo: "cases/<name>.md" in copy-map.json resolves against CASES_DIR.
+function sourcePath(file) {
+  if (!file.startsWith("cases/")) return join(BRAND_DIR, file);
+  if (!process.env.CASES_DIR) {
+    console.error("Set CASES_DIR (the folder with the case notes) in .env.local or the environment.");
+    process.exit(1);
+  }
+  return join(process.env.CASES_DIR, file.slice("cases/".length));
+}
+
 function collect(entry) {
   const exp = { hard: [], soft: [], allowed: [] };
   for (const src of sources(entry)) {
     const file = src.file || "site.md";
-    const md = readFileSync(join(BRAND_DIR, file), "utf8");
+    const md = readFileSync(sourcePath(file), "utf8");
     const skip = (src.skip || []).map(norm);
     const keep = (p) => !skip.some((s) => p.startsWith(s));
     for (const id of src.sections) {
