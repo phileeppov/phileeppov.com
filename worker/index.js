@@ -53,7 +53,8 @@ async function track(request, env) {
 }
 
 async function review(request, env) {
-  if (request.method !== "POST") return new Response("Method not allowed", { status: 405, headers: { Allow: "POST" } });
+  if (request.method === "GET") return opening(env);
+  if (request.method !== "POST") return new Response("Method not allowed", { status: 405, headers: { Allow: "GET, POST" } });
 
   let form;
   try {
@@ -139,6 +140,24 @@ async function takeSlot(env, ip) {
       .catch(() => "?");
     return { id, queue, week, place };
   }
+}
+
+// GET /api/review: the first week that still has room, for the status on the page ("open this week" or the week a
+// request sent now goes into). Read only; counts, no rows. Without the table yet, nothing is booked; if the database
+// fails otherwise, 503, and the page shows no status rather than a wrong one.
+async function opening(env) {
+  const thisWeek = weekOf(new Date());
+  let queue = 0;
+  try {
+    const { results } = await env.EVENTS.prepare("SELECT week, COUNT(*) AS n FROM reviews WHERE week >= ?1 GROUP BY week")
+      .bind(thisWeek)
+      .all();
+    const taken = new Map(results.map((r) => [r.week, r.n]));
+    while (queue < WEEKS_AHEAD && (taken.get(addWeeks(thisWeek, queue)) ?? 0) >= WEEKLY_REVIEWS) queue++;
+  } catch (error) {
+    if (!/no such table/i.test(String(error?.message ?? error))) return new Response(null, { status: 503 });
+  }
+  return Response.json({ queue, week: addWeeks(thisWeek, queue) }, { headers: { "Cache-Control": "no-store" } });
 }
 
 // The review week runs Monday to Sunday in UTC+3, the site owner's time zone. Key: that Monday, YYYY-MM-DD.

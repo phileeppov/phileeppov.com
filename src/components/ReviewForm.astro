@@ -5,11 +5,11 @@
 ---
 
 <div class="panel" data-review>
-  <form method="post" action="/api/review" data-review-form>
+  <form method="post" action="/api/review" data-review-form data-hide-on-sent>
     <div class="field">
       <label for="review-link">What's the link?</label>
       <input id="review-link" name="link" type="text" required maxlength="2000" autocomplete="url" aria-describedby="review-link-help" />
-      <small id="review-link-help">url / Notion / Figma / GitHub, anything</small>
+      <small id="review-link-help">url / Notion / Figma / GitHub / App&nbsp;Store, anything.<br /> Behind a login? I'll ask for access.</small>
     </div>
     <div class="field">
       <label for="review-stuck">What's stuck?</label>
@@ -25,12 +25,15 @@
     <input class="trap" name="message" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" />
     <input type="hidden" name="t" value="" />
     <button type="submit">SEND</button>
-    <p class="note">I do three reviews a week. When a week is full, yours goes to the next open one.</p>
+    <p class="note">
+      I do three reviews a week. When a week is full, yours goes to the next open one, and the 48 hours start that Monday.<br />
+      Private. Nothing gets posted without your OK.
+    </p>
     <p class="error" data-state="error" role="alert" hidden>That didn't go through. Write to <a href="mailto:nikita@phileeppov.com">nikita@phileeppov.com</a> instead.</p>
   </form>
 
   <!-- After the submit: 0 weeks out is this week, 1 is next week, more names the week. -->
-  <div class="done" tabindex="-1" aria-live="polite">
+  <div class="done" tabindex="-1" aria-live="polite" data-done>
     <p data-state="sent" hidden>Got it. I'll get back to you with the review.</p>
     <p data-state="next" hidden>Got it. This week is full, so you'll get your review next week.</p>
     <p data-state="later" hidden>Got it. There's a queue, so you'll get your review the week of <span data-week>[date]</span>.</p>
@@ -38,54 +41,10 @@
 </div>
 
 <script>
+  import { wireReviewForm } from "../scripts/review-form";
+
   const root = document.querySelector<HTMLElement>("[data-review]");
-  const form = root?.querySelector<HTMLFormElement>("[data-review-form]");
-  const state = (name: string) => root?.querySelector<HTMLElement>(`[data-state="${name}"]`);
-  const error = state("error");
-
-  // Shows where the request landed (worker/index.js): queue is weeks from now (0 is this week), week is that Monday.
-  const show = (queue: number, week: string | null) => {
-    if (!root || !form) return;
-    const name = queue <= 0 ? "sent" : queue === 1 || !week ? "next" : "later";
-    const line = state(name);
-    const date = line?.querySelector("[data-week]");
-    if (date && week) {
-      date.textContent = new Date(`${week}T00:00:00Z`).toLocaleDateString("en-US", { month: "long", day: "numeric", timeZone: "UTC" });
-    }
-    form.hidden = true;
-    if (line) line.hidden = false;
-    root.classList.add("is-done");
-    root.querySelector<HTMLElement>(".done")?.focus({ preventScroll: true });
-  };
-
-  if (root && form && error) {
-    form.addEventListener("submit", async (event) => {
-      event.preventDefault();
-      error.hidden = true;
-      const button = form.querySelector("button");
-      if (button) button.disabled = true;
-      // How long the page has been open, measured here: under 3 s is a bot (worker/index.js). A person can be that quick,
-      // say when the phone reloads the tab with the fields still filled in, so wait out the rest rather than lose them.
-      const wait = 3100 - performance.now();
-      if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
-      const t = form.elements.namedItem("t");
-      if (t instanceof HTMLInputElement) t.value = String(Math.round(performance.now()));
-      try {
-        const res = await fetch(form.action, {
-          method: "POST",
-          body: new FormData(form),
-          headers: { Accept: "application/json" },
-        });
-        const result = await res.json().catch(() => null);
-        if (!res.ok || !result?.ok) throw new Error(String(res.status));
-        show(Number(result.queue) || 0, typeof result.week === "string" ? result.week : null);
-      } catch {
-        error.hidden = false;
-      } finally {
-        if (button) button.disabled = false;
-      }
-    });
-  }
+  if (root) wireReviewForm(root);
 </script>
 
 <style>

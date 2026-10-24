@@ -1,0 +1,697 @@
+---
+// The video review form on /review, drawn as the review itself: a screen whose address bar is the link field and whose
+// sticky note is "What's stuck?"; under it, the contact field and SEND, like a player's dock. The product sketched in
+// the screen follows the link — a website, a Figma file, a GitHub repo, an app, a doc — with the name taken from it.
+// The review marks: the ring around what's stuck, the note and the reviewer's camera stay put; point 1 follows the name.
+// Copy: questions and states — site.md §1.6; the rest — §8. Submit: src/scripts/review-form.ts → worker/index.js.
+---
+
+<div class="review-screen" data-review>
+  <form class="device" method="post" action="/api/review" data-review-form>
+    <div class="screen" data-screen>
+      <div class="bar">
+        <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        <!-- The address bar is the link field. The question stays in it like "https://" does, so the label never goes. -->
+        <label class="url">
+          <b>What's the link?</b>
+          <input
+            name="link"
+            type="text"
+            required
+            maxlength="2000"
+            autocomplete="url"
+            inputmode="url"
+            autocapitalize="none"
+            autocorrect="off"
+            spellcheck="false"
+            placeholder="url / Figma / App Store"
+          />
+        </label>
+      </div>
+      <div class="sk" data-sk aria-hidden="true"></div>
+      <span class="cta" aria-hidden="true"></span>
+      <span class="pt" data-pt="1" aria-hidden="true"></span>
+      <span class="pt" data-pt="2" aria-hidden="true"></span>
+      <svg class="ring" viewBox="0 0 229 100" preserveAspectRatio="none" aria-hidden="true">
+        <path pathLength="1" d="M34,66 C16,42 50,10 116,9 C182,8 223,24 220,50 C217,79 168,94 110,93 C54,92 12,79 22,50 C27,36 46,28 66,24" />
+      </svg>
+      <!-- The sticky note is the "What's stuck?" field, pinned next to the circled button. -->
+      <label class="note">
+        <b>What's stuck?</b>
+        <textarea name="stuck" rows="2" maxlength="500" placeholder="landing not converting"></textarea>
+      </label>
+      <span class="cam" aria-hidden="true"><i></i><span>Nikita</span></span>
+    </div>
+
+    <div class="dock" data-hide-on-sent>
+      <label for="review-contact">How do I get back to you?</label>
+      <input id="review-contact" name="contact" type="text" required maxlength="200" autocomplete="email" placeholder="email or @telegram" />
+      <button type="submit">SEND</button>
+    </div>
+    <!-- Bot trap: not rendered, so neither a person nor browser autofill fills it in; bots fill every field. -->
+    <input class="trap" name="message" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" />
+    <input type="hidden" name="t" value="" />
+    <p class="below" data-hide-on-sent>Behind a login? I'll ask for access.<br /> Private. Nothing gets posted without your OK.</p>
+    <p class="error" data-state="error" role="alert" hidden>That didn't go through. Write to <a href="mailto:nikita@phileeppov.com">nikita@phileeppov.com</a> instead.</p>
+    <div class="done" tabindex="-1" aria-live="polite" data-done>
+      <p data-state="sent" hidden>Got it. I'll get back to you with the review.</p>
+      <p data-state="next" hidden>Got it. This week is full, so you'll get your review next week.</p>
+      <p data-state="later" hidden>Got it. There's a queue, so you'll get your review the week of <span data-week>[date]</span>.</p>
+    </div>
+  </form>
+</div>
+
+<script>
+  import { wireReviewForm } from "../scripts/review-form";
+
+  type Read = { type: "web" | "figma" | "github" | "app" | "doc"; name: string; owner?: string; store?: string };
+
+  // Links to a platform rather than a product: no name to take, so the sketch stays plain.
+  const PLATFORMS = /(^|\.)(loom\.com|youtube\.com|youtu\.be|vimeo\.com|dropbox\.com|canva\.com|miro\.com|framer\.com|webflow\.com|x\.com|twitter\.com|linkedin\.com|t\.me)$/;
+  const words = (s: string) => {
+    try {
+      return decodeURIComponent(s).replace(/[-_+]+/g, " ").trim();
+    } catch {
+      return s.replace(/[-_+]+/g, " ").trim();
+    }
+  };
+  const cap = (s: string) => (s ? s[0].toUpperCase() + s.slice(1) : s);
+  const short = (s: string, n = 24) => (s.length > n ? s.slice(0, n - 1).trimEnd() + "…" : s);
+
+  // What the link is, and the product's name in it.
+  function read(raw: string): Read {
+    const v = raw.trim();
+    if (!v) return { type: "web", name: "" };
+    let u: URL;
+    try {
+      u = new URL(/^https?:\/\//i.test(v) ? v : `https://${v}`);
+    } catch {
+      return { type: "web", name: "" };
+    }
+    const host = u.hostname.replace(/^www\./, "").toLowerCase();
+    const parts = u.pathname.split("/").filter(Boolean);
+    if (host.endsWith("figma.com")) return { type: "figma", name: parts[2] ? short(words(parts[2])) : "" };
+    if (host === "github.com") return { type: "github", owner: short(parts[0] ?? "", 18), name: short(parts[1] ?? parts[0] ?? "", 20) };
+    if (host === "apps.apple.com") {
+      const i = parts.indexOf("app");
+      return { type: "app", store: "App Store", name: i >= 0 && parts[i + 1] ? short(cap(words(parts[i + 1]).split(" ").slice(0, 3).join(" "))) : "" };
+    }
+    if (host === "play.google.com") return { type: "app", store: "Google Play", name: short(cap(u.searchParams.get("id")?.split(".").pop() ?? "")) };
+    if (host === "testflight.apple.com") return { type: "app", store: "TestFlight", name: "" };
+    if (host.endsWith("notion.site") || host.endsWith("notion.so")) {
+      const last = parts[parts.length - 1] ?? "";
+      return { type: "doc", name: short(cap(words(last.replace(/-?[0-9a-f]{32}$/i, "")))) };
+    }
+    if (host === "docs.google.com" || host === "drive.google.com") return { type: "doc", name: "" };
+    if (PLATFORMS.test(host)) return { type: "web", name: "" };
+    return { type: "web", name: short(cap(host.split(".")[0])) };
+  }
+
+  // The sketch, drawn from a few primitives in cqi so it scales with the screen. Each kind keeps something to circle
+  // at the spot where the ring sits. "narrow" is the phone layout: fewer pieces, more height.
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
+  const k = (cls: string, x: number, y: number, w?: number | null, h?: number | null, text = "", size?: number) =>
+    `<span class="${cls}" style="left:${x}cqi;top:${y}cqi;${w != null ? `width:${w}cqi;` : ""}${h != null ? `height:${h}cqi;` : ""}${size ? `font-size:${size}cqi;` : ""}">${text}</span>`;
+  const bars = (x: number, y: number, ws: number[], gap = 2.4) => ws.map((w, i) => k("t", x, y + i * gap, w)).join("");
+
+  function draw(r: Read, narrow: boolean): string {
+    const name = esc(r.name);
+    if (narrow) {
+      switch (r.type) {
+        case "figma":
+          return [k("grid", 0, 0), k("o", 4, 15, 3.6, 3.6), k("txt", 9.4, 15.2, null, null, name || "", 3), k("o", 4, 21.5, 92, 76),
+            name ? k("name", 8, 26, null, null, name, 6.4) : k("t h", 8, 27, 50) + k("t h", 8, 32, 34), bars(8, 38, [56, 48, 34], 3.2)].join("");
+        case "github":
+          return [k("o", 5, 15.4, 4, 4), k("txt", 11, 15.6, null, null, `${r.owner ? esc(r.owner.toLowerCase()) + " / " : ""}<b>${name || "repo"}</b>`, 3.4),
+            k("t", 5, 24, 9), k("t", 17, 24, 9), k("t", 29, 24, 9), k("dark", 5, 26.4, 9, 0.5),
+            k("o", 4, 30, 92, 14), ...[0, 1, 2].map((i) => k("o", 7, 32.4 + i * 3.8, 2.2, 2.2) + k("t", 11, 33.2 + i * 3.8, [30, 22, 36][i])),
+            k("o", 4, 47, 92, 50), bars(32, 54, [50, 42], 3.6)].join("");
+        case "app":
+          return [k("f", 5, 15, 13, 13), name ? k("name", 21.5, 16.4, null, null, name, 5.2) : k("t h", 21.5, 17.5, 40),
+            k("txt", 21.5, 23.4, null, null, esc(r.store ?? ""), 2.8), bars(5, 33, [70, 56], 3.4), k("o", 4, 47, 92, 50)].join("");
+        case "doc":
+          return [k("f", 0, 13.2, 100, 8), k("o", 6, 17, 8, 8), name ? k("name", 6, 28, null, null, name, 6.4) : k("t h", 6, 30, 60),
+            k("t", 6, 37.5, 10) + k("t", 19, 37.5, 22), k("f", 4, 46, 92, 21)].join("");
+        default:
+          return [k("o", 5, 16, 4.4, 4.4), name ? k("txt", 11.4, 16.2, null, null, name.toLowerCase(), 3.4) : k("t", 12, 17.8, 14),
+            name ? k("name", 5.6, 24, null, null, name, 9) : k("t h", 6, 26, 62) + k("t h", 6, 31.5, 40), bars(6, 39, [66, 58, 42], 3.2)].join("");
+      }
+    }
+    switch (r.type) {
+      case "figma":
+        return [k("grid", 0, 0), k("o", 4, 11.4, 2.4, 2.4), k("txt", 7.6, 11.4, null, null, name || "", 1.9),
+          k("t", 70, 12.4, 6), k("t", 78, 12.4, 6), k("o pill", 86, 11, 8, 3), k("t", 4, 16.4, 9), k("o", 3.6, 18, 52, 44),
+          name ? k("name", 6.5, 21.4, null, null, name, 4.4) : k("t h", 6.5, 21.5, 30) + k("t h", 6.5, 25.2, 20), bars(6.5, 31, [32, 27, 18]),
+          k("o", 6.5, 52, 22, 6.5), k("o", 31, 52, 22, 6.5), k("t", 59, 16.4, 7), k("o", 58.6, 18, 18, 32), bars(60.6, 22, [12, 9, 13, 8], 3),
+          k("f", 80, 18, 15, 34), bars(82, 21, [10, 7, 9, 6, 10, 8], 3.4)].join("");
+      case "github":
+        return [k("o", 5, 10.4, 2.6, 2.6), k("txt", 8.8, 10.3, null, null, `${r.owner ? esc(r.owner.toLowerCase()) + " / " : ""}<b>${name || "repo"}</b>`, 2.3),
+          k("o pill", 74, 10, 9, 3.4), k("o pill", 84.6, 10, 9, 3.4), k("t", 5, 16.6, 6), k("t", 13, 16.6, 6), k("t", 21, 16.6, 6), k("t", 29, 16.6, 6), k("dark", 5, 18.4, 6, 0.35),
+          k("o", 4, 21, 52, 18.5), ...[0, 1, 2, 3, 4].map((i) => k("o", 6, 23 + i * 3.3, 1.6, 1.6) + k("t", 9, 23.5 + i * 3.3, [14, 10, 18, 12, 9][i]) + k("t", 42, 23.5 + i * 3.3, 10)),
+          k("o", 4, 41, 52, 21), bars(24, 45, [28, 24, 30, 18], 2.8), k("t", 60, 21.5, 8), bars(60, 25, [32, 28, 22]),
+          k("o pill", 60, 33, 9, 2.8), k("o pill", 70.5, 33, 11, 2.8), k("o pill", 60, 37, 13, 2.8)].join("");
+      case "app":
+        return [k("o", 3.4, 11.5, 27, 50.5), k("t", 13, 13, 8), k("t h", 6.5, 18, 18), bars(6.5, 23, [20, 16]), k("f", 6.5, 28.5, 20.6, 12), k("o", 6.5, 51.5, 20.6, 7.5),
+          k("f", 36, 13, 9, 9), name ? k("name", 47.4, 13.8, null, null, name, 3.6) : k("t h", 47.4, 14.2, 20),
+          k("txt", 47.4, 18.6, null, null, esc(r.store ?? ""), 1.6), k("dark pill", 84, 15.5, 9, 3.6), bars(36, 26, [30, 26]),
+          k("f", 60, 32, 10, 20), k("f", 71.6, 32, 10, 20), k("f", 83.2, 32, 10, 20)].join("");
+      case "doc":
+        return [k("f", 0, 9.6, 100, 6), k("o", 6, 13, 5, 5), name ? k("name", 6, 20, null, null, name, 4.6) : k("t h", 6, 21.5, 34),
+          k("t", 6, 27, 6) + k("t", 14, 27, 12), k("t", 6, 29.6, 6) + k("t", 14, 29.6, 9), bars(6, 34, [44, 40]), k("f", 4.6, 39.6, 48, 12.6),
+          bars(6, 58, [14]), bars(24, 58, [30]), k("t", 72, 21, 10), bars(72, 24.4, [18, 14, 16, 12], 2.6)].join("");
+      default:
+        return [k("o", 5, 10.2, 2.8, 2.8), name ? k("txt", 8.8, 10.1, null, null, name.toLowerCase(), 2.1) : k("t", 9, 11.2, 7),
+          k("t", 58, 11.2, 5.4), k("t", 65.5, 11.2, 5.4), k("t", 73, 11.2, 5.4), k("o pill", 84, 10, 9, 3.6),
+          name ? k("name", 5.6, 17.6, null, null, name, 6.6) : k("t h", 6, 19.6, 36) + k("t h", 6, 23.6, 24), bars(6, 30.4, [34, 31, 22]),
+          k("f", 58, 19, 35, 29), k("o", 6, 54, 22, 6.5), k("o", 31, 54, 22, 6.5)].join("");
+    }
+  }
+
+  // Where point 2 sits; point 1 follows the end of the name (or the first heading when there is none).
+  const POINT2: Record<Read["type"], [number, number] | null> = { web: [56.4, 17.4], figma: [77.6, 16], github: [56.6, 20], app: [57.6, 30.6], doc: [70, 18.6] };
+
+  const root = document.querySelector<HTMLElement>("[data-review]");
+  const screen = root?.querySelector<HTMLElement>("[data-screen]");
+  const sk = root?.querySelector<HTMLElement>("[data-sk]");
+  const link = root?.querySelector<HTMLInputElement>("input[name=link]");
+  const stuck = root?.querySelector<HTMLTextAreaElement>("textarea[name=stuck]");
+  const [pt1, pt2] = [1, 2].map((n) => root?.querySelector<HTMLElement>(`[data-pt="${n}"]`));
+
+  if (root && screen && sk && link && pt1 && pt2) {
+    wireReviewForm(root);
+    let last = "";
+    const render = () => {
+      // One switch for the phone layout, used by both the sketch and the CSS (.is-narrow), so they never disagree.
+      const narrow = screen.clientWidth < 520;
+      screen.classList.toggle("is-narrow", narrow);
+      const r = read(link.value);
+      const key = `${narrow}|${r.type}|${r.name}|${r.owner}|${r.store}`;
+      screen.classList.toggle("has-link", !!link.value.trim());
+      if (key === last) return;
+      last = key;
+      sk.innerHTML = draw(r, narrow);
+      const cqi = screen.clientWidth / 100;
+      // The big name first, then the headline bar, then the small title (GitHub, an app with no name).
+      const head = sk.querySelector<HTMLElement>(".name") ?? sk.querySelector<HTMLElement>(".t.h") ?? sk.querySelector<HTMLElement>(".txt");
+      if (head) {
+        const y = head.offsetTop + head.offsetHeight / 2 - 1.5 * cqi;
+        pt1.style.left = `${Math.min(head.offsetLeft + head.offsetWidth + 1.4 * cqi, screen.clientWidth - 6 * cqi)}px`;
+        pt1.style.top = `${y}px`;
+      }
+      const p2 = narrow ? null : POINT2[r.type];
+      pt2.hidden = !p2;
+      if (p2) Object.assign(pt2.style, { left: `${p2[0]}cqi`, top: `${p2[1]}cqi` });
+    };
+    // The ring is drawn again when "what's stuck" changes, so the mark follows the words.
+    let redraw = 0;
+    stuck?.addEventListener("input", () => {
+      clearTimeout(redraw);
+      redraw = window.setTimeout(() => {
+        screen.classList.remove("is-drawn");
+        void screen.offsetWidth;
+        screen.classList.add("is-drawn");
+      }, 350);
+    });
+    link.addEventListener("input", render);
+    const again = () => {
+      last = "";
+      render();
+    };
+    new ResizeObserver(again).observe(screen);
+    // Point 1 is placed by the width of the name, which changes once Onest has loaded.
+    document.fonts?.ready.then(again);
+    render();
+    requestAnimationFrame(() => screen.classList.add("is-drawn"));
+  }
+</script>
+
+<style>
+  /* The device: a thick, soft bezel with a highlight on top, the screen set into it. */
+  .device {
+    display: grid;
+    gap: 12px;
+    padding: 16px;
+    border-radius: 36px;
+    background: linear-gradient(180deg, #fff 0%, color-mix(in srgb, white 30%, var(--color-off-white)) 100%);
+    box-shadow:
+      inset 0 1.5px 0 #fff,
+      inset 0 -1px 0 color-mix(in srgb, var(--color-black) 6%, transparent),
+      0 0 0 0.5px color-mix(in srgb, var(--color-black) 9%, transparent),
+      0 2px 4px color-mix(in srgb, var(--color-black) 5%, transparent),
+      0 30px 60px -28px color-mix(in srgb, var(--color-black) 30%, transparent);
+  }
+  .screen {
+    --line: color-mix(in srgb, var(--color-black) 12%, transparent);
+    --bar: color-mix(in srgb, var(--color-black) 10%, transparent);
+    --bar-strong: color-mix(in srgb, var(--color-black) 16%, transparent);
+    --graphite: color-mix(in srgb, var(--color-black) 38%, transparent);
+    --fill: color-mix(in srgb, var(--color-black) 3%, transparent);
+    --name: color-mix(in srgb, var(--color-black) 72%, transparent);
+    position: relative;
+    aspect-ratio: 16 / 10;
+    overflow: hidden;
+    border-radius: 20px;
+    background: #fbfbfa;
+    box-shadow:
+      inset 0 1px 3px color-mix(in srgb, var(--color-black) 9%, transparent),
+      inset 0 0 0 0.5px color-mix(in srgb, var(--color-black) 8%, transparent);
+    container-type: inline-size;
+  }
+  /* Once there is a link, the product draws in a little darker: it is yours now. */
+  .screen.has-link {
+    --line: color-mix(in srgb, var(--color-black) 17%, transparent);
+    --bar: color-mix(in srgb, var(--color-black) 14%, transparent);
+  }
+  /* A faint sheen across the glass, like on the /glass icon. */
+  .screen::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    pointer-events: none;
+    background: linear-gradient(118deg, rgb(255 255 255 / 0.45) 0%, rgb(255 255 255 / 0) 34%);
+  }
+
+  .bar {
+    position: absolute;
+    z-index: 4;
+    top: 2.2cqi;
+    left: 2.4cqi;
+    right: 2.4cqi;
+    display: flex;
+    align-items: center;
+    gap: 1.8cqi;
+  }
+  .dots {
+    display: flex;
+    gap: 0.9cqi;
+  }
+  .dots i {
+    width: 1.3cqi;
+    height: 1.3cqi;
+    border-radius: 50%;
+    border: 1px solid var(--line);
+  }
+  .url {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    height: max(40px, 4.8cqi);
+    border-radius: 999px;
+    background: var(--tray);
+    box-shadow: var(--recess);
+    transition: background-color 160ms ease-out, box-shadow 160ms ease-out;
+  }
+  /* Filled: a raised white field. In focus: the ink ring on top, so focus shows even when there's text. */
+  .has-link .url {
+    background: #fff;
+    box-shadow: var(--raise);
+  }
+  .url:focus-within {
+    background: #fff;
+    box-shadow: var(--raise), 0 0 0 1.5px var(--ink);
+  }
+  .url b {
+    flex: none;
+    padding: 0 1.4cqi 0 2cqi;
+    border-right: 1px solid var(--line);
+    font-size: max(12px, 1.35cqi);
+    font-weight: 500;
+    line-height: 1.6;
+    opacity: 0.7;
+  }
+  input,
+  textarea {
+    width: 100%;
+    border: 0;
+    color: var(--ink);
+    font: inherit;
+    letter-spacing: inherit;
+  }
+  /* 16px and up, or iPhone zooms into the field on focus. */
+  .url input {
+    height: 100%;
+    padding: 0 1.6cqi;
+    background: none;
+    font-size: max(16px, 1.75cqi);
+    outline: none;
+  }
+
+  /* The product sketch: thin bars for text, outlines for boxes; the name from the link in real type. */
+  .sk {
+    position: absolute;
+    inset: 0;
+  }
+  .sk > :global(span) {
+    position: absolute;
+  }
+  .sk :global(.t) {
+    height: 0.62cqi;
+    border-radius: 999px;
+    background: var(--bar);
+  }
+  .sk :global(.t.h) {
+    height: 1.9cqi;
+    background: var(--bar-strong);
+  }
+  .sk :global(.o) {
+    border: 1px solid var(--line);
+    border-radius: 1.2cqi;
+  }
+  .sk :global(.f) {
+    border: 1px solid var(--line);
+    border-radius: 1.2cqi;
+    background: var(--fill);
+  }
+  .sk :global(.pill) {
+    border-radius: 999px;
+  }
+  .sk :global(.dark) {
+    border: 0;
+    background: var(--bar-strong);
+  }
+  .sk :global(.txt) {
+    color: var(--graphite);
+    font-weight: 600;
+    letter-spacing: -0.04em;
+    line-height: 1.1;
+    white-space: nowrap;
+  }
+  .sk :global(.txt b) {
+    color: var(--name);
+  }
+  .sk :global(.name) {
+    color: var(--name);
+    font-weight: 600;
+    letter-spacing: -0.06em;
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .sk :global(.grid) {
+    inset: 9.6cqi 0 0 0;
+    background: radial-gradient(circle, color-mix(in srgb, var(--color-black) 11%, transparent) 0.12cqi, transparent 0.14cqi) 0 0 / 1.8cqi 1.8cqi;
+  }
+
+  /* The review marks, in ink. */
+  .cta {
+    position: absolute;
+    z-index: 1;
+    left: 6cqi;
+    top: 44cqi;
+    width: 15cqi;
+    height: 4.6cqi;
+    border-radius: 999px;
+    background: var(--bar-strong);
+  }
+  .ring {
+    position: absolute;
+    z-index: 2;
+    left: 1.6cqi;
+    top: 40.6cqi;
+    width: 24cqi;
+    height: 11.4cqi;
+    overflow: visible;
+  }
+  .ring path {
+    fill: none;
+    stroke: var(--ink);
+    stroke-width: 3;
+    stroke-linecap: round;
+    /* The gap is longer than the dash, so the round cap leaves no dot before the ring is drawn. */
+    stroke-dasharray: 1 2;
+    stroke-dashoffset: 1;
+  }
+  .is-drawn .ring path {
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset 720ms cubic-bezier(0.6, 0, 0.2, 1);
+  }
+  .pt {
+    position: absolute;
+    z-index: 2;
+    width: 3cqi;
+    height: 3cqi;
+    display: grid;
+    place-items: center;
+    border: 1.5px solid var(--ink);
+    border-radius: 50%;
+    background: #fff;
+    color: var(--ink);
+    font-size: 1.55cqi;
+    font-weight: 600;
+    letter-spacing: 0;
+  }
+  /* The numbers are drawn, not text: they belong to the picture. */
+  .pt::before {
+    content: attr(data-pt);
+  }
+  .pt[hidden] {
+    display: none;
+  }
+
+  /* The note = the "What's stuck?" field. */
+  .note {
+    position: absolute;
+    z-index: 2;
+    left: 28cqi;
+    top: 38cqi;
+    width: 27cqi;
+    padding: 1.3cqi 1.6cqi 1.4cqi;
+    border-radius: 1.4cqi;
+    background: linear-gradient(180deg, #fff, #fafaf8);
+    box-shadow: var(--raise), 0 2.2cqi 3cqi -2cqi rgb(0 0 0 / 0.18);
+    transform: rotate(-2.5deg) translateY(0.8cqi);
+    opacity: 0;
+    transition: transform 420ms cubic-bezier(0.3, 1.3, 0.4, 1) 520ms, opacity 200ms 520ms, box-shadow 160ms;
+  }
+  .is-drawn .note {
+    transform: rotate(-2.5deg);
+    opacity: 1;
+  }
+  .note:focus-within {
+    box-shadow: var(--raise), 0 0 0 1.5px var(--ink), 0 2.2cqi 3cqi -2cqi rgb(0 0 0 / 0.18);
+  }
+  /* The pin. */
+  .note::before {
+    content: "";
+    position: absolute;
+    top: -0.7cqi;
+    left: 50%;
+    width: 1.5cqi;
+    height: 1.5cqi;
+    border-radius: 50%;
+    background: var(--btn-dark);
+    box-shadow: var(--btn-edge);
+    transform: translateX(-50%);
+  }
+  .note b {
+    display: block;
+    margin-bottom: 0.4cqi;
+    font-size: max(11px, 1.25cqi);
+    font-weight: 500;
+    opacity: 0.7;
+  }
+  .note textarea {
+    display: block;
+    height: 2.6em;
+    padding: 0;
+    background: none;
+    resize: none;
+    font-size: max(16px, 1.9cqi);
+    font-weight: 500;
+    line-height: 1.2;
+    outline: none;
+  }
+  .note textarea::placeholder {
+    color: color-mix(in srgb, var(--color-black) 35%, transparent);
+  }
+
+  /* The reviewer's camera, like the face bubble in a screen recording, signed. */
+  .cam {
+    position: absolute;
+    z-index: 2;
+    right: 2.4cqi;
+    bottom: 2.4cqi;
+    display: grid;
+    justify-items: center;
+    gap: 0.8cqi;
+  }
+  .cam i {
+    width: 11cqi;
+    height: 11cqi;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--btn-dark);
+    box-shadow: var(--btn-edge), 0 0 0 0.5cqi #fbfbfa, 0 0 0 calc(0.5cqi + 1px) var(--line), 0 1.6cqi 3.4cqi -1.4cqi rgb(0 0 0 / 0.45);
+    color: var(--color-off-white);
+    font-size: 5.6cqi;
+    font-style: normal;
+  }
+  /* The signature as text, not emoji (FE0E), drawn in CSS: it's a picture, not copy. */
+  .cam i::before {
+    content: "\263A\FE0E";
+  }
+  .cam span {
+    padding: 0.3cqi 1cqi;
+    border-radius: 999px;
+    background: var(--surface);
+    box-shadow: var(--raise);
+    font-size: max(10px, 1.15cqi);
+    font-weight: 500;
+  }
+
+  /* Under the screen: the contact field and SEND, a dock. */
+  .dock {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: center;
+    padding: 0 2px;
+  }
+  .dock[hidden],
+  .below[hidden] {
+    display: none;
+  }
+  .dock label {
+    padding-left: 8px;
+    font-size: var(--text-meta);
+    font-weight: 500;
+  }
+  .dock input {
+    height: 46px;
+    padding: 0 18px;
+    border-radius: 999px;
+    background: var(--tray);
+    box-shadow: var(--recess);
+    font-size: var(--text-body);
+    transition: background-color 160ms ease-out, box-shadow 160ms ease-out;
+  }
+  .dock input:focus {
+    outline: none;
+    background: #fff;
+    box-shadow: var(--raise), 0 0 0 1.5px var(--ink);
+  }
+  button {
+    height: 46px;
+    padding: 0 30px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--btn-dark);
+    box-shadow: var(--btn-edge);
+    color: var(--color-off-white);
+    font: inherit;
+    font-weight: 500;
+    letter-spacing: inherit;
+    cursor: pointer;
+    transition: transform 120ms ease-out, filter 120ms ease-out, opacity 120ms ease-out;
+  }
+  button:hover {
+    filter: brightness(1.12);
+  }
+  button:active {
+    transform: scale(0.985);
+  }
+  button:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 2px;
+  }
+  button:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+  .below,
+  .error {
+    margin: 0;
+    padding: 0 10px;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  .below {
+    opacity: 0.7;
+  }
+  .error a {
+    color: inherit;
+  }
+  .trap {
+    display: none;
+  }
+  .done {
+    outline: none;
+  }
+  .done p {
+    margin: 0;
+    padding: 6px 10px 8px;
+    font-size: 22px;
+    font-weight: 500;
+    line-height: 1.15;
+    letter-spacing: -0.03em;
+    text-wrap: pretty;
+  }
+
+  /* A narrow screen (the script sets .is-narrow under 520px of screen width, whatever the window is): a taller frame,
+     the review layer moves down to make room, and the sketch draws its narrow version. */
+  .screen.is-narrow {
+    aspect-ratio: 1 / 1.04;
+  }
+  .is-narrow .cta {
+    left: 7cqi;
+    top: 52cqi;
+    width: 22cqi;
+    height: 7cqi;
+  }
+  .is-narrow .ring {
+    left: 1cqi;
+    top: 47cqi;
+    width: 34cqi;
+    height: 16.5cqi;
+  }
+  .is-narrow .note {
+    left: 9cqi;
+    top: 69cqi;
+    width: 66cqi;
+    padding: 2.4cqi 3cqi;
+  }
+  .is-narrow .note b {
+    font-size: 11px;
+  }
+  .is-narrow .note textarea {
+    height: 2.4em;
+  }
+  .is-narrow .pt {
+    width: 5cqi;
+    height: 5cqi;
+    font-size: 2.6cqi;
+  }
+  .is-narrow .cam {
+    right: 3cqi;
+    bottom: 3cqi;
+  }
+  .is-narrow .cam i {
+    width: 15cqi;
+    height: 15cqi;
+    font-size: 8cqi;
+  }
+  @media (max-width: 560px) {
+    .device {
+      padding: 10px;
+      border-radius: 28px;
+    }
+    .dock {
+      grid-template-columns: 1fr;
+    }
+    .dock label {
+      padding-left: 4px;
+    }
+    button {
+      width: 100%;
+      height: 50px;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .ring path,
+    .note {
+      transition: none !important;
+    }
+  }
+</style>

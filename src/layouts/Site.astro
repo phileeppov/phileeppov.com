@@ -2,7 +2,7 @@
 // Layout for the Onest pages of the site: /review now, the rest of the site with the MVP.
 // Onest with −4% tracking, like /glass. Header: only the wordmark in the default slot, to the home page (before
 // the launch it redirects to the PDF); X and the rest are in the footer, so "phileeppov" isn't repeated up top.
-// Footer: site.md §1.7.
+// The right side of the header is the "aside" slot (on /review, whether this week is open). Footer: site.md §1.7.
 import Base from "./Base.astro";
 import Footer from "../components/Footer.astro";
 import "../styles/onest.css";
@@ -17,8 +17,10 @@ const { title, description, image } = Astro.props;
 ---
 
 <Base title={title} description={description} image={image} bare>
+  <slot name="head" slot="head" />
   <header class="top">
     <a class="mark" href="/" aria-label="phileeppov, portfolio">phil<i>ee</i>ppov</a>
+    <slot name="aside" />
   </header>
   <slot />
   <Footer />
