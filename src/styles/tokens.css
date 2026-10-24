@@ -15,15 +15,16 @@
   --tracking: 0;
   --measure: 65ch; /* 55–70 characters */
 
-  /* Color. The page is neutral; emerald appears only in motion; it gets a token once the shade is settled. */
+  /* Color. The page is neutral; emerald appears only in motion (--emerald below, first used by the live dot on /review). */
   --color-black: #0a0a0a;
   --color-off-white: #f2f2f0;
   --color-text: var(--color-black);
   --color-bg: var(--color-off-white);
 
   /* Onest pages: /glass, /review, and the rest of the site with the MVP. The exception to the flat UI made for /glass
-     carries over: depth in controls from light, shadow and soft gradients, 0.5px edges. Still monochrome, no accent.
-     /glass keeps its own copy of the same values for now. */
+     carries over: depth in controls from light, shadow and soft gradients, 0.5px edges. Still monochrome, no accent;
+     color only in states: --error for form errors, --emerald on something that moves. /glass keeps
+     its own copy of the same values for now. */
   --font-ui: "Onest", var(--font-base);
   --tracking-ui: -0.04em;
   --ink: color-mix(in srgb, var(--color-black) 88%, var(--color-off-white));
@@ -44,8 +45,13 @@
     inset 0 0 0 0.5px color-mix(in srgb, var(--color-black) 6%, transparent);
   /* A field under the mouse: the tray lightens toward the white it turns in focus, and a faint edge shows where the
      focus ring will be. */
-  --tray-hover: color-mix(in srgb, white 45%, var(--tray));
-  --hover-edge: 0 0 0 1px color-mix(in srgb, var(--color-black) 16%, transparent);
+  --tray-hover: color-mix(in srgb, white 70%, var(--tray));
+  --hover-edge: 0 0 0 1px color-mix(in srgb, var(--color-black) 26%, transparent);
+  /* Form errors only: a required field left empty (a short flash and the message under it) and a send that didn't
+     go through (the line flashes). */
+  --error: #d4402b;
+  /* Emerald, the material color: only on something that moves, never on a still element. */
+  --emerald: #0f8a5f;
   /* Dark button: slightly lighter than black, a thin highlight on top, 0.5px along the edge. */
   --btn-dark: linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 100%);
   --btn-edge: inset 0 0.5px 0 rgb(255 255 255 / 0.16), 0 0 0 0.5px rgb(0 0 0 / 0.5), 0 1px 2px rgb(0 0 0 / 0.14);

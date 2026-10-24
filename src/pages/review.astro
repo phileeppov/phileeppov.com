@@ -1,6 +1,6 @@
 ---
 // Video review request, a page of its own. Open before the site launch: the lock in public/_redirects doesn't cover it.
-// The offer on the left, read first: who, the title, the terms as tokens, what's in a review and what comes after.
+// The offer on the left, read first: who, the title, the terms as tags, what's in a review and what comes after.
 // The form on the right is the review itself (ReviewScreen.astro). The header says whether this week is open.
 // Copy: title — §1.6; what's in it and after — §1.4; who, terms, status and the screen — §8.
 // The first page in the site MVP style (src/layouts/Site.astro): Onest, monochrome, depth in the controls.
@@ -9,17 +9,22 @@ import ReviewScreen from "../components/ReviewScreen.astro";
 ---
 
 <Site title="Video review" description="Send me your product. Get a video review in return." image="/review-og.png">
-  <!-- Preview and icons: the stage and the reviewer's camera from it (the dark ☺ coin), like /glass has its own. -->
+  <!-- Preview and icons: the screen-form, and the reviewer's camera as a coin with a smile, like /glass has its own. -->
   <Fragment slot="head">
     <link rel="icon" type="image/png" sizes="64x64" href="/review-favicon.png" />
     <link rel="apple-touch-icon" href="/review-touch-icon.png" />
   </Fragment>
-  <!-- Filled in from /api/review once the page loads: open this week, or the week a request sent now goes into. -->
-  <p class="status" slot="aside" data-status hidden></p>
+  <!-- Filled in from /api/review once the page loads: open this week, or the week a request sent now goes into. Hover
+       or tap shows the weekly limit, so "open" doesn't read as a sales trick. -->
+  <button type="button" class="status" slot="aside" data-status hidden aria-describedby="review-weekly">
+    <span data-status-text></span>
+    <!-- Hidden from the button's name; screen readers get it once, as its description. -->
+    <span class="tip" id="review-weekly" role="tooltip" aria-hidden="true">I do three reviews a week.</span>
+  </button>
 
   <main class="review">
     <section class="offer">
-      <p class="who">Nikita Filippov, product designer. I redesigned game recording in Medal.tv, an app with 3M daily users.</p>
+      <p class="who">Nikita Filippov, product designer. I redesigned game recording in Medal.tv, an&nbsp;app with 3M daily users.</p>
       <h1><span>Send me your product.</span> <span>Get a video review in&nbsp;return.</span></h1>
       <ul class="terms">
         <li>Free</li>
@@ -46,17 +51,39 @@ import ReviewScreen from "../components/ReviewScreen.astro";
   // This week open, or the week a new request would land in (worker/index.js). While a queue stands, "within 48 hours"
   // isn't true from today, so that token steps aside. Nothing shows if the request fails.
   const status = document.querySelector<HTMLElement>("[data-status]");
+  const statusText = status?.querySelector<HTMLElement>("[data-status-text]");
   const in48 = document.querySelector<HTMLElement>("[data-in-48]");
   fetch("/api/review", { headers: { Accept: "application/json" } })
     .then((res) => (res.ok ? res.json() : null))
     .then((s: { queue?: number; week?: string } | null) => {
-      if (!status || !s) return;
+      if (!status || !statusText || !s) return;
       const queue = Number(s.queue) || 0;
-      status.textContent = queue > 0 && s.week ? `Now booking the week of ${weekLabel(s.week)}` : "Open this week";
+      const ahead = queue > 0 && !!s.week;
+      statusText.textContent = ahead ? `Now booking the week of ${weekLabel(s.week!)}` : "Open this week";
+      status.classList.toggle("is-open", !ahead);
       status.hidden = false;
       if (queue > 0 && in48) in48.hidden = true;
     })
     .catch(() => {});
+  // On a phone there's no hover: a tap shows the limit for a moment.
+  let tipTimer = 0;
+  status?.addEventListener("click", () => {
+    status.classList.add("is-tip");
+    clearTimeout(tipTimer);
+    tipTimer = window.setTimeout(() => status.classList.remove("is-tip"), 2600);
+  });
+
+  // "What I see, what I'd do, what it would cost" points at the same numbers on the screen: hovering (or tapping) one
+  // makes its mark jump. 3 is said in the video, so it's the camera.
+  document.querySelectorAll<HTMLElement>(".contents [data-n]").forEach((item) => {
+    item.addEventListener("pointerenter", () => {
+      const mark = item.dataset.n === "3" ? document.querySelector<HTMLElement>(".cam i") : document.querySelector<HTMLElement>(`[data-pt="${item.dataset.n}"]`);
+      if (!mark || mark.hidden) return;
+      mark.classList.remove("is-ping");
+      void mark.offsetWidth;
+      mark.classList.add("is-ping");
+    });
+  });
 </script>
 
 <style>
@@ -92,11 +119,52 @@ import ReviewScreen from "../components/ReviewScreen.astro";
   }
 
   .status {
+    position: relative;
     display: inline-flex;
     align-items: center;
     gap: 8px;
     margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
     font-weight: 500;
+    letter-spacing: inherit;
+    cursor: default;
+  }
+  .status:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 4px;
+    border-radius: 4px;
+  }
+  /* The limit under the status: on hover, keyboard focus, or a tap. */
+  .tip {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    width: max-content;
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: var(--raise);
+    font-size: 12px;
+    opacity: 0;
+    translate: 0 -4px;
+    pointer-events: none;
+    transition: opacity 180ms ease-out, translate 180ms ease-out;
+  }
+  .status:focus-visible .tip,
+  .status.is-tip .tip {
+    opacity: 1;
+    translate: 0 0;
+  }
+  /* Hover only where there is one: on a phone a tap would leave it stuck on. */
+  @media (hover: hover) {
+    .status:hover .tip {
+      opacity: 1;
+      translate: 0 0;
+    }
   }
   .status[hidden] {
     display: none;
@@ -108,6 +176,27 @@ import ReviewScreen from "../components/ReviewScreen.astro";
     border-radius: 50%;
     background: var(--ink);
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-black) 10%, transparent);
+  }
+  /* Open this week: a slow emerald pulse, like a live light. Emerald only moves, so with reduced motion the dot stays
+     ink; a week ahead it stays ink too. */
+  .status.is-open::before {
+    background: var(--emerald);
+    animation: live 2.8s ease-out infinite;
+  }
+  @keyframes live {
+    0% {
+      box-shadow: 0 0 0 0 color-mix(in srgb, var(--emerald) 45%, transparent);
+    }
+    70%,
+    100% {
+      box-shadow: 0 0 0 8px color-mix(in srgb, var(--emerald) 0%, transparent);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .status.is-open::before {
+      background: var(--ink);
+      animation: none;
+    }
   }
 
   .who {
@@ -129,7 +218,8 @@ import ReviewScreen from "../components/ReviewScreen.astro";
     text-wrap: balance;
   }
 
-  /* The terms as small raised pills: the promise as tokens instead of sentences. */
+  /* The terms as flat outlined tokens: the promise as tags instead of sentences. Flat on purpose: a raised white pill
+     is a control on these pages (the panel on /glass), and these don't press. */
   .terms {
     display: flex;
     flex-wrap: wrap;
@@ -139,10 +229,9 @@ import ReviewScreen from "../components/ReviewScreen.astro";
     list-style: none;
   }
   .terms li {
-    padding: 7px 13px;
+    padding: 6px 12px;
+    border: 0.5px solid color-mix(in srgb, var(--color-black) 30%, transparent);
     border-radius: 999px;
-    background: var(--surface);
-    box-shadow: var(--raise);
     font-size: var(--text-meta);
     font-weight: 500;
     white-space: nowrap;
@@ -162,7 +251,18 @@ import ReviewScreen from "../components/ReviewScreen.astro";
     font-size: 15px;
     font-weight: 500;
   }
+  /* Each number points at its mark on the screen (the script makes it jump); on hover the number fills in. */
+  .contents span {
+    cursor: default;
+  }
+  @media (hover: hover) {
+    .contents span:hover::before {
+      background: var(--ink);
+      color: var(--color-off-white);
+    }
+  }
   .contents span::before {
+    transition: background-color 150ms ease-out, color 150ms ease-out;
     content: attr(data-n);
     display: inline-grid;
     place-items: center;
@@ -177,13 +277,13 @@ import ReviewScreen from "../components/ReviewScreen.astro";
     vertical-align: 1px;
   }
 
-  /* Tablets and phones: one column — the offer, the form, what comes after. Below 1100px two columns leave the screen
-     too little room. */
+  /* Tablets and phones: one column — the offer, what's in a review and what comes after, then the form, so the price
+     at the end is read before sending. Below 1100px two columns leave the screen too little room. */
   @media (max-width: 1100px) {
     .review {
       grid-template-columns: minmax(0, 1fr);
       grid-template-rows: none;
-      grid-template-areas: "offer" "form" "after";
+      grid-template-areas: "offer" "after" "form";
     }
     .form {
       max-width: 760px;
@@ -192,6 +292,20 @@ import ReviewScreen from "../components/ReviewScreen.astro";
   @media (max-width: 560px) {
     h1 span {
       display: inline;
+    }
+    /* Two by two on a phone, so no tag is left alone on its own line; the cells share a width, so the words sit in
+       the middle. */
+    .terms {
+      display: grid;
+      grid-template-columns: repeat(2, max-content);
+    }
+    .terms li {
+      text-align: center;
+    }
+    /* With a queue "Within 48 hours" steps aside: the third tag takes the row and sits in the middle. */
+    .terms:has([data-in-48][hidden]) li:last-child {
+      grid-column: 1 / -1;
+      justify-self: center;
     }
   }
 </style>

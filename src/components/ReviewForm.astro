@@ -34,9 +34,9 @@
 
   <!-- After the submit: 0 weeks out is this week, 1 is next week, more names the week. -->
   <div class="done" tabindex="-1" aria-live="polite" data-done>
-    <p data-state="sent" hidden>Got it. I'll get back to you with the review.</p>
-    <p data-state="next" hidden>Got it. This week is full, so you'll get your review next week.</p>
-    <p data-state="later" hidden>Got it. There's a queue, so you'll get your review the week of <span data-week>[date]</span>.</p>
+    <p data-state="sent" hidden>Got it. I'll send the review to <span data-contact>[contact]</span>.</p>
+    <p data-state="next" hidden>Got it. This week is full, so I'll send the review to <span data-contact>[contact]</span> next week.</p>
+    <p data-state="later" hidden>Got it. There's a queue, so I'll send the review to <span data-contact>[contact]</span> the week of <span data-week>[date]</span>.</p>
   </div>
 </div>
 
@@ -56,8 +56,10 @@
     background: var(--surface);
     box-shadow: var(--float);
   }
+  /* Rows keep their real height while the form's height glides (review-form.ts). */
   form {
     display: grid;
+    grid-auto-rows: max-content;
     gap: 16px;
   }
   form[hidden] {
@@ -146,8 +148,15 @@
   .note {
     opacity: 0.6;
   }
-  .error {
-    animation: rise 320ms cubic-bezier(0.3, 1.3, 0.4, 1);
+  /* Every failed try flashes the line red for a moment (review-form.ts), so a repeat is still seen. */
+  .error:global(.is-flash) {
+    animation: error-flash 1.2s ease-out;
+  }
+  @keyframes error-flash {
+    0%,
+    45% {
+      color: var(--error);
+    }
   }
   .error a {
     color: inherit;
@@ -156,6 +165,10 @@
   }
   .done {
     outline: none;
+  }
+  /* A long email in the answer breaks anywhere rather than widen the panel. */
+  .done :global([data-contact]) {
+    overflow-wrap: anywhere;
   }
   .done p {
     margin: 0;
@@ -173,7 +186,6 @@
     }
   }
   @media (prefers-reduced-motion: reduce) {
-    .error,
     .done p {
       animation: none;
     }

@@ -11,8 +11,9 @@
     <div class="screen" data-screen>
       <div class="bar">
         <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
-        <!-- The address bar is the link field. The question stays in it like "https://" does, so the label never goes. -->
-        <label class="url">
+        <!-- The address bar is the link field. The question sits in it like "https://" does and folds away once a link
+             is in, so the link gets the whole bar. -->
+        <label class="url" data-field>
           <b>What's the link?</b>
           <input
             name="link"
@@ -24,9 +25,12 @@
             autocapitalize="none"
             autocorrect="off"
             spellcheck="false"
+            enterkeyhint="next"
             placeholder="url / Figma / App Store"
           />
+          <span class="load" aria-hidden="true"></span>
         </label>
+        <span class="err" id="review-link-error" data-error-for="link" role="alert" hidden>Paste a link first.</span>
       </div>
       <div class="sk" data-sk aria-hidden="true"></div>
       <span class="cta" aria-hidden="true"></span>
@@ -35,17 +39,27 @@
       <svg class="ring" viewBox="0 0 229 100" preserveAspectRatio="none" aria-hidden="true">
         <path pathLength="1" d="M34,66 C16,42 50,10 116,9 C182,8 223,24 220,50 C217,79 168,94 110,93 C54,92 12,79 22,50 C27,36 46,28 66,24" />
       </svg>
-      <!-- The sticky note is the "What's stuck?" field, pinned next to the circled button. -->
+      <!-- The sticky note is the "What's stuck?" field, pinned next to the circled button. The field is drawn on the
+           note, so it reads as a place to write before anything is typed. -->
       <label class="note">
         <b>What's stuck?</b>
-        <textarea name="stuck" rows="2" maxlength="500" placeholder="landing not converting"></textarea>
+        <span class="field"><textarea name="stuck" rows="2" maxlength="500" enterkeyhint="next" placeholder="e.g. people sign up, then leave"></textarea></span>
       </label>
-      <span class="cam" aria-hidden="true"><i></i><span>Nikita</span></span>
+      <span class="cam" aria-hidden="true">
+        <!-- The smile from the favicon, drawn, so it's the same mark everywhere. -->
+        <i>
+          <svg class="smile" viewBox="0 0 64 64"><circle cx="23.5" cy="26" r="3.8" /><circle cx="40.5" cy="26" r="3.8" /><path d="M20.5 37.5 Q32 49.5 43.5 37.5" /></svg>
+          <!-- After SEND: one emerald sweep around the camera, like a recording starting. -->
+          <svg class="rec" viewBox="0 0 100 100"><path pathLength="1" d="M50 2a48 48 0 1 1 0 96a48 48 0 1 1 0-96" /></svg>
+        </i>
+        <span>Nikita</span>
+      </span>
     </div>
 
     <div class="dock" data-hide-on-sent>
       <label for="review-contact">How do I get back to you?</label>
-      <input id="review-contact" name="contact" type="text" required maxlength="200" autocomplete="email" placeholder="email or @telegram" />
+      <input id="review-contact" name="contact" type="text" required maxlength="200" autocomplete="email" placeholder="email or @telegram" enterkeyhint="send" />
+      <span class="err" id="review-contact-error" data-error-for="contact" role="alert" hidden>Add an email or @telegram.</span>
       <button type="submit">SEND</button>
     </div>
     <!-- Bot trap: not rendered, so neither a person nor browser autofill fills it in; bots fill every field. -->
@@ -54,9 +68,9 @@
     <p class="below" data-hide-on-sent>Behind a login? I'll ask for access.<br /> Private. Nothing gets posted without your OK.</p>
     <p class="error" data-state="error" role="alert" hidden>That didn't go through. Write to <a href="mailto:nikita@phileeppov.com">nikita@phileeppov.com</a> instead.</p>
     <div class="done" tabindex="-1" aria-live="polite" data-done>
-      <p data-state="sent" hidden>Got it. I'll get back to you with the review.</p>
-      <p data-state="next" hidden>Got it. This week is full, so you'll get your review next week.</p>
-      <p data-state="later" hidden>Got it. There's a queue, so you'll get your review the week of <span data-week>[date]</span>.</p>
+      <p data-state="sent" hidden>Got it. I'll send the review to <span data-contact>[contact]</span>.</p>
+      <p data-state="next" hidden>Got it. This week is full, so I'll send the review to <span data-contact>[contact]</span> next week.</p>
+      <p data-state="later" hidden>Got it. There's a queue, so I'll send the review to <span data-contact>[contact]</span> the week of <span data-week>[date]</span>.</p>
     </div>
   </form>
 </div>
@@ -119,16 +133,16 @@
     if (narrow) {
       switch (r.type) {
         case "figma":
-          return [k("grid", 0, 0), k("o", 4, 15, 3.6, 3.6), k("txt", 9.4, 15.2, null, null, name || "", 3), k("o", 4, 21.5, 92, 76),
+          return [k("grid", 0, 0), k("o", 4, 15, 3.6, 3.6), k("txt", 9.4, 15.2, null, null, name || "", 3), k("o", 4, 21.5, 92, 88),
             name ? k("name", 8, 26, null, null, name, 6.4) : k("t h", 8, 27, 50) + k("t h", 8, 32, 34), bars(8, 38, [56, 48, 34], 3.2)].join("");
         case "github":
           return [k("o", 5, 15.4, 4, 4), k("txt", 11, 15.6, null, null, `${r.owner ? esc(r.owner.toLowerCase()) + " / " : ""}<b>${name || "repo"}</b>`, 3.4),
             k("t", 5, 24, 9), k("t", 17, 24, 9), k("t", 29, 24, 9), k("dark", 5, 26.4, 9, 0.5),
             k("o", 4, 30, 92, 14), ...[0, 1, 2].map((i) => k("o", 7, 32.4 + i * 3.8, 2.2, 2.2) + k("t", 11, 33.2 + i * 3.8, [30, 22, 36][i])),
-            k("o", 4, 47, 92, 50), bars(32, 54, [50, 42], 3.6)].join("");
+            k("o", 4, 47, 92, 62), bars(32, 54, [50, 42], 3.6)].join("");
         case "app":
           return [k("f", 5, 15, 13, 13), name ? k("name", 21.5, 16.4, null, null, name, 5.2) : k("t h", 21.5, 17.5, 40),
-            k("txt", 21.5, 23.4, null, null, esc(r.store ?? ""), 2.8), bars(5, 33, [70, 56], 3.4), k("o", 4, 47, 92, 50)].join("");
+            k("txt", 21.5, 23.4, null, null, esc(r.store ?? ""), 2.8), bars(5, 33, [70, 56], 3.4), k("o", 4, 47, 92, 62)].join("");
         case "doc":
           return [k("f", 0, 13.2, 100, 8), k("o", 6, 17, 8, 8), name ? k("name", 6, 28, null, null, name, 6.4) : k("t h", 6, 30, 60),
             k("t", 6, 37.5, 10) + k("t", 19, 37.5, 22), k("f", 4, 46, 92, 21)].join("");
@@ -140,7 +154,7 @@
     switch (r.type) {
       case "figma":
         return [k("grid", 0, 0), k("o", 4, 11.4, 2.4, 2.4), k("txt", 7.6, 11.4, null, null, name || "", 1.9),
-          k("t", 70, 12.4, 6), k("t", 78, 12.4, 6), k("o pill", 86, 11, 8, 3), k("t", 4, 16.4, 9), k("o", 3.6, 18, 52, 44),
+          k("t", 70, 12.4, 6), k("t", 78, 12.4, 6), k("o pill", 86, 11, 8, 3), k("t", 4, 16.4, 9), k("o", 3.6, 18, 52, 54),
           name ? k("name", 6.5, 21.4, null, null, name, 4.4) : k("t h", 6.5, 21.5, 30) + k("t h", 6.5, 25.2, 20), bars(6.5, 31, [32, 27, 18]),
           k("o", 6.5, 52, 22, 6.5), k("o", 31, 52, 22, 6.5), k("t", 59, 16.4, 7), k("o", 58.6, 18, 18, 32), bars(60.6, 22, [12, 9, 13, 8], 3),
           k("f", 80, 18, 15, 34), bars(82, 21, [10, 7, 9, 6, 10, 8], 3.4)].join("");
@@ -148,10 +162,10 @@
         return [k("o", 5, 10.4, 2.6, 2.6), k("txt", 8.8, 10.3, null, null, `${r.owner ? esc(r.owner.toLowerCase()) + " / " : ""}<b>${name || "repo"}</b>`, 2.3),
           k("o pill", 74, 10, 9, 3.4), k("o pill", 84.6, 10, 9, 3.4), k("t", 5, 16.6, 6), k("t", 13, 16.6, 6), k("t", 21, 16.6, 6), k("t", 29, 16.6, 6), k("dark", 5, 18.4, 6, 0.35),
           k("o", 4, 21, 52, 18.5), ...[0, 1, 2, 3, 4].map((i) => k("o", 6, 23 + i * 3.3, 1.6, 1.6) + k("t", 9, 23.5 + i * 3.3, [14, 10, 18, 12, 9][i]) + k("t", 42, 23.5 + i * 3.3, 10)),
-          k("o", 4, 41, 52, 21), bars(24, 45, [28, 24, 30, 18], 2.8), k("t", 60, 21.5, 8), bars(60, 25, [32, 28, 22]),
+          k("o", 4, 41, 52, 30), bars(24, 45, [28, 24, 30, 18], 2.8), k("t", 60, 21.5, 8), bars(60, 25, [32, 28, 22]),
           k("o pill", 60, 33, 9, 2.8), k("o pill", 70.5, 33, 11, 2.8), k("o pill", 60, 37, 13, 2.8)].join("");
       case "app":
-        return [k("o", 3.4, 11.5, 27, 50.5), k("t", 13, 13, 8), k("t h", 6.5, 18, 18), bars(6.5, 23, [20, 16]), k("f", 6.5, 28.5, 20.6, 12), k("o", 6.5, 51.5, 20.6, 7.5),
+        return [k("o", 3.4, 11.5, 27, 58), k("t", 13, 13, 8), k("t h", 6.5, 18, 18), bars(6.5, 23, [20, 16]), k("f", 6.5, 28.5, 20.6, 12), k("o", 6.5, 51.5, 20.6, 7.5),
           k("f", 36, 13, 9, 9), name ? k("name", 47.4, 13.8, null, null, name, 3.6) : k("t h", 47.4, 14.2, 20),
           k("txt", 47.4, 18.6, null, null, esc(r.store ?? ""), 1.6), k("dark pill", 84, 15.5, 9, 3.6), bars(36, 26, [30, 26]),
           k("f", 60, 32, 10, 20), k("f", 71.6, 32, 10, 20), k("f", 83.2, 32, 10, 20)].join("");
@@ -180,19 +194,42 @@
   const stuck = root?.querySelector<HTMLTextAreaElement>("textarea[name=stuck]");
   const [pt1, pt2] = [1, 2].map((n) => root?.querySelector<HTMLElement>(`[data-pt="${n}"]`));
 
+  // While the bar is empty, its placeholder types through what can go in it, and the sketch turns into each kind.
+  const DEMO: [string, Read][] = [
+    ["your-product.com", { type: "web", name: "" }],
+    ["App Store link", { type: "app", name: "", store: "App Store" }],
+    ["Figma file", { type: "figma", name: "" }],
+    ["GitHub repo", { type: "github", name: "" }],
+    ["Google Play link", { type: "app", name: "", store: "Google Play" }],
+    ["Notion page", { type: "doc", name: "" }],
+    ["any link", { type: "web", name: "" }],
+  ];
+  const still = matchMedia("(prefers-reduced-motion: reduce)");
+
   if (root && screen && sk && link && pt1 && pt2) {
     wireReviewForm(root);
+    const hint = link.placeholder;
+    let shown: Read | null = null;
     let last = "";
+    let force = false;
     const render = () => {
       // One switch for the phone layout, used by both the sketch and the CSS (.is-narrow), so they never disagree.
       const narrow = screen.clientWidth < 520;
       screen.classList.toggle("is-narrow", narrow);
-      const r = read(link.value);
+      const r = link.value.trim() ? read(link.value) : (shown ?? read(""));
       const key = `${narrow}|${r.type}|${r.name}|${r.owner}|${r.store}`;
       screen.classList.toggle("has-link", !!link.value.trim());
       if (key === last) return;
+      // A new kind of product draws in piece by piece; a name being typed just updates.
+      const kind = force || (last && last.split("|").slice(0, 2).join() !== key.split("|").slice(0, 2).join());
       last = key;
+      sk.classList.remove("is-in");
       sk.innerHTML = draw(r, narrow);
+      if (kind && !still.matches) {
+        [...sk.children].forEach((el, i) => (el as HTMLElement).style.setProperty("--i", String(i)));
+        void sk.offsetWidth;
+        sk.classList.add("is-in");
+      }
       const cqi = screen.clientWidth / 100;
       // Names are cut at 24 characters, but one long word still runs into the next block: then the name gets smaller.
       const name = sk.querySelector<HTMLElement>(".name");
@@ -227,6 +264,43 @@
       }, 350);
     });
     link.addEventListener("input", render);
+    // Enter moves on the way the form reads: link → note → contact, and Enter in the contact sends. Shift+Enter in the
+    // note is still a new line.
+    const contact = root.querySelector<HTMLInputElement>("input[name=contact]");
+    const onEnter = (from: HTMLElement, to: HTMLElement | null) =>
+      from.addEventListener("keydown", (event) => {
+        // keyCode 229: Safari's way of saying an input method is still composing.
+        if (event.key !== "Enter" || event.shiftKey || event.isComposing || event.keyCode === 229 || !to) return;
+        event.preventDefault();
+        to.focus();
+      });
+    onEnter(link, stuck ?? null);
+    if (stuck) onEnter(stuck, contact);
+
+    // A link going in plays the loading line along the bar and the sketch draws in again behind it, like a page
+    // loading: pasted — at once, typed — once the typing stops.
+    const bar = link.closest<HTMLElement>(".url");
+    let loaded = "";
+    let typing = 0;
+    const load = () => {
+      const value = link.value.trim();
+      // A cleared bar forgets the last link, so pasting the same one again loads again.
+      if (!value) loaded = "";
+      if (!bar || !value || value === loaded || still.matches) return;
+      loaded = value;
+      bar.classList.remove("is-loading");
+      void bar.offsetWidth;
+      bar.classList.add("is-loading");
+      force = true;
+      last = "";
+      render();
+      force = false;
+    };
+    link.addEventListener("paste", () => requestAnimationFrame(load));
+    link.addEventListener("input", () => {
+      clearTimeout(typing);
+      typing = window.setTimeout(load, 700);
+    });
     const again = () => {
       last = "";
       render();
@@ -237,13 +311,58 @@
     document.fonts?.ready.then(again);
     render();
     requestAnimationFrame(() => screen.classList.add("is-drawn"));
+
+    // The demo: types a kind into the placeholder, holds it, erases it, moves on. It stops the moment the field is
+    // focused (the sketch keeps the kind it was showing) and comes back if the field is left empty.
+    let run = 0;
+    const pause = (ms: number) => new Promise((done) => setTimeout(done, ms));
+    const demo = async () => {
+      const id = ++run;
+      for (let k = 0; ; k = (k + 1) % DEMO.length) {
+        if (id !== run) return;
+        const [text, kind] = DEMO[k];
+        shown = kind;
+        render();
+        for (let i = 1; i <= text.length; i++) {
+          if (id !== run) return;
+          link.placeholder = text.slice(0, i);
+          await pause(55);
+        }
+        await pause(1600);
+        for (let i = text.length - 1; i >= 0; i--) {
+          if (id !== run) return;
+          link.placeholder = text.slice(0, i);
+          await pause(24);
+        }
+        await pause(260);
+      }
+    };
+    const stop = () => {
+      run++;
+      link.placeholder = hint;
+    };
+    let resume = 0;
+    const start = (delay: number) => {
+      clearTimeout(resume);
+      if (still.matches || link.value || link.readOnly) return;
+      resume = window.setTimeout(demo, delay);
+    };
+    link.addEventListener("focus", () => {
+      clearTimeout(resume);
+      stop();
+    });
+    link.addEventListener("blur", () => start(1400));
+    start(1800);
   }
 </script>
 
 <style>
   /* The device: a thick, soft bezel with a highlight on top, the screen set into it. */
+  /* Rows keep their real height (max-content): while the height glides (review-form.ts) the grid can't squeeze the
+     screen row, so the dock never slides up under the screen. */
   .device {
     display: grid;
+    grid-auto-rows: max-content;
     gap: 12px;
     padding: 16px;
     border-radius: 36px;
@@ -307,7 +426,10 @@
     border-radius: 50%;
     border: 1px solid var(--line);
   }
+  /* Clips to its pill, so the loading line along the bottom tapers into the rounded ends. */
   .url {
+    position: relative;
+    overflow: hidden;
     flex: 1;
     min-width: 0;
     display: flex;
@@ -327,6 +449,36 @@
     background: #fff;
     box-shadow: var(--raise), 0 0 0 1.5px var(--ink);
   }
+  /* A link going in: a thin emerald line runs along the bottom of the bar, like a page loading, then fades. */
+  .load {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 2px;
+    background: var(--emerald);
+    transform-origin: left;
+    scale: 0 1;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .url:global(.is-loading) .load {
+    animation: load 760ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  @keyframes load {
+    0% {
+      scale: 0 1;
+      opacity: 1;
+    }
+    75% {
+      scale: 1 1;
+      opacity: 1;
+    }
+    100% {
+      scale: 1 1;
+      opacity: 0;
+    }
+  }
   /* The whole bar and the whole note take a click into their field. */
   .url,
   .note {
@@ -336,14 +488,31 @@
   .is-done .note {
     cursor: default;
   }
+  /* The question in the bar: room from the rounded end, and a pixel lower, where it sits level with the typed link. */
   .url b {
     flex: none;
-    padding: 0 1.4cqi 0 2cqi;
+    max-width: 14em;
+    overflow: hidden;
+    padding: 1px max(10px, 1.4cqi) 0 max(16px, 2.2cqi);
     border-right: 1px solid var(--line);
     font-size: max(12px, 1.35cqi);
     font-weight: 500;
     line-height: 1.6;
+    white-space: nowrap;
     opacity: 0.7;
+    transition: max-width 360ms cubic-bezier(0.6, 0, 0.2, 1), padding 360ms cubic-bezier(0.6, 0, 0.2, 1), opacity 200ms ease-out,
+      border-color 200ms ease-out;
+  }
+  /* A link is in: the question folds away and the link gets the bar. It stays in the label for screen readers. */
+  .has-link .url b {
+    max-width: 0;
+    padding-right: 0;
+    padding-left: 0;
+    border-right-color: transparent;
+    opacity: 0;
+  }
+  .has-link .url input {
+    padding-left: max(16px, 2.2cqi);
   }
   input,
   textarea {
@@ -360,6 +529,7 @@
     background: none;
     font-size: max(16px, 1.75cqi);
     outline: none;
+    transition: padding 360ms cubic-bezier(0.6, 0, 0.2, 1);
   }
 
   /* The product sketch: thin bars for text, outlines for boxes; the name from the link in real type. */
@@ -369,6 +539,31 @@
   }
   .sk > :global(span) {
     position: absolute;
+  }
+  /* A new kind of product draws in piece by piece, top to bottom (--i is the order, set by the script); the name
+     wipes in left to right, as if typed. */
+  .sk:global(.is-in) > :global(span) {
+    animation: sk-in 460ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+    animation-delay: calc(var(--i) * 18ms);
+  }
+  .sk:global(.is-in) > :global(.name) {
+    animation-name: sk-name;
+    animation-duration: 560ms;
+  }
+  @keyframes sk-in {
+    from {
+      opacity: 0;
+      translate: 0 0.9cqi;
+    }
+  }
+  /* The clip reaches past the line box, so descenders (p, y) aren't cut while it plays. */
+  @keyframes sk-name {
+    from {
+      clip-path: inset(-30% 100% -30% 0);
+    }
+    to {
+      clip-path: inset(-30% -10% -30% 0);
+    }
   }
   .sk :global(.t) {
     height: 0.62cqi;
@@ -464,6 +659,30 @@
     font-size: 1.55cqi;
     font-weight: 600;
     letter-spacing: 0;
+    /* The points glide to their new place when the sketch changes or the name grows. */
+    transition: left 420ms cubic-bezier(0.3, 1.25, 0.4, 1), top 420ms cubic-bezier(0.3, 1.25, 0.4, 1);
+  }
+  /* "What I see, what I'd do, what it would cost" on the page points here (review.astro): hovering 1 or 2 makes its
+     mark jump, with an emerald ring while it moves; 3 is said in the video, so the camera nods. */
+  .pt:global(.is-ping) {
+    animation: ping 560ms cubic-bezier(0.3, 1.5, 0.4, 1);
+  }
+  /* Soft: a little bigger, a light grey fill and a faint emerald ring; the number keeps its ink, so the mark answers
+     the hover without shouting over the sketch. */
+  @keyframes ping {
+    40% {
+      scale: 1.3;
+      background: color-mix(in srgb, var(--color-black) 9%, #fff);
+      box-shadow: 0 0 0 0.7cqi color-mix(in srgb, var(--emerald) 16%, transparent);
+    }
+  }
+  .cam i:global(.is-ping) {
+    animation: nod 560ms cubic-bezier(0.3, 1.5, 0.4, 1);
+  }
+  @keyframes nod {
+    40% {
+      scale: 1.1;
+    }
   }
   /* The numbers are drawn, not text: they belong to the picture. */
   .pt::before {
@@ -480,7 +699,8 @@
     left: 28cqi;
     top: 38cqi;
     width: 27cqi;
-    padding: 1.3cqi 1.6cqi 1.4cqi;
+    /* The field reaches 0.7cqi into the sides (margin below), so 0.9cqi is left there; the bottom matches. */
+    padding: 1.3cqi 1.6cqi 0.9cqi;
     border-radius: 1.4cqi;
     background: linear-gradient(180deg, #fff, #fafaf8);
     box-shadow: var(--raise), 0 2.2cqi 3cqi -2cqi rgb(0 0 0 / 0.18);
@@ -505,8 +725,14 @@
     height: 1.5cqi;
     border-radius: 50%;
     background: var(--btn-dark);
-    box-shadow: var(--btn-edge);
+    box-shadow: var(--btn-edge), 0 0.2cqi 0.3cqi rgb(0 0 0 / 0.3);
     transform: translateX(-50%);
+    transition: transform 240ms cubic-bezier(0.3, 1.5, 0.4, 1), box-shadow 240ms ease-out;
+  }
+  /* Writing on the note pushes the pin in: smaller, its shadow gone into the screen. */
+  .review-screen:not(.is-done) .note:focus-within::before {
+    transform: translateX(-50%) scale(0.8);
+    box-shadow: inset 0 0.15cqi 0.2cqi rgb(0 0 0 / 0.55), 0 0 0 0.5px rgb(0 0 0 / 0.5);
   }
   .note b {
     display: block;
@@ -514,6 +740,30 @@
     font-size: max(11px, 1.25cqi);
     font-weight: 500;
     opacity: 0.7;
+  }
+  /* The field drawn on the note: a recessed tray, like the address bar, while it's empty; in focus a white field; once
+     there are words, they sit on the paper. */
+  .note .field {
+    display: block;
+    margin: 0 -0.7cqi;
+    padding: 0.5cqi 0.7cqi;
+    border-radius: 0.8cqi;
+    background: var(--tray);
+    box-shadow: var(--recess);
+    transition: background-color 160ms ease-out, box-shadow 160ms ease-out;
+  }
+  .note:focus-within .field {
+    background: #fff;
+    box-shadow: inset 0 0 0 0.5px color-mix(in srgb, var(--color-black) 12%, transparent);
+  }
+  .note:not(:focus-within) .field:has(textarea:not(:placeholder-shown)),
+  .is-done .note .field {
+    background: none;
+    box-shadow: none;
+  }
+  /* Sent with nothing written: the note stays blank, not an example that reads like an answer. */
+  .is-done .note textarea::placeholder {
+    color: transparent;
   }
   /* Grows with the words (the script sets the height) up to four lines (three on the phone), then scrolls without
      a scrollbar. */
@@ -537,7 +787,8 @@
     color: color-mix(in srgb, var(--color-black) 35%, transparent);
   }
 
-  /* The reviewer's camera, like the face bubble in a screen recording, signed. */
+  /* The reviewer's camera, like the face bubble in a screen recording, signed: the favicon's coin. Toned down to a soft
+     graphite with no drop shadow while there's no sample review behind it, so it doesn't read as something to press. */
   .cam {
     position: absolute;
     z-index: 2;
@@ -548,26 +799,64 @@
     gap: 0.8cqi;
   }
   .cam i {
+    position: relative;
     width: 11cqi;
     height: 11cqi;
     display: grid;
     place-items: center;
     border-radius: 50%;
-    background: var(--btn-dark);
-    box-shadow: var(--btn-edge), 0 0 0 0.5cqi #fbfbfa, 0 0 0 calc(0.5cqi + 1px) var(--line), 0 1.6cqi 3.4cqi -1.4cqi rgb(0 0 0 / 0.45);
-    color: var(--color-off-white);
-    font-size: 5.6cqi;
-    font-style: normal;
+    background: linear-gradient(180deg, #8a8a88 0%, #747472 100%);
+    box-shadow:
+      inset 0 0.5px 0 rgb(255 255 255 / 0.2),
+      0 0 0 0.5cqi #fbfbfa,
+      0 0 0 calc(0.5cqi + 1px) var(--line);
   }
-  /* The signature as text, not emoji (FE0E), drawn in CSS: it's a picture, not copy. */
-  .cam i::before {
-    content: "\263A\FE0E";
+  .cam .smile {
+    width: 62%;
+    fill: #f6f6f4;
+  }
+  .cam .smile path {
+    fill: none;
+    stroke: #f6f6f4;
+    stroke-width: 4.4;
+    stroke-linecap: round;
+  }
+  /* The sweep sits on the hairline around the coin, draws once clockwise from the top (the path starts there), then
+     fades: emerald only while it moves. */
+  .cam .rec {
+    position: absolute;
+    top: calc(-0.5cqi - 1px);
+    left: calc(-0.5cqi - 1px);
+    width: calc(100% + 1cqi + 2px);
+    height: calc(100% + 1cqi + 2px);
+    overflow: visible;
+    fill: none;
+    stroke: var(--emerald);
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-dasharray: 1 2;
+    stroke-dashoffset: 1;
+    opacity: 0;
+  }
+  .is-done .cam .rec {
+    animation: rec 1.3s cubic-bezier(0.6, 0, 0.2, 1) forwards;
+  }
+  @keyframes rec {
+    0% {
+      stroke-dashoffset: 1;
+      opacity: 1;
+    }
+    65% {
+      stroke-dashoffset: 0;
+      opacity: 1;
+    }
+    100% {
+      stroke-dashoffset: 0;
+      opacity: 0;
+    }
   }
   .cam span {
-    padding: 0.3cqi 1cqi;
-    border-radius: 999px;
-    background: var(--surface);
-    box-shadow: var(--raise);
+    color: color-mix(in srgb, var(--color-black) 58%, transparent);
     font-size: max(10px, 1.15cqi);
     font-weight: 500;
   }
@@ -616,17 +905,91 @@
       box-shadow: var(--raise), var(--hover-edge);
     }
     .review-screen:not(.is-done) .is-drawn .note:not(:focus-within):hover {
-      translate: 0 -0.4cqi;
-      box-shadow: var(--raise), var(--hover-edge), 0 3cqi 3.6cqi -2cqi rgb(0 0 0 / 0.22);
+      translate: 0 -0.6cqi;
+      box-shadow: var(--raise), var(--hover-edge), 0 3.4cqi 4cqi -2cqi rgb(0 0 0 / 0.24);
+    }
+    /* The field on the note keeps its tray (lighter would vanish into the paper) and gets the hover edge. */
+    .review-screen:not(.is-done) .is-drawn .note:not(:focus-within):hover .field:has(textarea:placeholder-shown) {
+      box-shadow: var(--recess), var(--hover-edge);
     }
     /* While lifted, a strip under the note keeps the hover, or a mouse at its bottom edge would make it jitter. */
     .review-screen:not(.is-done) .is-drawn .note:not(:focus-within):hover::after {
       content: "";
       position: absolute;
-      inset: auto 0 -0.6cqi;
-      height: 0.6cqi;
+      inset: auto 0 -0.9cqi;
+      height: 0.9cqi;
     }
   }
+  /* SEND with a required field empty (review-form.ts): one short red flash on the field and a message under it, instead
+     of the browser's bubble; the classes go when the flash ends, the message when the field gets something. Red is
+     only for errors: this and the failed-send line below. The field that takes focus (.is-invalid-focused) flashes from its focus look, so the ring fades
+     into the ink ring instead of jumping. */
+  @keyframes invalid {
+    0%,
+    45% {
+      background-color: color-mix(in srgb, var(--error) 6%, #fff);
+      box-shadow: var(--recess), 0 0 0 1.5px var(--error);
+    }
+  }
+  @keyframes invalid-focus {
+    0%,
+    45% {
+      background-color: color-mix(in srgb, var(--error) 6%, #fff);
+      box-shadow: var(--raise), 0 0 0 1.5px var(--error);
+    }
+  }
+  .url.is-invalid,
+  .dock input.is-invalid {
+    animation: invalid 1.2s ease-out;
+  }
+  .url.is-invalid-focused,
+  .dock input.is-invalid-focused {
+    animation-name: invalid-focus;
+  }
+  .err {
+    position: relative;
+    width: max-content;
+    max-width: 100%;
+    padding: 5px 10px;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: var(--raise);
+    color: var(--error);
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.3;
+  }
+  .err[hidden] {
+    display: none;
+  }
+  /* The tick pointing up at the field. */
+  .err::before {
+    content: "";
+    position: absolute;
+    top: -4px;
+    left: 16px;
+    width: 8px;
+    height: 8px;
+    background: #fff;
+    box-shadow: -0.5px -0.5px 0 color-mix(in srgb, var(--color-black) 10%, transparent);
+    transform: rotate(45deg);
+  }
+  /* Under the address bar, over the sketch; under the contact field, in the dock's second row. */
+  .bar .err {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 7.5cqi;
+  }
+  .dock .err {
+    grid-column: 2;
+    grid-row: 2;
+    margin-top: -2px;
+  }
+  .dock button {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
   button {
     height: 46px;
     padding: 0 30px;
@@ -639,13 +1002,16 @@
     font-weight: 500;
     letter-spacing: inherit;
     cursor: pointer;
-    transition: transform 120ms ease-out, filter 120ms ease-out, opacity 120ms ease-out;
+    transition: transform 120ms ease-out, filter 120ms ease-out, opacity 120ms ease-out, box-shadow 120ms ease-out;
   }
   button:hover {
     filter: brightness(1.12);
   }
+  /* Pressed: the button goes into the dock — down a pixel, the light edge gives way to an inner shadow. */
   button:active {
-    transform: scale(0.985);
+    transform: translateY(1px) scale(0.99);
+    box-shadow: inset 0 1.5px 3px rgb(0 0 0 / 0.55), 0 0 0 0.5px rgb(0 0 0 / 0.5);
+    filter: brightness(0.92);
   }
   button:focus-visible {
     outline: 2px solid var(--ink);
@@ -668,6 +1034,22 @@
   .error a {
     color: inherit;
   }
+  /* A failed send: the line flashes red for a moment on every try, so it's seen even when it was already there. */
+  .error {
+    justify-self: start;
+    padding: 3px 10px;
+    border-radius: 8px;
+  }
+  .error:global(.is-flash) {
+    animation: error-flash 1.2s ease-out;
+  }
+  @keyframes error-flash {
+    0%,
+    45% {
+      background-color: color-mix(in srgb, var(--error) 8%, transparent);
+      color: var(--error);
+    }
+  }
   .trap {
     display: none;
   }
@@ -682,6 +1064,20 @@
     line-height: 1.15;
     letter-spacing: -0.03em;
     text-wrap: pretty;
+  }
+  /* A long email in the answer breaks anywhere rather than widen the form. */
+  .done :global([data-contact]) {
+    overflow-wrap: anywhere;
+  }
+  /* The answer comes in as the sweep around the camera closes. */
+  .is-done .done p {
+    animation: done-in 420ms cubic-bezier(0.2, 0.8, 0.2, 1) 700ms backwards;
+  }
+  @keyframes done-in {
+    from {
+      opacity: 0;
+      translate: 0 6px;
+    }
   }
 
   /* A narrow screen (the script sets .is-narrow under 520px of screen width, whatever the window is): a taller frame,
@@ -705,7 +1101,7 @@
     left: 9cqi;
     top: 67cqi;
     width: 66cqi;
-    padding: 2.4cqi 3cqi;
+    padding: 2.4cqi 3cqi 2.3cqi;
   }
   .is-narrow .note b {
     font-size: 11px;
@@ -726,7 +1122,6 @@
   .is-narrow .cam i {
     width: 15cqi;
     height: 15cqi;
-    font-size: 8cqi;
   }
   @media (max-width: 560px) {
     .device {
@@ -739,6 +1134,11 @@
     .dock label {
       padding-left: 4px;
     }
+    .dock .err,
+    .dock button {
+      grid-column: auto;
+      grid-row: auto;
+    }
     button {
       width: 100%;
       height: 50px;
@@ -746,8 +1146,19 @@
   }
   @media (prefers-reduced-motion: reduce) {
     .ring path,
-    .note {
+    .note,
+    .pt,
+    .url b,
+    .url input,
+    .note::before {
       transition: none !important;
+    }
+    /* No sweep, no wait for the answer, no jumping marks. */
+    .is-done .cam .rec,
+    .is-done .done p,
+    .pt:global(.is-ping),
+    .cam i:global(.is-ping) {
+      animation: none;
     }
   }
 </style>
