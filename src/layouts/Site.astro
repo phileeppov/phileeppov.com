@@ -1,0 +1,80 @@
+---
+// Layout for the Onest pages of the site: /review now, the rest of the site with the MVP.
+// Onest with −4% tracking, like /glass. Header: only the wordmark in the default slot, to the home page (before
+// the launch it redirects to the PDF); X and the rest are in the footer, so "phileeppov" isn't repeated up top.
+// Footer: site.md §1.7.
+import Base from "./Base.astro";
+import Footer from "../components/Footer.astro";
+import "../styles/onest.css";
+
+interface Props {
+  title?: string;
+  description: string;
+  image?: string;
+}
+
+const { title, description, image } = Astro.props;
+---
+
+<Base title={title} description={description} image={image} bare>
+  <header class="top">
+    <a class="mark" href="/" aria-label="phileeppov, portfolio">phil<i>ee</i>ppov</a>
+  </header>
+  <slot />
+  <Footer />
+</Base>
+
+<style is:global>
+  /* :root and html body win over the base styles in Base.astro whatever order the bundles load in. */
+  :root {
+    font-family: var(--font-ui);
+    letter-spacing: var(--tracking-ui);
+  }
+  html body {
+    min-height: 100vh;
+    min-height: 100svh;
+    display: flex;
+    flex-direction: column;
+    padding: 16px 24px 24px;
+  }
+  body > main {
+    flex: 1;
+    max-width: none;
+  }
+</style>
+
+<style>
+  .top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 40px;
+    font-size: var(--text-meta);
+  }
+  .top a {
+    color: inherit;
+    text-decoration: none;
+    transition: opacity 120ms ease-out, filter 120ms ease-out;
+  }
+  .mark {
+    font-size: 17px;
+    font-weight: 500;
+  }
+  .mark:hover {
+    opacity: 0.6;
+  }
+  .mark i {
+    font-family: var(--font-anomaly);
+    letter-spacing: 0;
+  }
+  .top a:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 2px;
+    border-radius: 999px;
+  }
+  @media (max-width: 560px) {
+    .top {
+      margin-bottom: 32px;
+    }
+  }
+</style>

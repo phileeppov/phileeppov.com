@@ -6,7 +6,7 @@ interface Props {
   title?: string;
   description: string;
   image?: string; // absolute or root-relative image path for the link preview
-  bare?: boolean; // no shared header and footer, the page draws its own (only /glass for now)
+  bare?: boolean; // no shared header and footer, the page draws its own (/glass, and Site.astro for the Onest pages)
 }
 
 const { title, description, image, bare = false } = Astro.props;

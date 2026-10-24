@@ -20,4 +20,29 @@
   --color-off-white: #f2f2f0;
   --color-text: var(--color-black);
   --color-bg: var(--color-off-white);
+
+  /* Onest pages: /glass, /review, and the rest of the site with the MVP. The exception to the flat UI made for /glass
+     carries over: depth in controls from light, shadow and soft gradients, 0.5px edges. Still monochrome, no accent.
+     /glass keeps its own copy of the same values for now. */
+  --font-ui: "Onest", var(--font-base);
+  --tracking-ui: -0.04em;
+  --ink: color-mix(in srgb, var(--color-black) 88%, var(--color-off-white));
+  --hair: color-mix(in srgb, var(--color-black) 22%, transparent);
+  --tray: color-mix(in srgb, var(--color-black) 5%, var(--color-off-white));
+  --panel: color-mix(in srgb, white 40%, var(--color-off-white));
+  /* Raised white surface: panels, pills, thumbs. */
+  --surface: linear-gradient(180deg, #fff 0%, var(--panel) 100%);
+  --raise: inset 0 1px 0 #fff, 0 0 0 0.5px color-mix(in srgb, var(--color-black) 10%, transparent),
+    0 1px 2px color-mix(in srgb, var(--color-black) 6%, transparent),
+    0 3px 8px -3px color-mix(in srgb, var(--color-black) 12%, transparent);
+  /* A panel floats higher: a thin edge and a wide soft shadow. */
+  --float: inset 0 1px 0 #fff, 0 0 0 0.5px color-mix(in srgb, var(--color-black) 8%, transparent),
+    0 1px 2px color-mix(in srgb, var(--color-black) 5%, transparent),
+    0 16px 40px -16px color-mix(in srgb, var(--color-black) 22%, transparent);
+  /* Recessed tray: fields, slider tracks, segment groups. */
+  --recess: inset 0 1px 2px color-mix(in srgb, var(--color-black) 7%, transparent),
+    inset 0 0 0 0.5px color-mix(in srgb, var(--color-black) 6%, transparent);
+  /* Dark button: slightly lighter than black, a thin highlight on top, 0.5px along the edge. */
+  --btn-dark: linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 100%);
+  --btn-edge: inset 0 0.5px 0 rgb(255 255 255 / 0.16), 0 0 0 0.5px rgb(0 0 0 / 0.5), 0 1px 2px rgb(0 0 0 / 0.14);
 }

@@ -74,7 +74,31 @@
           ]
         },
         {
+          "sections": [
+            "8"
+          ],
+          "allow": true
+        },
+        {
           "use": "cards"
+        }
+      ]
+    },
+    "/review/": {
+      "sources": [
+        {
+          "sections": [
+            "1.6",
+            "8",
+            "1.7"
+          ]
+        },
+        {
+          "sections": [
+            "1.1",
+            "1.4"
+          ],
+          "allow": true
         }
       ]
     },

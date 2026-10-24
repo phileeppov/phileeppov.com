@@ -1,70 +1,84 @@
 ---
-// site.md §1.6. Submit: POST /api/review, handled in worker/index.js, email to gmail.
-// Confirmation and error copy: site.md §1.6, form states.
+// The video review form in its panel: site.md §1.6, the weekly limit line and queue states: site.md §8.
+// Submit: POST /api/review, handled in worker/index.js: an email to gmail, three reviews a week, the rest queue up.
+// The section heading and intro live on the page (/review, the home page), so the panel fits either.
 ---
 
-<section id="review">
-  <h2>Send me your product. Get a video review in return.</h2>
-  <p>
-    A link is enough: a landing page, Notion, Figma, anything that shows
-    what you're working on. No call needed to start.
-  </p>
-
+<div class="panel" data-review>
   <form method="post" action="/api/review" data-review-form>
-    <p>
+    <div class="field">
       <label for="review-link">What's the link?</label>
       <input id="review-link" name="link" type="text" required maxlength="2000" autocomplete="url" aria-describedby="review-link-help" />
       <small id="review-link-help">url / Notion / Figma / GitHub, anything</small>
-    </p>
-    <p>
+    </div>
+    <div class="field">
       <label for="review-stuck">What's stuck?</label>
       <input id="review-stuck" name="stuck" type="text" maxlength="500" aria-describedby="review-stuck-help" />
       <small id="review-stuck-help">one line: "onboarding feels off" / "landing not converting" / "0→1, need direction"</small>
-    </p>
-    <p>
+    </div>
+    <div class="field">
       <label for="review-contact">How do I get back to you?</label>
       <input id="review-contact" name="contact" type="text" required maxlength="200" autocomplete="email" aria-describedby="review-contact-help" />
       <small id="review-contact-help">email or @telegram</small>
-    </p>
-    <!-- Bot trap: a person doesn't see this field and doesn't fill it in. -->
-    <input class="trap" name="company" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" />
+    </div>
+    <!-- Bot trap: not rendered, so neither a person nor browser autofill fills it in; bots fill every field. -->
+    <input class="trap" name="message" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" />
     <input type="hidden" name="t" value="" />
     <button type="submit">SEND</button>
+    <p class="note">I do three reviews a week. When a week is full, yours goes to the next open one.</p>
+    <p class="error" data-state="error" role="alert" hidden>That didn't go through. Write to <a href="mailto:nikita@phileeppov.com">nikita@phileeppov.com</a> instead.</p>
   </form>
 
-  <p data-state="sent" hidden>Got it. I'll get back to you with the review.</p>
-  <p data-state="error" hidden>That didn't go through. Write to nikita@phileeppov.com instead.</p>
-</section>
+  <!-- After the submit: 0 weeks out is this week, 1 is next week, more names the week. -->
+  <div class="done" tabindex="-1" aria-live="polite">
+    <p data-state="sent" hidden>Got it. I'll get back to you with the review.</p>
+    <p data-state="next" hidden>Got it. This week is full, so you'll get your review next week.</p>
+    <p data-state="later" hidden>Got it. There's a queue, so you'll get your review the week of <span data-week>[date]</span>.</p>
+  </div>
+</div>
 
 <script>
-  const form = document.querySelector<HTMLFormElement>("[data-review-form]");
-  const sent = document.querySelector<HTMLElement>('[data-state="sent"]');
-  const error = document.querySelector<HTMLElement>('[data-state="error"]');
+  const root = document.querySelector<HTMLElement>("[data-review]");
+  const form = root?.querySelector<HTMLFormElement>("[data-review-form]");
+  const state = (name: string) => root?.querySelector<HTMLElement>(`[data-state="${name}"]`);
+  const error = state("error");
 
-  if (form && sent && error) {
-    // Time the form was opened: a submit that comes too fast is a bot.
-    const t = form.elements.namedItem("t");
-    if (t instanceof HTMLInputElement) t.value = String(Date.now());
-
-    if (new URLSearchParams(location.search).has("sent")) {
-      form.hidden = true;
-      sent.hidden = false;
+  // Shows where the request landed (worker/index.js): queue is weeks from now (0 is this week), week is that Monday.
+  const show = (queue: number, week: string | null) => {
+    if (!root || !form) return;
+    const name = queue <= 0 ? "sent" : queue === 1 || !week ? "next" : "later";
+    const line = state(name);
+    const date = line?.querySelector("[data-week]");
+    if (date && week) {
+      date.textContent = new Date(`${week}T00:00:00Z`).toLocaleDateString("en-US", { month: "long", day: "numeric", timeZone: "UTC" });
     }
+    form.hidden = true;
+    if (line) line.hidden = false;
+    root.classList.add("is-done");
+    root.querySelector<HTMLElement>(".done")?.focus({ preventScroll: true });
+  };
 
+  if (root && form && error) {
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
       error.hidden = true;
       const button = form.querySelector("button");
       if (button) button.disabled = true;
+      // How long the page has been open, measured here: under 3 s is a bot (worker/index.js). A person can be that quick,
+      // say when the phone reloads the tab with the fields still filled in, so wait out the rest rather than lose them.
+      const wait = 3100 - performance.now();
+      if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
+      const t = form.elements.namedItem("t");
+      if (t instanceof HTMLInputElement) t.value = String(Math.round(performance.now()));
       try {
         const res = await fetch(form.action, {
           method: "POST",
           body: new FormData(form),
           headers: { Accept: "application/json" },
         });
-        if (!res.ok) throw new Error(String(res.status));
-        form.hidden = true;
-        sent.hidden = false;
+        const result = await res.json().catch(() => null);
+        if (!res.ok || !result?.ok) throw new Error(String(res.status));
+        show(Number(result.queue) || 0, typeof result.week === "string" ? result.week : null);
       } catch {
         error.hidden = false;
       } finally {
@@ -75,15 +89,127 @@
 </script>
 
 <style>
-  .trap {
-    position: absolute;
-    left: -9999px;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
+  /* A soft near-white panel, like the settings panel on /glass: fields are recessed trays, SEND is the dark pill. */
+  .panel {
+    display: grid;
+    padding: 20px;
+    border-radius: 28px;
+    background: var(--surface);
+    box-shadow: var(--float);
   }
-  label,
+  form {
+    display: grid;
+    gap: 16px;
+  }
+  form[hidden] {
+    display: none;
+  }
+  .field {
+    display: grid;
+    gap: 6px;
+  }
+  label {
+    font-weight: 500;
+  }
+  /* 16px and up, or iPhone zooms into the field on focus. */
+  input {
+    width: 100%;
+    height: 46px;
+    padding: 0 18px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--tray);
+    box-shadow: var(--recess);
+    color: var(--ink);
+    font: inherit;
+    font-size: var(--text-body);
+    letter-spacing: inherit;
+    transition: background-color 160ms ease-out, box-shadow 160ms ease-out;
+  }
+  /* In focus the tray rises to a white surface. */
+  input:focus {
+    outline: none;
+    background: #fff;
+    box-shadow: var(--raise), 0 0 0 1.5px var(--ink);
+  }
   small {
-    display: block;
+    padding-inline: 18px;
+    font-size: var(--text-meta);
+    opacity: 0.6;
+    text-wrap: pretty;
+  }
+  .trap {
+    display: none;
+  }
+  button {
+    margin-top: 4px;
+    width: 100%;
+    padding: 14px 16px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--btn-dark);
+    box-shadow: var(--btn-edge);
+    color: var(--color-off-white);
+    font: inherit;
+    font-weight: 500;
+    letter-spacing: inherit;
+    cursor: pointer;
+    transition: transform 120ms ease-out, filter 120ms ease-out, opacity 120ms ease-out;
+  }
+  button:hover {
+    filter: brightness(1.12);
+  }
+  button:active {
+    transform: scale(0.985);
+  }
+  button:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 2px;
+  }
+  button:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+  .note,
+  .error {
+    margin: -8px 0 0;
+    font-size: var(--text-meta);
+    text-align: center;
+    text-wrap: pretty;
+  }
+  .note {
+    opacity: 0.6;
+  }
+  .error {
+    animation: rise 320ms cubic-bezier(0.3, 1.3, 0.4, 1);
+  }
+  .error a {
+    color: inherit;
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1px;
+  }
+  .done {
+    outline: none;
+  }
+  .done p {
+    margin: 0;
+    font-size: var(--text-lead);
+    font-weight: 500;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    text-wrap: pretty;
+    animation: rise 420ms cubic-bezier(0.3, 1.3, 0.4, 1);
+  }
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(-6px);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .error,
+    .done p {
+      animation: none;
+    }
   }
 </style>

@@ -13,13 +13,13 @@ import "../styles/onest.css";
     <link rel="apple-touch-icon" href="/glass-touch-icon.png" />
   </Fragment>
 
-  <!-- Author links: wordmark → portfolio, handle → X profile. Every link off this page opens in a new tab,
-       so the uploaded logo and settings aren't lost. -->
+  <!-- Author links: wordmark → portfolio, handle → X profile, the pill → the video review form. Every link off this page
+       opens in a new tab, so the uploaded logo and settings aren't lost. -->
   <header class="top">
     <a class="mark" href="/" target="_blank" rel="noopener" aria-label="phil01ppov, portfolio" title="Portfolio" data-link="wordmark">phil<i>01</i>ppov</a>
     <nav>
       <a href="https://x.com/phileeppov" target="_blank" rel="noopener" data-link="x-handle">@phileeppov</a>
-      <a class="work" href="/" target="_blank" rel="noopener" data-link="portfolio">Portfolio</a>
+      <a class="work" href="/review/" target="_blank" rel="noopener" data-link="review-pill">Get a video review</a>
     </nav>
   </header>
 
@@ -123,6 +123,7 @@ import "../styles/onest.css";
     </form>
     <footer class="bottom">
       <p class="made">Made by <a href="https://x.com/phileeppov" target="_blank" rel="noopener" data-link="x-name">Nikita Filippov</a> ☺</p>
+      <p class="pitch">Product designer.<br /> <a href="/review/" target="_blank" rel="noopener" data-link="review-line">Send a link, get a video review →</a></p>
       <p>
         <a href="mailto:nikita@phileeppov.com" data-link="email">Email</a>{" · "}
         <a href="https://linkedin.com/in/phileeppov" target="_blank" rel="noopener" data-link="linkedin">LinkedIn</a>{" · "}
@@ -184,7 +185,7 @@ import "../styles/onest.css";
     align-items: center;
     gap: 16px;
   }
-  /* Portfolio is a small white pill, like the buttons in the panel: the main path to the portfolio. */
+  /* The review pill is small and white, like the buttons in the panel: the main path from the tool to working together. */
   .top nav .work {
     padding: 6px 14px;
     border-radius: 999px;
@@ -762,8 +763,9 @@ import "../styles/onest.css";
     font-size: var(--text-body);
     font-weight: 500;
   }
-  /* The name links to X: clearly clickable, but without the blue browser underline. */
-  .made a {
+  /* The name links to X, the line under it to the review form: clearly clickable, but without the blue browser underline. */
+  .made a,
+  .pitch a {
     opacity: 1;
     text-decoration: underline;
     text-decoration-thickness: 1px;
@@ -771,7 +773,8 @@ import "../styles/onest.css";
     text-decoration-color: var(--hair);
     transition: text-decoration-color 120ms ease-out;
   }
-  .made a:hover {
+  .made a:hover,
+  .pitch a:hover {
     text-decoration-color: currentColor;
   }
 
@@ -795,6 +798,13 @@ import "../styles/onest.css";
       margin-top: -2px;
     }
     .controls > .hint:not(.caption) {
+      display: none;
+    }
+  }
+
+  /* The narrowest phones: the handle gives way to the review pill (X is in the footer too). */
+  @media (max-width: 340px) {
+    .top nav [data-link="x-handle"] {
       display: none;
     }
   }
