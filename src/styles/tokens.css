@@ -42,6 +42,10 @@
   /* Recessed tray: fields, slider tracks, segment groups. */
   --recess: inset 0 1px 2px color-mix(in srgb, var(--color-black) 7%, transparent),
     inset 0 0 0 0.5px color-mix(in srgb, var(--color-black) 6%, transparent);
+  /* A field under the mouse: the tray lightens toward the white it turns in focus, and a faint edge shows where the
+     focus ring will be. */
+  --tray-hover: color-mix(in srgb, white 45%, var(--tray));
+  --hover-edge: 0 0 0 1px color-mix(in srgb, var(--color-black) 16%, transparent);
   /* Dark button: slightly lighter than black, a thin highlight on top, 0.5px along the edge. */
   --btn-dark: linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 100%);
   --btn-edge: inset 0 0.5px 0 rgb(255 255 255 / 0.16), 0 0 0 0.5px rgb(0 0 0 / 0.5), 0 1px 2px rgb(0 0 0 / 0.14);

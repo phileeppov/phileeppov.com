@@ -91,6 +91,13 @@
     background: #fff;
     box-shadow: var(--raise), 0 0 0 1.5px var(--ink);
   }
+  /* Under the mouse a field shows it takes typing before it's clicked (tokens.css); not once the request is in. */
+  @media (hover: hover) {
+    input:read-write:not(:focus):hover {
+      background: var(--tray-hover);
+      box-shadow: var(--recess), var(--hover-edge);
+    }
+  }
   small {
     padding-inline: 18px;
     font-size: var(--text-meta);

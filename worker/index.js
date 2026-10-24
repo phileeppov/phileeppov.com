@@ -27,7 +27,7 @@ export default {
 // and a database failure must not break anything.
 const KNOBS =
   "refraction|blend|logo-size|dispersion|edge-width|angle|length|spin|motion|depth|thickness|background|logo-color|shape|edges|video-format";
-const LINKS = "wordmark|x-handle|portfolio|x-name|email|linkedin|github|review-pill|review-line";
+const LINKS = "wordmark|x-handle|portfolio|x-name|email|linkedin|github|review-pill|review-line|source";
 const EVENT = new RegExp(
   `^(png|video|video-wide|share|upload|ping|advanced|preset:(studio|melt|prism|lens|night)|knob:(${KNOBS})|from:(file|drop|paste)|link:(${LINKS}))$`,
 );

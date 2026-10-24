@@ -169,6 +169,9 @@
 
   // Where point 2 sits; point 1 follows the end of the name (or the first heading when there is none).
   const POINT2: Record<Read["type"], [number, number] | null> = { web: [56.4, 17.4], figma: [77.6, 16], github: [56.6, 20], app: [57.6, 30.6], doc: [70, 18.6] };
+  // How far right the big name may run on the wide screen, in cqi: up to the next block or point 2, less room for
+  // point 1. On the phone the name has its row to itself.
+  const ROOM: Record<Read["type"], number> = { web: 49.5, figma: 50, github: 49.5, app: 78, doc: 64 };
 
   const root = document.querySelector<HTMLElement>("[data-review]");
   const screen = root?.querySelector<HTMLElement>("[data-screen]");
@@ -191,6 +194,10 @@
       last = key;
       sk.innerHTML = draw(r, narrow);
       const cqi = screen.clientWidth / 100;
+      // Names are cut at 24 characters, but one long word still runs into the next block: then the name gets smaller.
+      const name = sk.querySelector<HTMLElement>(".name");
+      const room = name ? (narrow ? 88 : ROOM[r.type]) * cqi - name.offsetLeft : 0;
+      if (name && name.offsetWidth > room) name.style.fontSize = `${(parseFloat(name.style.fontSize) * room) / name.offsetWidth}cqi`;
       // The big name first, then the headline bar, then the small title (GitHub, an app with no name).
       const head = sk.querySelector<HTMLElement>(".name") ?? sk.querySelector<HTMLElement>(".t.h") ?? sk.querySelector<HTMLElement>(".txt");
       if (head) {
@@ -202,9 +209,16 @@
       pt2.hidden = !p2;
       if (p2) Object.assign(pt2.style, { left: `${p2[0]}cqi`, top: `${p2[1]}cqi` });
     };
+    // The note grows with what's written, up to its max-height, so the words stay in view.
+    const grow = () => {
+      if (!stuck) return;
+      stuck.style.height = "auto";
+      stuck.style.height = `${stuck.scrollHeight}px`;
+    };
     // The ring is drawn again when "what's stuck" changes, so the mark follows the words.
     let redraw = 0;
     stuck?.addEventListener("input", () => {
+      grow();
       clearTimeout(redraw);
       redraw = window.setTimeout(() => {
         screen.classList.remove("is-drawn");
@@ -216,6 +230,7 @@
     const again = () => {
       last = "";
       render();
+      grow();
     };
     new ResizeObserver(again).observe(screen);
     // Point 1 is placed by the width of the name, which changes once Onest has loaded.
@@ -311,6 +326,15 @@
   .url:focus-within {
     background: #fff;
     box-shadow: var(--raise), 0 0 0 1.5px var(--ink);
+  }
+  /* The whole bar and the whole note take a click into their field. */
+  .url,
+  .note {
+    cursor: text;
+  }
+  .is-done .url,
+  .is-done .note {
+    cursor: default;
   }
   .url b {
     flex: none;
@@ -462,7 +486,7 @@
     box-shadow: var(--raise), 0 2.2cqi 3cqi -2cqi rgb(0 0 0 / 0.18);
     transform: rotate(-2.5deg) translateY(0.8cqi);
     opacity: 0;
-    transition: transform 420ms cubic-bezier(0.3, 1.3, 0.4, 1) 520ms, opacity 200ms 520ms, box-shadow 160ms;
+    transition: transform 420ms cubic-bezier(0.3, 1.3, 0.4, 1) 520ms, opacity 200ms 520ms, box-shadow 160ms, translate 200ms ease-out;
   }
   .is-drawn .note {
     transform: rotate(-2.5deg);
@@ -491,9 +515,12 @@
     font-weight: 500;
     opacity: 0.7;
   }
+  /* Grows with the words (the script sets the height) up to four lines (three on the phone), then scrolls without
+     a scrollbar. */
   .note textarea {
     display: block;
-    height: 2.6em;
+    min-height: 2.6em;
+    max-height: 4.9em;
     padding: 0;
     background: none;
     resize: none;
@@ -501,6 +528,10 @@
     font-weight: 500;
     line-height: 1.2;
     outline: none;
+    scrollbar-width: none;
+  }
+  .note textarea::-webkit-scrollbar {
+    display: none;
   }
   .note textarea::placeholder {
     color: color-mix(in srgb, var(--color-black) 35%, transparent);
@@ -571,6 +602,30 @@
     outline: none;
     background: #fff;
     box-shadow: var(--raise), 0 0 0 1.5px var(--ink);
+  }
+  /* Under the mouse a field shows it takes typing before it's clicked (tokens.css); the note lifts a little off the
+     screen. Focus keeps its own look, and nothing reacts once the request is in. */
+  @media (hover: hover) {
+    .review-screen:not(.is-done) .url:not(:focus-within):hover,
+    .review-screen:not(.is-done) .dock input:not(:focus):hover {
+      background: var(--tray-hover);
+      box-shadow: var(--recess), var(--hover-edge);
+    }
+    .review-screen:not(.is-done) .has-link .url:not(:focus-within):hover {
+      background: #fff;
+      box-shadow: var(--raise), var(--hover-edge);
+    }
+    .review-screen:not(.is-done) .is-drawn .note:not(:focus-within):hover {
+      translate: 0 -0.4cqi;
+      box-shadow: var(--raise), var(--hover-edge), 0 3cqi 3.6cqi -2cqi rgb(0 0 0 / 0.22);
+    }
+    /* While lifted, a strip under the note keeps the hover, or a mouse at its bottom edge would make it jitter. */
+    .review-screen:not(.is-done) .is-drawn .note:not(:focus-within):hover::after {
+      content: "";
+      position: absolute;
+      inset: auto 0 -0.6cqi;
+      height: 0.6cqi;
+    }
   }
   button {
     height: 46px;
@@ -648,7 +703,7 @@
   }
   .is-narrow .note {
     left: 9cqi;
-    top: 69cqi;
+    top: 67cqi;
     width: 66cqi;
     padding: 2.4cqi 3cqi;
   }
@@ -656,7 +711,8 @@
     font-size: 11px;
   }
   .is-narrow .note textarea {
-    height: 2.4em;
+    min-height: 2.4em;
+    max-height: 3.7em;
   }
   .is-narrow .pt {
     width: 5cqi;
