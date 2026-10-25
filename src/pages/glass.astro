@@ -212,7 +212,6 @@ import "../styles/onest.css";
   :global(body) {
     padding: 20px 24px;
   }
-  .page-links a,
   .top a,
   .bottom a {
     color: inherit;
@@ -237,9 +236,12 @@ import "../styles/onest.css";
     font-weight: 500;
     transition: opacity 120ms ease-out, color 200ms ease-out;
   }
-  /* Over a dark stage the wordmark turns light; the links on the right sit over the light panel. */
-  .top:has(~ .glass[data-tone="dark"]) .mark {
-    color: var(--color-off-white);
+  /* On a computer the wordmark sits over the stage: over a dark one it turns light (the links on the right sit over
+     the light panel). On a phone the header is above the stage, on the light page. */
+  @media (min-width: 761px) {
+    .top:has(~ .glass[data-tone="dark"]) .mark {
+      color: var(--color-off-white);
+    }
   }
   /* The wordmark leads to the portfolio, so it responds to hover like a link. */
   .mark:hover {
@@ -385,7 +387,7 @@ import "../styles/onest.css";
     font-size: 12px;
   }
   /* A file is being dragged over the page: highlight the stage, it can be dropped anywhere. */
-  :global(.is-over) .stage {
+  .is-over .stage {
     border-radius: 24px;
     outline: 2px dashed var(--ink);
     outline-offset: -10px;
@@ -410,7 +412,7 @@ import "../styles/onest.css";
   .unsupported {
     display: none;
   }
-  :global(.is-unsupported) .unsupported {
+  .is-unsupported .unsupported {
     display: block;
     position: absolute;
     inset: 0;
@@ -1043,7 +1045,7 @@ import "../styles/onest.css";
     border-radius: 999px;
     background: linear-gradient(180deg, #fff 0%, var(--panel) 100%);
     box-shadow: var(--raise);
-    transition: translate 360ms cubic-bezier(0.3, 1.3, 0.4, 1), opacity 160ms ease-out;
+    transition: translate 360ms cubic-bezier(0.3, 1.05, 0.4, 1), opacity 160ms ease-out; /* barely past the target: the stretch is the bounce now, and it stays inside the tray */
   }
   /* On its way to the new option the pill stretches a little and settles (app.js replays is-moving on each change). */
   .seg.is-moving::before {
@@ -1288,6 +1290,7 @@ import "../styles/onest.css";
   }
   .key > button:disabled {
     opacity: 1;
+    filter: none; /* the page's button:hover brightening would wash out the recording fill */
   }
   .is-recording .opt {
     pointer-events: none;
@@ -1309,18 +1312,19 @@ import "../styles/onest.css";
     font-size: var(--text-meta);
     letter-spacing: -0.04em;
   }
-  /* A fieldset is display: flex in this sheet, which would keep a closed menu on screen. Two rules, not one list:
-     a browser without popovers drops a list with :popover-open whole, [hidden] included. */
+  /* A fieldset is display: flex in this sheet, which would keep a closed menu on screen. */
   .menu:not(:popover-open) {
     display: none;
   }
-  .menu[hidden] {
-    display: none;
-  }
-  /* Without popovers (Safari before 17, Firefox before 125) the menu opens in the dock itself, under the keys. */
+  /* Without popovers (Safari before 17, Firefox before 125) the menu opens in the dock itself, under the keys,
+     when app.js marks it is-open. A browser that can't read :popover-open drops the rule above, so this one hides it. */
   @supports not selector(:popover-open) {
     .menu {
       position: static;
+      display: none;
+      gap: 2px;
+    }
+    .menu.is-open {
       display: grid;
     }
   }
@@ -1430,7 +1434,7 @@ import "../styles/onest.css";
     clip-path: inset(50%);
     white-space: nowrap;
   }
-  :global(.is-recording) [data-video] {
+  .is-recording .key > [data-video] {
     opacity: 1;
     background:
       linear-gradient(var(--tray), var(--tray)) left / 0% 100% no-repeat,
