@@ -4,7 +4,7 @@
 const INF = 1e20;
 
 // One pass over a row or column: squared distances to the nearest "zero" point.
-function pass(grid: Float64Array, offset: number, stride: number, n: number, f: Float64Array, v: Uint32Array, z: Float64Array) {
+function pass(grid, offset, stride, n, f, v, z) {
   v[0] = 0;
   z[0] = -INF;
   z[1] = INF;
@@ -12,7 +12,7 @@ function pass(grid: Float64Array, offset: number, stride: number, n: number, f: 
   let k = 0;
   for (let q = 1; q < n; q++) {
     f[q] = grid[offset + q * stride];
-    let s: number;
+    let s;
     do {
       const r = v[k];
       s = (f[q] - f[r] + q * q - r * r) / (q - r) / 2;
@@ -30,7 +30,7 @@ function pass(grid: Float64Array, offset: number, stride: number, n: number, f: 
   }
 }
 
-function transform(grid: Float64Array, size: number) {
+function transform(grid, size) {
   const f = new Float64Array(size);
   const v = new Uint32Array(size);
   const z = new Float64Array(size + 1);
@@ -40,7 +40,7 @@ function transform(grid: Float64Array, size: number) {
 
 // rgba: RGBA of a square size × size canvas. Returns bytes: 128 is the edge, higher is inside,
 // with `spread` texels of distance spanning half the byte range.
-export function buildSdf(rgba: Uint8ClampedArray, size: number, spread: number): Uint8Array {
+export function buildSdf(rgba, size, spread) {
   const n = size * size;
   const outer = new Float64Array(n);
   const inner = new Float64Array(n);

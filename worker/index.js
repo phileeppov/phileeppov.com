@@ -21,15 +21,16 @@ export default {
   },
 };
 
-// /glass counter: PNG and video downloads, Share clicks, preset picks, which knobs were touched
-// (once per visit), whether Advanced was opened, where the logo came from, which author links were followed. Only the event
-// name and the date are stored: no logo, IP or personal data. The response is always empty: the page doesn't wait for it,
+// /glass counter: PNG and video downloads and their formats, Share clicks, preset picks, which knobs were touched
+// (once per visit), whether Advanced was opened, where the logo came from and how thick it is (thin, mid, bold, a photo),
+// which author links were followed, and which new features were tried, once per visit: a sound mode (never a track's
+// name), typing, Randomize, Copy link, tilt, a tap. Only the event name and the date are stored: no logo, IP or personal data. The response is always empty: the page doesn't wait for it,
 // and a database failure must not break anything.
 const KNOBS =
-  "refraction|blend|logo-size|dispersion|edge-width|angle|length|spin|motion|depth|thickness|background|logo-color|shape|edges|video-format";
-const LINKS = "wordmark|x-handle|portfolio|x-name|email|linkedin|github|review-pill|review-line|source";
+  "refraction|blend|logo-size|dispersion|edge-width|angle|length|spin|motion|depth|thickness|background|logo-color|shape|edges|video-format|facets";
+const LINKS = "wordmark|x-handle|portfolio|x-name|email|linkedin|github|review-pill|review-line|source|copy";
 const EVENT = new RegExp(
-  `^(png|video|video-wide|share|upload|ping|advanced|preset:(studio|melt|prism|lens|night)|knob:(${KNOBS})|from:(file|drop|paste)|link:(${LINKS}))$`,
+  `^(png|video|video-wide|share|upload|ping|advanced|text|random|tilt|tap|preset:(studio|melt|prism|lens|night)|knob:(${KNOBS})|from:(file|drop|paste)|link:(${LINKS})|sound:(demo|mic|track)|image:(2048|avatar|store)|logo:(thin|mid|bold|fill))$`,
 );
 
 async function track(request, env) {
