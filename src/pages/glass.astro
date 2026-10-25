@@ -37,7 +37,7 @@ import "../styles/onest.css";
           <button type="button" class="soft tilt" data-tilt hidden>Tilt the glass</button>
           <p class="unsupported">WebGL isn't working in this browser, so the glass can't render.</p>
         </div>
-        <!-- Under the glass: the presets, each key your own logo in that look, and the die for a look of its own.
+        <!-- Under the glass: the presets, each key your own logo in that look, and a sixth key for a look of its own.
              The most used control sits next to what it changes. -->
         <div class="looks">
           <fieldset class="presets">
@@ -48,33 +48,38 @@ import "../styles/onest.css";
               <label><input type="radio" name="preset" value="prism" /><span><canvas width="128" height="128" data-thumb="prism" aria-hidden="true"></canvas>Prism</span></label>
               <label><input type="radio" name="preset" value="lens" /><span><canvas width="128" height="128" data-thumb="lens" aria-hidden="true"></canvas>Lens</span></label>
               <label><input type="radio" name="preset" value="night" /><span><canvas width="128" height="128" data-thumb="night" aria-hidden="true"></canvas>Night</span></label>
+              <!-- The sixth key rolls a look of its own and keeps it: try a preset, tap here to come back; tap again to roll again. -->
+              <button type="button" class="slot" data-roll aria-pressed="false"><span><i class="well"><canvas width="128" height="128" data-roll-thumb aria-hidden="true"></canvas><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><rect x="2.5" y="2.5" width="15" height="15" rx="4" fill="none" stroke="currentColor" stroke-width="1.5" /><circle cx="7" cy="7" r="1.4" fill="currentColor" /><circle cx="13" cy="13" r="1.4" fill="currentColor" /><circle cx="13" cy="7" r="1.4" fill="currentColor" /><circle cx="7" cy="13" r="1.4" fill="currentColor" /><circle cx="10" cy="10" r="1.4" fill="currentColor" /></svg></i>Random</span></button>
             </div>
           </fieldset>
-          <button type="button" class="die" data-random aria-label="Randomize" title="Randomize"><svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><rect x="2.5" y="2.5" width="15" height="15" rx="4" fill="none" stroke="currentColor" stroke-width="1.5" /><circle cx="7" cy="7" r="1.4" fill="currentColor" /><circle cx="13" cy="13" r="1.4" fill="currentColor" /><circle cx="13" cy="7" r="1.4" fill="currentColor" /><circle cx="7" cy="13" r="1.4" fill="currentColor" /><circle cx="10" cy="10" r="1.4" fill="currentColor" /></svg></button>
         </div>
       </div>
     </div>
 
     <form class="controls" autocomplete="off" onsubmit="return false">
-      <label class="upload">
-        <span>Upload logo</span>
-        <input type="file" accept=".svg,image/svg+xml,image/png,image/jpeg,image/webp" />
-      </label>
-      <div class="type">
-        <input type="text" name="text" maxlength="12" placeholder="Type a letter, word or emoji" enterkeyhint="done" spellcheck="false" aria-label="Type a letter, word or emoji" data-text />
-        <div class="samples" role="group" aria-label="Try one">
-          <button type="button" data-sample="">☺</button>
-          <button type="button" data-sample="A">A</button>
-          <button type="button" data-sample="★">★</button>
+      <!-- The logo comes in one row: Upload is the wide key, the text field waits next to it folded into an Aa key.
+           A tap on Aa opens the field and folds Upload to its arrow; an empty field folds back. -->
+      <div class="logo-in" data-logo-in>
+        <label class="upload">
+          <span><svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path d="M10 14V4.5M5.8 8.6 10 4.4l4.2 4.2M4.5 15.5h11" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg><i>Upload logo</i></span>
+          <input type="file" accept=".svg,image/svg+xml,image/png,image/jpeg,image/webp" />
+        </label>
+        <div class="type">
+          <input type="text" name="text" maxlength="12" placeholder="Aa" data-open-placeholder="Type a word or emoji" enterkeyhint="done" spellcheck="false" aria-label="Type a word or emoji" data-text />
+          <div class="samples" role="group" aria-label="Try one">
+            <button type="button" data-sample="">☺</button>
+            <button type="button" data-sample="A">A</button>
+            <button type="button" data-sample="★">★</button>
+          </div>
         </div>
       </div>
-      <p class="hint drop-hint">Or drop an SVG or PNG anywhere. From Figma: Copy as SVG, then paste.</p>
+      <p class="hint drop-hint">Drop an SVG or PNG anywhere, or paste one.</p>
 
-      <h2 class="group">Look</h2>
+      <h2 class="group rule"><span class="sr">Look</span></h2>
 
-      <label class="range"><input type="range" name="refraction" min="0" max="1.5" step="any" value="1.5" /><span class="thumb"><span class="name">Refraction</span><span class="val" aria-hidden="true"></span></span></label>
-      <label class="range"><input type="range" name="liquid" min="0" max="1" step="any" value="0.75" /><span class="thumb"><span class="name">Blend</span><span class="val" aria-hidden="true"></span></span></label>
-      <label class="range"><input type="range" name="size" min="0.3" max="1.2" step="any" value="0.66" /><span class="thumb"><span class="name">Logo size</span><span class="val" aria-hidden="true"></span></span></label>
+      <label class="range"><input type="range" name="refraction" min="0" max="1.5" step="any" value="1.5" /><span class="thumb"><span class="name">Refraction</span><span class="val" aria-hidden="true"></span></span><i class="detent" aria-hidden="true"></i></label>
+      <label class="range"><input type="range" name="liquid" min="0" max="1" step="any" value="0.75" /><span class="thumb"><span class="name">Blend</span><span class="val" aria-hidden="true"></span></span><i class="detent" aria-hidden="true"></i></label>
+      <label class="range"><input type="range" name="size" min="0.3" max="1.2" step="any" value="0.66" /><span class="thumb"><span class="name">Logo size</span><span class="val" aria-hidden="true"></span></span><i class="detent" aria-hidden="true"></i></label>
       <fieldset>
         <legend>Background</legend>
         <div class="seg">
@@ -99,8 +104,8 @@ import "../styles/onest.css";
       <details class="advanced" data-advanced>
         <summary>Advanced</summary>
         <div class="adv-body">
-          <label class="range"><input type="range" name="dispersion" min="0" max="1" step="any" value="0.95" /><span class="thumb"><span class="name">Dispersion</span><span class="val" aria-hidden="true"></span></span></label>
-          <label class="range"><input type="range" name="edge" min="0.06" max="0.35" step="any" value="0.18" /><span class="thumb"><span class="name">Edge width</span><span class="val" aria-hidden="true"></span></span></label>
+          <label class="range"><input type="range" name="dispersion" min="0" max="1" step="any" value="0.95" /><span class="thumb"><span class="name">Dispersion</span><span class="val" aria-hidden="true"></span></span><i class="detent" aria-hidden="true"></i></label>
+          <label class="range"><input type="range" name="edge" min="0.06" max="0.35" step="any" value="0.18" /><span class="thumb"><span class="name">Edge width</span><span class="val" aria-hidden="true"></span></span><i class="detent" aria-hidden="true"></i></label>
           <label class="check"><input type="checkbox" name="facets" /><span>Facets</span></label>
           <fieldset>
             <legend>Edges</legend>
@@ -110,12 +115,12 @@ import "../styles/onest.css";
               <label><input type="radio" name="sides" value="one" /><span>One</span></label>
             </div>
           </fieldset>
-          <label class="range directional"><input type="range" name="angle" min="0" max="360" step="any" value="45" /><span class="thumb"><span class="name">Angle</span><span class="val" aria-hidden="true"></span></span></label>
-          <label class="range directional"><input type="range" name="spread" min="0" max="1" step="any" value="0.6" /><span class="thumb"><span class="name">Length</span><span class="val" aria-hidden="true"></span></span></label>
+          <label class="range directional"><input type="range" name="angle" min="0" max="360" step="any" value="45" /><span class="thumb"><span class="name">Angle</span><span class="val" aria-hidden="true"></span></span><i class="detent" aria-hidden="true"></i></label>
+          <label class="range directional"><input type="range" name="spread" min="0" max="1" step="any" value="0.6" /><span class="thumb"><span class="name">Length</span><span class="val" aria-hidden="true"></span></span><i class="detent" aria-hidden="true"></i></label>
           <label class="check directional"><input type="checkbox" name="spin" /><span>Spin</span></label>
-          <label class="range"><input type="range" name="motion" min="0" max="1" step="any" value="0.5" /><span class="thumb"><span class="name">Motion</span><span class="val" aria-hidden="true"></span></span></label>
+          <label class="range"><input type="range" name="motion" min="0" max="1" step="any" value="0.5" /><span class="thumb"><span class="name">Motion</span><span class="val" aria-hidden="true"></span></span><i class="detent" aria-hidden="true"></i></label>
           <label class="check"><input type="checkbox" name="volume" checked /><span>Depth</span></label>
-          <label class="range thick"><input type="range" name="thickness" min="0.05" max="1" step="any" value="0.35" /><span class="thumb"><span class="name">Thickness</span><span class="val" aria-hidden="true"></span></span></label>
+          <label class="range thick"><input type="range" name="thickness" min="0.05" max="1" step="any" value="0.35" /><span class="thumb"><span class="name">Thickness</span><span class="val" aria-hidden="true"></span></span><i class="detent" aria-hidden="true"></i></label>
           <fieldset>
             <legend>Shape</legend>
             <div class="seg">
@@ -131,31 +136,35 @@ import "../styles/onest.css";
               <label><input type="radio" name="color" value="white" /><span>White</span></label>
             </div>
           </fieldset>
-          <fieldset class="formats">
-            <legend>Image</legend>
-            <div class="seg">
-              <label><input type="radio" name="image" value="icon" checked /><span>1024</span></label>
-              <label><input type="radio" name="image" value="large" /><span>2048</span></label>
-              <label><input type="radio" name="image" value="avatar" /><span>Avatar</span></label>
-              <label><input type="radio" name="image" value="store" /><span>App Store</span></label>
-            </div>
-          </fieldset>
-          <fieldset>
-            <legend>Video</legend>
-            <div class="seg">
-              <label><input type="radio" name="format" value="square" checked /><span>Square</span></label>
-              <label><input type="radio" name="format" value="wide" /><span>Wide 16:9</span></label>
-            </div>
-          </fieldset>
         </div>
       </details>
 
-      <!-- On a phone this block docks at the bottom of the screen, under the thumb: download is on the first screen. -->
+      <!-- On a phone this block docks at the bottom of the screen, under the thumb: download is on the first screen.
+           Each key says what it makes in small print, and the arrow at its end opens the formats. -->
       <div class="dock">
         <div class="actions">
-          <button type="button" data-png>Download PNG</button>
-          <button type="button" data-video>Record video</button>
+          <div class="key dark">
+            <button type="button" data-png>Download PNG<small data-png-spec>1024 px</small></button>
+            <button type="button" class="opt" popovertarget="png-formats" aria-label="PNG format"><svg viewBox="0 0 10 10" width="10" height="10" aria-hidden="true"><path d="M2 3.8 5 6.8l3-3" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" /></svg></button>
+          </div>
+          <div class="key">
+            <button type="button" data-video><span data-video-name>Record video</span><small data-video-spec><span class="res">1080p · </span>4 s</small></button>
+            <button type="button" class="opt" popovertarget="video-formats" aria-label="Video format"><svg viewBox="0 0 10 10" width="10" height="10" aria-hidden="true"><path d="M2 3.8 5 6.8l3-3" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" /></svg></button>
+          </div>
         </div>
+        <!-- The formats open over their key. Each row draws its framing; with a mouse, Avatar and App Store try it on the glass. -->
+        <fieldset class="menu" id="png-formats" popover>
+          <legend class="sr">Image</legend>
+          <label><input type="radio" name="image" value="icon" checked /><span><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><rect x="0.75" y="0.75" width="14.5" height="14.5" rx="2.5" fill="none" stroke="currentColor" stroke-opacity="0.35" /><rect x="3.5" y="3.5" width="9" height="9" rx="2.6" fill="currentColor" /></svg>1024 px</span></label>
+          <label><input type="radio" name="image" value="large" /><span><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><rect x="0.75" y="0.75" width="14.5" height="14.5" rx="2.5" fill="none" stroke="currentColor" stroke-opacity="0.35" /><rect x="3.5" y="3.5" width="9" height="9" rx="2.6" fill="currentColor" /></svg>2048 px</span></label>
+          <label><input type="radio" name="image" value="avatar" /><span><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><rect x="0.75" y="0.75" width="14.5" height="14.5" rx="2.5" fill="none" stroke="currentColor" stroke-opacity="0.35" /><circle cx="8" cy="8" r="7.25" fill="currentColor" /></svg>Avatar</span></label>
+          <label><input type="radio" name="image" value="store" /><span><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><rect x="0.75" y="0.75" width="14.5" height="14.5" rx="2.5" fill="currentColor" /></svg>App Store</span></label>
+        </fieldset>
+        <fieldset class="menu" id="video-formats" popover>
+          <legend class="sr">Video</legend>
+          <label><input type="radio" name="format" value="square" checked /><span><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><rect x="2.25" y="2.25" width="11.5" height="11.5" rx="2" fill="none" stroke="currentColor" stroke-width="1.5" /></svg>Square</span></label>
+          <label><input type="radio" name="format" value="wide" /><span><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><rect x="0.75" y="4" width="14.5" height="8.2" rx="2" fill="none" stroke="currentColor" stroke-width="1.5" /></svg>Wide 16:9</span></label>
+        </fieldset>
         <button type="button" class="share" data-share hidden>Share it on X →</button>
         <!-- Right after a download, while the interest is there: another look, or a link to this one. -->
         <div class="look after" data-after hidden>
@@ -171,8 +180,8 @@ import "../styles/onest.css";
         <p class="status" data-status aria-live="polite"></p>
       </div>
       <!-- The source link under "never leaves your browser": the code is where that can be checked. The text in the span is
-         rewritten by the tool when the format or the sound changes; the link stays. -->
-    <p class="hint caption"><span data-caption>PNG 1024 px · MP4 1080p, 4 s · Your logo never leaves your browser.</span><br /> <a href="https://github.com/phileeppov/glass" target="_blank" rel="noopener" data-link="source">Source on GitHub</a></p>
+         rewritten by the tool when the sound changes; the link stays. -->
+    <p class="hint caption"><span data-caption>Your logo never leaves your browser.</span><br /> <a href="https://github.com/phileeppov/glass" target="_blank" rel="noopener" data-link="source">Source on GitHub</a></p>
     </form>
     <footer class="bottom">
       <p class="made">Made by <a href="https://x.com/phileeppov" target="_blank" rel="noopener" data-link="x-name">Nikita Filippov</a> ☺</p>
@@ -226,7 +235,11 @@ import "../styles/onest.css";
   .mark {
     font-size: 17px;
     font-weight: 500;
-    transition: opacity 120ms ease-out;
+    transition: opacity 120ms ease-out, color 200ms ease-out;
+  }
+  /* Over a dark stage the wordmark turns light; the links on the right sit over the light panel. */
+  .top:has(~ .glass[data-tone="dark"]) .mark {
+    color: var(--color-off-white);
   }
   /* The wordmark leads to the portfolio, so it responds to hover like a link. */
   .mark:hover {
@@ -272,13 +285,16 @@ import "../styles/onest.css";
       "stage intro"
       "stage controls"
       "stage foot";
+    /* On a screen taller than the panel, the spare height goes under the footer, not between the title and the panel. */
+    grid-template-rows: auto auto 1fr;
     gap: 24px 40px;
     align-items: start;
   }
-  /* Title above the panel, in the right column; the top padding makes room for the header links. */
+  /* Title above the panel, in the right column; the top padding makes room for the header links.
+     The title, the panel and the footer share one left edge. */
   .intro {
     grid-area: intro;
-    padding: 56px 4px 0;
+    padding: 56px 0 0;
   }
   h1 {
     font-size: 40px;
@@ -298,6 +314,40 @@ import "../styles/onest.css";
     grid-area: stage;
     align-self: stretch;
     position: relative;
+    isolation: isolate;
+  }
+  /* With a dark background the whole stage goes dark, out to the page edges (past the body's 20 / 24 px padding): the glass
+     hangs in the dark instead of sitting on a black card. Trying a dark look on with the mouse previews it (app.js sets
+     data-tone from what the stage shows). The panel stays light. */
+  .stage-wrap::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset: -20px 0 -20px -24px;
+    background: var(--color-black);
+    opacity: 0;
+    transition: opacity 200ms ease-out;
+    pointer-events: none;
+  }
+  [data-tone="dark"] .stage-wrap::before {
+    opacity: 1;
+  }
+  [data-tone="dark"] .presets span {
+    color: color-mix(in srgb, var(--color-off-white) 62%, transparent);
+  }
+  [data-tone="dark"] .presets input:checked + span,
+  [data-tone="dark"] .presets .slot.is-on > span {
+    color: var(--ink);
+  }
+  [data-tone="dark"] .slot:not(.is-filled) .well {
+    background: rgb(255 255 255 / 0.07);
+    box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.5), inset 0 0 0 0.5px rgb(255 255 255 / 0.08);
+    color: color-mix(in srgb, var(--color-off-white) 80%, transparent);
+  }
+  [data-tone="dark"] .looks :focus-visible,
+  [data-tone="dark"] .presets .slot:focus-visible,
+  [data-tone="dark"] .presets input:focus-visible + span {
+    outline-color: var(--color-off-white);
   }
   .stage-sticky {
     position: sticky;
@@ -310,28 +360,33 @@ import "../styles/onest.css";
     row-gap: 14px;
     width: 100%;
   }
-  /* The glass sizes to the screen, minus the row of presets under it. */
+  /* The glass sizes to the screen, minus the row of presets under it, up to 760 px on a large one. */
   .stage {
     position: relative;
-    width: min(100%, 640px, calc(100svh - 190px));
+    width: min(100%, 760px, calc(100svh - 190px));
     aspect-ratio: 1;
   }
-  /* Under the glass: the presets and the die, one row. */
+  /* The keys under the glass share one geometry: --pad of room around the glass on every side of a key, and corners
+     that follow the glass: a key's radius is the glass's own plus --pad, so the two curves run side by side. */
   .looks {
+    --pad: 8px;
+    --key: 72px;
+    --thumb: calc(var(--key) - 2 * var(--pad));
     display: flex;
+    justify-content: center;
     align-items: center;
-    gap: 12px;
-    width: min(100%, 460px);
+    width: 100%;
   }
   .looks .presets {
-    flex: 1;
+    flex: none;
   }
   .caption {
     text-align: center;
     font-size: 12px;
   }
   /* A file is being dragged over the page: highlight the stage, it can be dropped anywhere. */
-  :global(.is-over) .stage canvas {
+  :global(.is-over) .stage {
+    border-radius: 24px;
     outline: 2px dashed var(--ink);
     outline-offset: -10px;
   }
@@ -343,6 +398,14 @@ import "../styles/onest.css";
     border-radius: 24px;
     /* The checkerboard shows only in no-background mode, to show the PNG is transparent. */
     background: repeating-conic-gradient(var(--color-off-white) 0 25%, color-mix(in srgb, var(--color-black) 6%, var(--color-off-white)) 0 50%) 0 0 / 24px 24px;
+    /* The whole glass leans up to 6° toward the cursor or with the phone (app.js sets the lean, -1 to 1). */
+    transform: perspective(1100px) rotateY(calc(var(--lean-x, 0) * 6deg)) rotateX(calc(var(--lean-y, 0) * 6deg));
+    /* The canvas edge feathers into the page over its outer 4% (the margin, the glass is in the middle 80%): the glass's
+       shadow reaches the edge a shade darker than the page, which would show as a square seam on a dark stage. */
+    -webkit-mask: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent), linear-gradient(transparent, #000 4%, #000 96%, transparent);
+    -webkit-mask-composite: source-in;
+    mask: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent), linear-gradient(transparent, #000 4%, #000 96%, transparent);
+    mask-composite: intersect;
   }
   .unsupported {
     display: none;
@@ -358,12 +421,13 @@ import "../styles/onest.css";
     padding: 24px;
   }
 
-  /* The settings sit straight on the page, no card behind them: the glass is the only object with depth here. */
+  /* The settings sit straight on the page, no card behind them: the glass is the only object with depth here.
+     8 px between controls, 24 px and a hairline between parts. */
   .controls {
     grid-area: controls;
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 8px;
     padding: 0 0 20px;
     font-size: var(--text-meta);
   }
@@ -374,7 +438,7 @@ import "../styles/onest.css";
     width: 1px;
     height: 1px;
   }
-  /* Secondary actions (Randomize, Copy link): a raised white pill with an icon, quieter than the dark buttons. */
+  /* Secondary actions (Tilt the glass, and the moves after a download): a white pill, quieter than the keys. */
   .soft {
     display: flex;
     align-items: center;
@@ -398,9 +462,22 @@ import "../styles/onest.css";
     grid-template-columns: 1fr 1fr;
     gap: 8px;
   }
-  /* After a download: the same two moves again, under Share. */
+  /* After a download: another look, or a link to this one, under Share. Text and an icon with no raised key:
+     they're offers, the keys above stay the things to press. */
   .after {
     animation: share-in 320ms cubic-bezier(0.3, 1.3, 0.4, 1);
+  }
+  .after .soft {
+    padding: 8px 10px;
+    background: none;
+    box-shadow: none;
+    color: color-mix(in srgb, var(--ink) 75%, transparent);
+    transition: background-color 120ms ease-out, color 120ms ease-out;
+  }
+  .after .soft:hover {
+    filter: none;
+    background: var(--tray);
+    color: var(--ink);
   }
   .after[hidden] {
     display: none;
@@ -452,53 +529,101 @@ import "../styles/onest.css";
   .tilt[hidden] {
     display: none;
   }
-  /* Typed text: a recessed field like the slider trays, and sample marks as small raised keys under it. */
-  .type {
+  /* The logo row: Upload and the folded text field share one line and trade widths when the field opens.
+     The columns are lengths, not fr, so the trade animates. */
+  .logo-in {
     display: grid;
+    grid-template-columns: calc(100% - 58px) 52px;
     gap: 6px;
+    transition: grid-template-columns 360ms cubic-bezier(0.3, 1.2, 0.4, 1);
+  }
+  .logo-in.is-typing {
+    grid-template-columns: 40px calc(100% - 46px);
+  }
+  /* Typed text. Folded, the field is a raised Aa key like Upload; open, it's a recessed tray like the sliders,
+     with the sample marks inside its right end while it's empty. Inside a tray, flat marks are the ones to tap. */
+  .type {
+    position: relative;
+    min-width: 0;
   }
   .type input {
+    display: block;
     width: 100%;
-    padding: 11px 16px;
+    height: 40px;
+    padding: 0;
     border: 0;
     border-radius: 999px;
-    background: var(--tray);
-    box-shadow: inset 0 1px 2px color-mix(in srgb, var(--color-black) 7%, transparent),
-      inset 0 0 0 0.5px color-mix(in srgb, var(--color-black) 6%, transparent);
+    background: linear-gradient(180deg, #fff 0%, var(--panel) 100%);
+    box-shadow: var(--raise);
     color: var(--ink);
     font: inherit;
     font-weight: 500;
     letter-spacing: inherit;
     text-align: center;
+    cursor: pointer;
   }
   .type input::placeholder {
     color: var(--ink);
+    opacity: 1;
+  }
+  .is-typing .type input {
+    padding: 0 16px 0 14px;
+    background: var(--tray);
+    box-shadow: inset 0 1px 2px color-mix(in srgb, var(--color-black) 7%, transparent),
+      inset 0 0 0 0.5px color-mix(in srgb, var(--color-black) 6%, transparent);
+    text-align: left;
+    cursor: text;
+  }
+  .is-typing .type input:placeholder-shown {
+    padding-right: 96px;
+  }
+  .is-typing .type input::placeholder {
     font-weight: 400;
     opacity: 0.45;
   }
+  /* Open, the field already says it has focus (a tray with a caret), so its ring is a quiet hairline, not the black one. */
   .type input:focus-visible {
     outline: 2px solid var(--ink);
     outline-offset: 2px;
   }
+  .is-typing .type input:focus-visible {
+    outline: 1.5px solid color-mix(in srgb, var(--ink) 60%, transparent); /* still 3:1 against the tray */
+  }
   .samples {
+    position: absolute;
+    top: 4px;
+    right: 3px;
+    bottom: 4px;
     display: flex;
-    gap: 6px;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 120ms ease-out, visibility 0s 120ms;
+  }
+  .is-typing input:placeholder-shown + .samples {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 200ms ease-out 160ms;
   }
   .samples button {
-    flex: 1;
-    padding: 6px 0;
-    background: linear-gradient(180deg, #fff 0%, var(--panel) 100%);
-    box-shadow: var(--raise);
+    width: 30px;
+    padding: 0;
+    background: none;
+    box-shadow: none;
     color: var(--ink);
     font-size: 15px;
-    line-height: 1.3;
+    line-height: 32px;
+    opacity: 0.55;
   }
   .samples button:hover {
-    filter: brightness(0.98);
+    opacity: 1;
+    filter: none;
+    background: linear-gradient(180deg, #fff 0%, var(--panel) 100%);
+    box-shadow: var(--raise);
   }
   .samples button:focus-visible {
+    opacity: 1;
     outline: 2px solid var(--ink);
-    outline-offset: 2px;
+    outline-offset: 1px;
   }
   /* Black and white, but not flat and sterile: soft black, rounded corners, 0.5px strokes.
      Page styling is a separate task once the tool is finished. */
@@ -555,6 +680,39 @@ import "../styles/onest.css";
   .upload span:hover {
     filter: brightness(0.98);
   }
+  .upload > span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    height: 40px;
+    padding: 0 14px;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  .upload svg {
+    flex: none;
+  }
+  /* While the text field is open, Upload folds to its arrow. The name only shrinks, so the key keeps it for screen readers. */
+  .upload i {
+    max-width: 8em;
+    font-style: normal;
+    transition: max-width 360ms cubic-bezier(0.3, 1, 0.4, 1), opacity 160ms ease-out;
+  }
+  .is-typing .upload > span {
+    gap: 0;
+    padding: 0;
+  }
+  .is-typing .upload i {
+    max-width: 0;
+    opacity: 0;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .logo-in,
+    .upload i {
+      transition: none;
+    }
+  }
   .upload:focus-within span {
     outline: 2px solid var(--ink);
     outline-offset: 2px;
@@ -585,21 +743,36 @@ import "../styles/onest.css";
     box-shadow: inset 0 1px 2px color-mix(in srgb, var(--color-black) 7%, transparent),
       inset 0 0 0 0.5px color-mix(in srgb, var(--color-black) 6%, transparent);
   }
-  /* Ticks: light along the whole length, darker where passed. */
+  /* The scale, a ruler: a short tick every 12 px and a long one every 60, light along the whole length, darker where passed. */
   .range::before,
   .range::after {
+    --tick: color-mix(in srgb, var(--color-black) 9%, transparent);
     content: "";
     position: absolute;
     left: 16px;
     right: 16px;
-    top: 12px;
-    bottom: 12px;
-    background: repeating-linear-gradient(90deg, var(--tick) 0 1px, transparent 1px 15px);
+    top: 11px;
+    bottom: 11px;
+    background:
+      repeating-linear-gradient(90deg, var(--tick) 0 1px, transparent 1px 60px) 0 0 / 100% 100% no-repeat,
+      repeating-linear-gradient(90deg, var(--tick) 0 1px, transparent 1px 12px) 0 50% / 100% 6px no-repeat;
     pointer-events: none;
   }
   .range::after {
-    --tick: color-mix(in srgb, var(--color-black) 14%, transparent);
+    --tick: color-mix(in srgb, var(--color-black) 20%, transparent);
     clip-path: inset(0 calc((1 - var(--p)) * 100%) 0 0);
+  }
+  /* The detent: a dot on the tray under where the look put the thumb. It's hidden while the thumb sits on it. */
+  .detent {
+    position: absolute;
+    bottom: 5px;
+    left: calc(3px + var(--d, 0.5) * (100% - var(--tw) - 6px) + var(--tw) / 2);
+    width: 4px;
+    height: 4px;
+    margin-left: -2px;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--ink) 45%, transparent);
+    pointer-events: none;
   }
   .range input {
     -webkit-appearance: none;
@@ -639,6 +812,14 @@ import "../styles/onest.css";
     background: linear-gradient(180deg, #fff 0%, var(--panel) 100%);
     box-shadow: var(--raise);
     pointer-events: none;
+    transition: transform 180ms cubic-bezier(0.3, 1.3, 0.4, 1), box-shadow 180ms ease-out;
+  }
+  /* Grabbed, the thumb lifts a little off the tray: a touch larger, a longer shadow. */
+  .range:has(input:active) .thumb {
+    transform: scale(1.045);
+    box-shadow: inset 0 1px 0 #fff, 0 0 0 0.5px color-mix(in srgb, var(--color-black) 10%, transparent),
+      0 2px 4px color-mix(in srgb, var(--color-black) 8%, transparent),
+      0 10px 20px -8px color-mix(in srgb, var(--color-black) 28%, transparent);
   }
   .thumb > span {
     grid-area: 1 / 1;
@@ -675,44 +856,115 @@ import "../styles/onest.css";
     display: flex;
     flex-wrap: wrap;
   }
-  /* Look, Sound, Export: the panel in three parts, each opened by its name over a hairline. No boxes, the order is unchanged. */
+  /* The panel's parts open over a hairline, 24 px from the part above. One size of name everywhere: Sound is named
+     like Background, 13 px medium. Look shows no name, its sliders carry theirs on the thumbs. */
   .group {
     display: flex;
     align-items: center;
-    margin: 6px 0 -2px;
-    padding: 14px 0 0;
+    margin: 16px 0 0;
+    padding: 16px 0 0;
     border-top: 0.5px solid color-mix(in srgb, var(--color-black) 10%, transparent);
-    font-size: 15px;
-    font-weight: 600;
+    font-size: var(--text-meta);
+    font-weight: 500;
     letter-spacing: -0.04em;
   }
-  /* Randomize is a die at the end of the presets: one tap, no label. It turns a third of a turn per roll. */
-  .looks .die {
+  .group.rule {
+    padding-top: 8px;
+  }
+  /* Random, the sixth key: an empty well with a die until the first roll, then the roll itself, with the die on its corner.
+     Selected, it's raised like a preset. The die turns a third of a turn per roll. */
+  .presets .seg:has(> .slot) {
+    --n: 6;
+  }
+  .presets .slot {
+    width: auto;
+    padding: 0;
+    border-radius: calc(var(--thumb) * 0.24 + var(--pad));
+    background: none;
+    box-shadow: none;
+    color: inherit;
+    font-weight: inherit;
+  }
+  .presets .slot:hover {
+    filter: none;
+  }
+  .presets .slot:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 1px;
+  }
+  .slot .well {
     position: relative;
-    flex: none;
     display: grid;
     place-items: center;
-    width: 36px;
-    height: 36px;
-    padding: 0;
+    background: var(--tray);
+    box-shadow: inset 0 1px 2px color-mix(in srgb, var(--color-black) 8%, transparent),
+      inset 0 0 0 0.5px color-mix(in srgb, var(--color-black) 7%, transparent);
+    color: color-mix(in srgb, var(--ink) 80%, transparent);
+  }
+  .slot canvas {
+    display: none;
+  }
+  .slot.is-filled .well {
+    background: none;
+    box-shadow: none;
+  }
+  .slot.is-filled canvas {
+    display: block;
+  }
+  .slot svg {
+    transform: rotate(var(--turn, 0deg));
+    transition: transform 480ms cubic-bezier(0.3, 1.4, 0.5, 1);
+  }
+  /* A new roll comes into its key with a small turn, instead of being swapped in. */
+  .slot.is-rolling canvas {
+    animation: roll-in 460ms cubic-bezier(0.3, 1.35, 0.4, 1);
+  }
+  @keyframes roll-in {
+    from {
+      opacity: 0;
+      transform: scale(0.82) rotate(-8deg);
+    }
+  }
+  .slot.is-filled svg {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    width: 20px;
+    height: 20px;
+    padding: 4px;
     border-radius: 50%;
     background: linear-gradient(180deg, #fff 0%, var(--panel) 100%);
     box-shadow: var(--raise);
     color: var(--ink);
   }
-  .looks .die:hover {
-    filter: brightness(0.98);
+  .presets .seg:has(> .slot.is-on) {
+    --i: 5;
   }
-  .looks .die:focus-visible {
-    outline: 2px solid var(--ink);
-    outline-offset: 2px;
+  .presets .seg:has(> .slot.is-on)::before {
+    opacity: 1;
   }
-  .die svg {
-    transform: rotate(var(--turn, 0deg));
-    transition: transform 480ms cubic-bezier(0.3, 1.4, 0.5, 1);
+  .presets .slot.is-on > span {
+    color: var(--ink);
+  }
+  /* With a mouse, a key under the glass answers the pointer: its glass lifts 2 px; an empty Random turns its die a little. */
+  .presets canvas,
+  .slot .well {
+    transition: transform 200ms cubic-bezier(0.3, 1.3, 0.4, 1), box-shadow 200ms ease-out;
+  }
+  @media (hover: hover) {
+    .presets label:hover canvas,
+    .presets .slot:hover .well {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px -6px color-mix(in srgb, var(--color-black) 30%, transparent);
+    }
+    .slot:not(.is-filled):hover svg {
+      transform: rotate(calc(var(--turn, 0deg) + 30deg));
+    }
   }
   @media (prefers-reduced-motion: reduce) {
-    .die svg {
+    .slot svg,
+    .presets canvas,
+    .slot .well {
       transition: none;
     }
   }
@@ -733,7 +985,11 @@ import "../styles/onest.css";
   legend {
     width: 100%;
     padding: 0;
-    margin-bottom: 6px;
+    margin-bottom: 8px;
+  }
+  /* A name under a slider gets the space of a new line of thought: 16 px, not 8. */
+  .controls > .range + fieldset {
+    margin-top: 8px;
   }
   /* One selected pill per tray, sliding to the new option (like iOS segmented controls):
      --n is how many options, --i is which one is selected. */
@@ -767,6 +1023,13 @@ import "../styles/onest.css";
     opacity: 0.6;
     transition: opacity 160ms ease-out;
   }
+  /* Every control in the panel is 40 px tall: a 34 px option in a tray with 3 px around it. */
+  .controls .seg > label > span {
+    display: grid;
+    place-items: center;
+    height: 34px;
+    padding: 0 6px;
+  }
   .seg::before {
     content: "";
     position: absolute;
@@ -775,11 +1038,21 @@ import "../styles/onest.css";
     bottom: 3px;
     left: 3px;
     width: calc((100% - 6px - (var(--n) - 1) * 2px) / var(--n));
-    transform: translateX(calc(var(--i) * (100% + 2px)));
+    /* translate, not transform: the stretch below is a scale, which would stretch a transform's shift along with the pill. */
+    translate: calc(var(--i) * (100% + 2px)) 0;
     border-radius: 999px;
     background: linear-gradient(180deg, #fff 0%, var(--panel) 100%);
     box-shadow: var(--raise);
-    transition: transform 360ms cubic-bezier(0.3, 1.3, 0.4, 1), opacity 160ms ease-out;
+    transition: translate 360ms cubic-bezier(0.3, 1.3, 0.4, 1), opacity 160ms ease-out;
+  }
+  /* On its way to the new option the pill stretches a little and settles (app.js replays is-moving on each change). */
+  .seg.is-moving::before {
+    animation: stretch 380ms cubic-bezier(0.3, 0.9, 0.4, 1);
+  }
+  @keyframes stretch {
+    45% {
+      scale: 1.1 0.94;
+    }
   }
   .seg:has(> label:nth-child(3)) {
     --n: 3;
@@ -825,11 +1098,12 @@ import "../styles/onest.css";
   [data-sides="all"] .directional {
     display: none;
   }
-  /* Checkboxes as toggles. */
+  /* Checkboxes as toggles. The whole row is the target, 32 px tall, so a finger finds it. */
   .check {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    min-height: 32px;
     cursor: pointer;
   }
   .check input {
@@ -859,11 +1133,10 @@ import "../styles/onest.css";
     box-shadow: var(--raise);
     transition: transform 200ms cubic-bezier(0.3, 1.4, 0.5, 1);
   }
-  .check input:checked {
-    background: var(--btn-dark);
-    box-shadow: var(--btn-edge);
-  }
+  /* On is the knob turning soft black at the right end; the tray stays light, so the one black key stays Download PNG. */
   .check input:checked::before {
+    background: var(--btn-dark);
+    box-shadow: inset 0 0.5px 0 rgb(255 255 255 / 0.18), 0 0 0 0.5px rgb(0 0 0 / 0.5), 0 1px 2px rgb(0 0 0 / 0.2);
     transform: translateX(14px);
   }
   .check input:focus-visible {
@@ -871,7 +1144,8 @@ import "../styles/onest.css";
     outline-offset: 2px;
   }
   /* Download and what follows it (Share, the after-download moves, status) dock at the bottom of the screen
-     while the panel scrolls, so Download PNG is on the first screen whatever the panel holds above it. */
+     while the panel scrolls, so Download PNG is on the first screen whatever the panel holds above it.
+     The hairline and the frost show only while the panel actually runs under the dock (app.js sets is-stuck). */
   .dock {
     position: sticky;
     bottom: 0;
@@ -880,26 +1154,228 @@ import "../styles/onest.css";
     flex-direction: column;
     gap: inherit;
     padding: 12px 0;
+    border-top: 0.5px solid transparent;
+    transition: border-color 160ms ease-out, background-color 160ms ease-out;
+  }
+  .dock.is-stuck {
     background: color-mix(in srgb, var(--color-off-white) 86%, transparent);
     -webkit-backdrop-filter: blur(14px);
     backdrop-filter: blur(14px);
-    border-top: 0.5px solid color-mix(in srgb, var(--color-black) 8%, transparent);
+    border-top-color: color-mix(in srgb, var(--color-black) 10%, transparent);
   }
   .actions {
     display: grid;
     gap: 8px;
   }
-  .actions button + button {
+  /* A key: its name, and under it in small print what you get; the arrow at the end opens the formats.
+     Download PNG is the one black key on the page. */
+  .key {
+    position: relative;
+    display: flex;
+    height: 50px;
+    border-radius: 999px;
     background: linear-gradient(180deg, #fff 0%, var(--panel) 100%);
-    color: var(--ink);
     box-shadow: var(--raise);
+    color: var(--ink);
+    transition: transform 120ms ease-out;
   }
-  .actions button + button:hover {
-    filter: brightness(0.98);
+  /* Pressed, Download PNG has a band of light run across it, like light across glass (app.js replays is-flash). */
+  .key.dark::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(105deg, transparent 38%, rgb(255 255 255 / 0.2) 50%, transparent 62%) 130% 0 / 260% 100% no-repeat;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .key.dark.is-flash::after {
+    animation: sheen 720ms cubic-bezier(0.35, 0.6, 0.3, 1);
+  }
+  @keyframes sheen {
+    from {
+      opacity: 1;
+      background-position: 130% 0;
+    }
+    to {
+      opacity: 1;
+      background-position: -30% 0;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .key.dark.is-flash::after,
+    .seg.is-moving::before,
+    .slot.is-rolling canvas {
+      animation: none;
+    }
+    .range:has(input:active) .thumb {
+      transform: none;
+    }
+  }
+  .key.dark {
+    background: var(--btn-dark);
+    box-shadow: var(--btn-edge);
+    color: var(--color-off-white);
+  }
+  .key > button {
+    height: 100%;
+    background: none;
+    box-shadow: none;
+    color: inherit;
+    transition: background-color 120ms ease-out;
+  }
+  /* Not while disabled: Record video keeps its progress fill under the cursor while it records. */
+  .key > button:hover:not(:disabled) {
+    filter: none;
+    background: color-mix(in srgb, var(--color-black) 3%, transparent);
+  }
+  .key.dark > button:hover:not(:disabled) {
+    background: rgb(255 255 255 / 0.07);
+  }
+  .key > button:active {
+    transform: none;
+  }
+  .key:has(> button:active) {
+    transform: scale(0.985);
+  }
+  .key > button:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 2px;
+  }
+  .key > button:first-child {
+    flex: 1;
+    width: auto;
+    display: grid;
+    place-content: center;
+    padding: 0 8px 0 16px;
+    border-radius: 999px 0 0 999px;
+    line-height: 1.25;
+  }
+  .key small {
+    font-size: 11px;
+    font-weight: 400;
+    font-variant-numeric: tabular-nums;
+    opacity: 0.55;
+    white-space: nowrap;
+  }
+  /* The arrow: its own part of the key, after a hairline. It turns over while its menu is open. */
+  .key .opt {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 40px;
+    padding: 0 4px 0 0;
+    border-radius: 0 999px 999px 0;
+    box-shadow: inset 0.5px 0 0 color-mix(in srgb, var(--color-black) 12%, transparent);
+  }
+  .key.dark .opt {
+    box-shadow: inset 0.5px 0 0 rgb(255 255 255 / 0.16);
+  }
+  .opt svg {
+    opacity: 0.7;
+    transition: transform 220ms cubic-bezier(0.3, 1.3, 0.4, 1);
+  }
+  .opt[aria-expanded="true"] svg {
+    transform: rotate(180deg);
   }
   button:disabled {
     opacity: 0.4;
     cursor: default;
+  }
+  /* A key dims as a whole, not just its label. */
+  .key:has(> button:disabled) {
+    opacity: 0.4;
+  }
+  .key > button:disabled {
+    opacity: 1;
+  }
+  .is-recording .opt {
+    pointer-events: none;
+  }
+  /* The formats menu opens over its key and as wide as it (app.js places it). A row is a format with a drawing
+     of its framing; the chosen one has a check. Hovering a row lays the tray under it. */
+  .menu {
+    position: fixed;
+    inset: auto;
+    margin: 0;
+    padding: 4px;
+    border: 0;
+    border-radius: 18px;
+    background: linear-gradient(180deg, #fff 0%, var(--panel) 100%);
+    box-shadow: inset 0 1px 0 #fff, 0 0 0 0.5px color-mix(in srgb, var(--color-black) 10%, transparent),
+      0 2px 4px color-mix(in srgb, var(--color-black) 6%, transparent),
+      0 16px 32px -12px color-mix(in srgb, var(--color-black) 24%, transparent);
+    color: var(--ink);
+    font-size: var(--text-meta);
+    letter-spacing: -0.04em;
+  }
+  /* A fieldset is display: flex in this sheet, which would keep a closed menu on screen. Two rules, not one list:
+     a browser without popovers drops a list with :popover-open whole, [hidden] included. */
+  .menu:not(:popover-open) {
+    display: none;
+  }
+  .menu[hidden] {
+    display: none;
+  }
+  /* Without popovers (Safari before 17, Firefox before 125) the menu opens in the dock itself, under the keys. */
+  @supports not selector(:popover-open) {
+    .menu {
+      position: static;
+      display: grid;
+    }
+  }
+  .menu:popover-open {
+    display: grid;
+    gap: 2px;
+    animation: menu-in 220ms cubic-bezier(0.3, 1.2, 0.4, 1);
+  }
+  @keyframes menu-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px) scale(0.98);
+    }
+  }
+  .menu label {
+    display: block;
+  }
+  .menu span {
+    display: grid;
+    grid-template-columns: 16px 1fr 10px;
+    align-items: center;
+    gap: 10px;
+    height: 36px;
+    padding: 0 12px;
+    border-radius: 14px;
+    text-align: left;
+    white-space: nowrap;
+    opacity: 1;
+    color: color-mix(in srgb, var(--ink) 72%, transparent);
+    transition: background-color 120ms ease-out;
+  }
+  .menu label:hover span {
+    opacity: 1;
+    background: var(--tray);
+    color: var(--ink);
+  }
+  .menu input:checked + span {
+    color: var(--ink);
+  }
+  .menu input:checked + span::after {
+    content: "";
+    width: 9px;
+    height: 5px;
+    border-left: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor;
+    transform: translateY(-2px) rotate(-45deg);
+  }
+  .menu input:focus-visible + span {
+    outline: 2px solid var(--ink);
+    outline-offset: -2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .menu:popover-open {
+      animation: none;
+    }
   }
   /* Share is a small link under the buttons, shown after the first save. */
   .share {
@@ -919,8 +1395,6 @@ import "../styles/onest.css";
   .share.is-save {
     width: 100%;
     align-self: stretch;
-    /* Close to "Record video", like the buttons in .actions (8px), not with the panel's shared gap. */
-    margin-top: -6px;
     padding: 12px 16px;
     background: var(--btn-dark);
     box-shadow: var(--btn-edge);
@@ -939,7 +1413,23 @@ import "../styles/onest.css";
       transform: translateY(-6px);
     }
   }
-  /* While video records, the button fills over the recording, so you can see how long to wait: one loop, or longer with sound. */
+  /* While video records, the key fills over the recording and counts the seconds down (app.js), so you can see how long
+     to wait: one loop, or longer with sound. The status under the keys then speaks only to screen readers, unless it has
+     something of its own to say: with no background, that the video records on light. */
+  .is-recording .key:has([data-video]) {
+    opacity: 1;
+  }
+  .is-recording [data-video] .res {
+    display: none;
+  }
+  .is-recording:not([data-background="none"]) .status {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
   :global(.is-recording) [data-video] {
     opacity: 1;
     background:
@@ -973,17 +1463,22 @@ import "../styles/onest.css";
     transform-origin: bottom;
   }
   /* Each preset key shows your own logo in that look: a small glass over the name. */
+  .presets label,
+  .presets .slot {
+    flex: 0 0 var(--key);
+  }
   .presets span {
     display: grid;
     justify-items: center;
-    gap: 3px;
-    padding-block: 6px 5px;
+    gap: 4px;
+    padding-block: var(--pad) calc(var(--pad) - 2px); /* the name's own line spacing makes up the 2 px */
     font-size: 12px;
   }
-  .presets canvas {
-    width: 56px;
-    height: 56px;
-    border-radius: 24%; /* hides the dark corners of the Night key */
+  .presets canvas,
+  .slot .well {
+    width: var(--thumb);
+    height: var(--thumb);
+    border-radius: calc(var(--thumb) * 0.24); /* the glass's own corner; it also hides the dark corners of the Night key */
   }
   /* The glass stays at full strength on every key; only the names of the unselected ones dim. */
   .presets span {
@@ -1001,11 +1496,10 @@ import "../styles/onest.css";
     box-shadow: none;
   }
   .presets .seg::before {
-    border-radius: 19px;
+    border-radius: calc(var(--thumb) * 0.24 + var(--pad));
   }
-  /* Five presets and four image formats share a tray: the labels go edge to edge and never wrap. */
-  .presets span,
-  .formats span {
+  /* Six keys share the row under the glass: the labels go edge to edge and never wrap. */
+  .presets span {
     padding-inline: 0;
     white-space: nowrap;
   }
@@ -1015,16 +1509,17 @@ import "../styles/onest.css";
   .glass {
     interpolate-size: allow-keywords;
   }
-  /* Advanced closes the panel, under a hairline like the groups: the finer look settings, then the PNG and video formats. */
+  /* Advanced closes the panel, under a hairline like the groups: the finer look settings. The formats live on the keys. */
   .advanced {
-    padding-top: 10px;
+    margin-top: 16px;
+    padding-top: 8px;
     border-top: 0.5px solid color-mix(in srgb, var(--color-black) 10%, transparent);
   }
   .advanced summary {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 4px 0;
+    min-height: 32px;
     list-style: none;
     font-weight: 500;
     cursor: pointer;
@@ -1076,7 +1571,7 @@ import "../styles/onest.css";
     grid-area: foot;
     display: grid;
     gap: 6px;
-    padding: 8px 20px 0;
+    padding: 8px 0 0;
     font-size: var(--text-meta);
   }
   .bottom p {
@@ -1125,14 +1620,10 @@ import "../styles/onest.css";
       row-gap: 16px;
     }
     .controls {
-      gap: 10px;
       padding-bottom: 16px;
     }
     .dock {
       padding: 10px 0;
-    }
-    .share.is-save {
-      margin-top: -2px;
     }
     .controls > .hint:not(.caption) {
       display: none;
@@ -1161,19 +1652,53 @@ import "../styles/onest.css";
       grid-template-columns: 1fr 1fr;
       margin-top: 0;
     }
+    /* Half a screen per key: a narrower arrow, and the small print keeps only what changes, the length. */
+    .key > button:first-child {
+      padding: 0 6px 0 12px;
+    }
+    .key .opt {
+      width: 34px;
+    }
+    .key .res {
+      display: none;
+    }
     .dock .share.is-save {
       margin-top: 0;
     }
     .glass {
       grid-template-columns: minmax(0, 1fr);
       grid-template-areas: "intro" "stage" "controls" "foot";
+      grid-template-rows: none;
     }
     .top {
       position: static;
-      margin-bottom: 32px;
+      margin-bottom: 18px;
     }
+    /* On a phone the glass is the headline: the name and the line sit in one quiet row over it. */
     .intro {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      column-gap: 7px;
       padding: 0;
+    }
+    h1 {
+      margin: 0;
+      font-size: 17px;
+      font-weight: 600;
+      line-height: 1.3;
+      letter-spacing: -0.045em;
+    }
+    .intro p {
+      font-size: 15px;
+    }
+    .intro p:not(.whatsnew) {
+      color: color-mix(in srgb, var(--ink) 60%, transparent);
+    }
+    .intro .whatsnew {
+      flex-basis: 100%;
+      margin-top: 4px;
+      font-size: 12px;
     }
     /* On phones the icon sticks to the top of the screen, and the settings scroll under it. */
     .stage-wrap {
@@ -1186,24 +1711,44 @@ import "../styles/onest.css";
       width: calc(100% + 48px);
       padding: 8px 24px 10px;
       background: var(--color-bg);
+      transition: background-color 200ms ease-out;
+    }
+    /* A dark stage is this pinned band itself, edge to edge; nothing fades out under it. */
+    .stage-wrap::before {
+      content: none;
+    }
+    [data-tone="dark"] .stage-wrap {
+      background-color: var(--color-black);
+    }
+    [data-tone="dark"] .stage-wrap::after {
+      display: none;
+    }
+    /* The settings fade out over 20 px as they slide under the pinned glass, instead of being cut on a line. */
+    .stage-wrap::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 100%;
+      height: 20px;
+      background: linear-gradient(var(--color-off-white), color-mix(in srgb, var(--color-off-white) 0%, transparent));
+      pointer-events: none;
     }
     .stage-sticky {
       position: static;
       height: auto;
       display: block;
     }
+    /* The glass takes the width, as long as Upload still shows above the dock with the browser's bars out (svh). */
     .stage {
-      width: min(100%, 38vh);
+      width: min(100%, max(160px, 100svh - 375px)); /* never under 160 px, as on a phone held sideways; 45 px less than the tool alone for the site header */
       margin-inline: auto;
     }
+    /* Six keys across the phone: as wide as fits (the page less its 24 px sides, the row's 3 px edges and 2 px gaps), 56 px at most. */
     .looks {
+      --pad: 6px;
+      --key: min(56px, (100vw - 64px) / 6);
       margin: 8px auto 0;
-      width: min(100%, 400px);
-      gap: 8px;
-    }
-    .presets canvas {
-      width: 44px;
-      height: 44px;
     }
     .presets span {
       font-size: 11px;

@@ -97,6 +97,7 @@ async function loadFile(file, via) {
   if (isAudio(file)) return void setSound("track", file); // a song dropped or pasted on the page plays as the track
   textInput.value = "";
   textTurn++; // a word still loading must not replace the file
+  if (document.activeElement !== textInput) openText(false);
   if (autoColor) setColor("original");
   if (file.type === "image/svg+xml" || file.name.toLowerCase().endsWith(".svg")) {
     await loadSvg(await file.text(), via);
@@ -496,7 +497,9 @@ function packDrops(list) {
 // --- Lean and touch ---
 
 // The glass leans toward the cursor over the stage, or with the phone; a tap drops a ripple where it lands and rings the glass.
-// Preview only: PNG and video come out upright and untouched. Reduced motion turns lean and ripples off.
+// The lean moves the light inside the glass (the shader) and turns the whole glass a few degrees in perspective (the CSS
+// reads --lean-x and --lean-y off the canvas). Preview only: PNG and video come out upright and untouched.
+// Reduced motion turns lean and ripples off.
 const tiltGoal = [0, 0];
 const tilt = [0, 0];
 let touches = []; // tap ripples, newest first: { x, y, age: s, amp }
@@ -512,6 +515,8 @@ function lean(dt) {
       moving = true;
     } else tilt[i] = tiltGoal[i];
   }
+  canvas.style.setProperty("--lean-x", tilt[0].toFixed(4));
+  canvas.style.setProperty("--lean-y", tilt[1].toFixed(4));
   for (const t of touches) t.age += dt / 1000;
   touches = touches.filter((t) => t.age < 1);
   return moving || touches.length > 0;
@@ -562,11 +567,17 @@ function loop(now) {
 
 // What the stage eases toward: the settings, or what the mouse is trying on (see "Try on hover").
 function goal() {
-  if (trying?.preset) return presetLook(trying.preset);
-  const look = target(params);
+  const look = trying?.preset ? presetLook(trying.preset) : trying?.look ? lookOf(trying.look) : target(params);
+  showStage(look.background);
   if (trying?.format === "avatar") return { ...look, n: 2, frame: 1, shadow: 0 };
   if (trying?.format === "store") return { ...look, frame: 1, shadow: 0 };
   return look;
+}
+
+// The page around the glass follows what the stage shows: dark for a dark background (see .stage-wrap::before).
+function showStage(background) {
+  const tone = background === "dark" ? "dark" : "light";
+  if (root.dataset.tone !== tone) root.dataset.tone = tone;
 }
 
 // Start redrawing if the loop is idle.
@@ -580,15 +591,27 @@ new ResizeObserver(() => draw()).observe(stage);
 
 // --- Controls ---
 
+// Each slider's home is where the current look (a preset, a roll, a link) put it, marked on the tray by a detent.
+// Dragged near it, the thumb settles on it; a double-click brings the slider back to it.
+const SNAP = 0.025; // share of the slider's travel
+function setHome(input, value) {
+  const min = Number(input.min);
+  input.dataset.home = String(value);
+  input.parentElement.style.setProperty("--d", String((value - min) / (Number(input.max) - min)));
+}
+
 // Read values from the inputs: the browser may restore them after a reload.
 for (const input of root.querySelectorAll("input[type=range]")) {
   const box = input.parentElement;
   const val = box.querySelector(".val");
+  let dragging = false;
   const set = () => {
-    const v = Number(input.value);
     const min = Number(input.min);
+    const span = Number(input.max) - min;
+    if (dragging && Math.abs(Number(input.value) - Number(input.dataset.home)) < SNAP * span) input.value = input.dataset.home;
+    const v = Number(input.value);
     // --p is the thumb position 0..1 for the CSS; .val is the number shown while dragging.
-    box.style.setProperty("--p", String((v - min) / (Number(input.max) - min)));
+    box.style.setProperty("--p", String((v - min) / span));
     // The number goes in an attribute, not text: it's a reading, not page copy.
     if (val) val.dataset.v = input.name === "angle" ? `${Math.round(v)}°` : v.toFixed(2);
     if (input.name === "angle") angleDeg = v;
@@ -598,14 +621,17 @@ for (const input of root.querySelectorAll("input[type=range]")) {
     } else params[input.name] = v;
   };
   if (input.name === "motion" && reducedMotion) input.value = "0";
+  setHome(input, Number(input.defaultValue));
   set();
   input.addEventListener("input", () => {
     set();
     kick();
   });
-  // Double-click a slider to reset it to the default value.
+  // Only a drag snaps: arrow keys step past the detent freely.
+  input.addEventListener("pointerdown", () => (dragging = true));
+  for (const type of ["pointerup", "pointercancel", "blur"]) input.addEventListener(type, () => (dragging = false));
   input.addEventListener("dblclick", () => {
-    input.value = input.defaultValue;
+    input.value = input.dataset.home;
     input.dispatchEvent(new Event("input", { bubbles: true }));
   });
 }
@@ -651,6 +677,7 @@ for (const input of root.querySelectorAll("input[type=radio]")) {
     if (input.name === "background") {
       params.background = input.value;
       params.bg = input.value === "dark" ? BG.dark : BG.light;
+      root.dataset.background = input.value;
     }
     if (input.name === "color") logoColor = input.value;
   };
@@ -670,6 +697,9 @@ for (const input of root.querySelectorAll("input[type=radio]")) {
   });
 }
 applyColor();
+
+// A segment's pill stretches a little on its way to the new option.
+for (const seg of root.querySelectorAll(".controls .seg")) seg.addEventListener("change", () => replay(seg, "is-moving"));
 
 // A dark logo disappears on a dark background: turn it white, and back when the background is light again.
 // Decided by the logo's own luminance, not just for the demo smiley.
@@ -711,14 +741,36 @@ textInput.addEventListener("input", () => {
   tell("text");
 });
 for (const sample of root.querySelectorAll("[data-sample]")) {
+  // A mouse press keeps the caret in the field instead of taking focus and folding it.
+  sample.addEventListener("mousedown", (e) => e.preventDefault());
   sample.addEventListener("click", () => {
     clearTimeout(textTimer);
     textInput.value = sample.dataset.sample;
     loadText(sample.dataset.sample);
     tried("text");
     tell("text");
+    // A mark stays in the open field; the ☺ (an empty field) folds it back, unless the caret is still in it.
+    // Safari doesn't focus a tapped button, so the field may have folded on the way here.
+    openText(Boolean(sample.dataset.sample) || document.activeElement === textInput);
   });
 }
+
+// The text field waits folded into an Aa key next to Upload. Focus opens it; left empty, it folds back.
+const logoIn = root.querySelector("[data-logo-in]");
+const typeBox = textInput.parentElement;
+const uploadKey = root.querySelector(".upload");
+const FOLDED = textInput.placeholder;
+function openText(open) {
+  logoIn.classList.toggle("is-typing", open);
+  textInput.placeholder = open ? textInput.dataset.openPlaceholder : FOLDED;
+  // Folded to its arrow, Upload says its name on hover.
+  if (open) uploadKey.title = uploadKey.textContent.trim();
+  else uploadKey.removeAttribute("title");
+}
+textInput.addEventListener("focus", () => openText(true));
+typeBox.addEventListener("focusout", (e) => {
+  if (!textInput.value && !typeBox.contains(e.relatedTarget)) openText(false);
+});
 
 // A file can be dropped anywhere on the page; while it's being dragged, the stage is highlighted.
 let dragDepth = 0;
@@ -764,13 +816,15 @@ function showBars() {
   if (on) sound.bands.forEach((b, i) => (bars.children[i].style.transform = `scaleY(${(0.15 + 0.85 * b).toFixed(3)})`));
 }
 
-// The line under the buttons says what you'll get: which PNG, and a video that's the loop,
-// one round of the tune, or a stretch of your own sound.
+// Each key says in small print what you'll get: which PNG, and a video that's the loop, one round of the tune,
+// or a stretch of your own sound. The line under the keys keeps the promise about your logo.
+const pngSpec = root.querySelector("[data-png-spec]");
+const videoLength = root.querySelector("[data-video-spec]").lastChild; // the text after the resolution
 function showCaption() {
   const mode = root.querySelector("input[name=sound]:checked")?.value ?? "off";
-  const video = mode === "off" ? "MP4 1080p, 4 s" : mode === "demo" ? "MP4 1080p, 9.6 s with sound" : "MP4 1080p, 12 s with sound";
-  const own = mode === "mic" || mode === "track" ? "Your logo and sound never leave your browser." : "Your logo never leaves your browser.";
-  caption.textContent = `${imageFormat().note} · ${video} · ${own}`;
+  pngSpec.textContent = imageFormat().spec;
+  videoLength.textContent = mode === "off" ? "4 s" : mode === "demo" ? "9.6 s with sound" : "12 s with sound";
+  caption.textContent = mode === "mic" || mode === "track" ? "Your logo and sound never leave your browser." : "Your logo never leaves your browser.";
 }
 for (const input of root.querySelectorAll("input[name=image]")) {
   input.addEventListener("change", () => {
@@ -962,10 +1016,11 @@ const PRESETS = {
     checks: { volume: true, spin: false, facets: false },
   },
 };
-// A preset as shader numbers, without touching the inputs: for the thumbnails on the preset keys and for trying a preset on hover.
-// The logo color follows the same rule as the page: a dark logo turns white on a dark background, a white one black on light.
-function presetLook(name, still = false) {
-  const preset = PRESETS[name];
+// A preset (or a roll, which has the same shape) as shader numbers, without touching the inputs: for the thumbnails
+// on the keys and for trying a look on hover. The logo color follows the same rule as the page: a dark logo turns white
+// on a dark background, a white one black on light.
+const presetLook = (name, still = false) => lookOf(PRESETS[name], still);
+function lookOf(preset, still = false) {
   const background = preset.radios.background;
   const dark = background === "dark";
   const color = colorOn(dark);
@@ -989,20 +1044,23 @@ function presetLook(name, still = false) {
   return { ...look, angle: (angle / 180) * Math.PI };
 }
 
-// Thumbnails: each preset drawn by the main renderer at 192 px, filling the frame, then copied into its key.
-// Light presets render with no background, so the key's tray shows around the glass.
+// Thumbnails: each preset, and the kept roll, drawn by the main renderer at 192 px, filling the frame, then copied into its key.
+// Light looks render with no background, so the key's tray shows around the glass.
 const thumbs = root.querySelectorAll("[data-thumb]");
 function renderThumbs() {
   if (recording) return;
-  for (const thumb of thumbs) {
-    const look = presetLook(thumb.dataset.thumb, true);
-    renderer.setSize(192);
-    renderer.render({ ...look, ...(look.background === "light" ? { background: "none" } : {}), frame: 1, shadow: 0 }, 0);
-    const ctx = thumb.getContext("2d");
-    ctx.clearRect(0, 0, thumb.width, thumb.height);
-    ctx.drawImage(canvas, 0, 0, thumb.width, thumb.height);
-  }
+  for (const thumb of thumbs) paintThumb(thumb, PRESETS[thumb.dataset.thumb]);
+  if (rolled) paintThumb(rollThumb, rolled);
   draw();
+}
+
+function paintThumb(thumb, preset) {
+  const look = lookOf(preset, true);
+  renderer.setSize(192);
+  renderer.render({ ...look, ...(look.background === "light" ? { background: "none" } : {}), frame: 1, shadow: 0 }, 0);
+  const ctx = thumb.getContext("2d");
+  ctx.clearRect(0, 0, thumb.width, thumb.height);
+  ctx.drawImage(canvas, 0, 0, thumb.width, thumb.height);
 }
 
 const PRESET_KEYS = new Set(Object.values(PRESETS).flatMap((p) => [...Object.keys(p.ranges), ...Object.keys(p.radios), ...Object.keys(p.checks)]));
@@ -1033,6 +1091,7 @@ function applyLook(preset) {
     if (key === "motion" && reducedMotion) continue;
     const el = root.querySelector(`input[name=${key}]`);
     el.value = String(value);
+    setHome(el, Number(el.value)); // after the input clamps it: a mangled link may carry a value out of range
     el.dispatchEvent(new Event("input", { bubbles: true }));
   }
   applyingPreset = false;
@@ -1042,6 +1101,7 @@ for (const input of root.querySelectorAll("input[name=preset]")) {
   input.addEventListener("change", () => {
     if (!input.checked) return;
     applyPreset(input.value);
+    showRoll(false);
     tell(`preset:${input.value}`);
   });
 }
@@ -1071,24 +1131,61 @@ function randomLook() {
   };
 }
 
+// The last roll is kept in the sixth key, Random, so a preset can be tried and the roll brought back.
+// Tap Random while its roll is on to roll again; tap it after a preset to come back to the roll.
+const rollKey = root.querySelector("[data-roll]");
+const rollThumb = rollKey.querySelector("canvas");
+let rolled = null;
 let rolls = 0;
+
+function showRoll(on) {
+  rollKey.classList.toggle("is-on", on);
+  rollKey.setAttribute("aria-pressed", String(on));
+}
+
 function randomize() {
-  applyLook(randomLook());
+  rolled = randomLook();
+  applyLook(rolled);
   tried("random");
   tell("random");
   for (const input of root.querySelectorAll("input[name=preset]")) input.checked = false;
+  rollKey.classList.add("is-filled");
+  showRoll(true);
+  // Mid-recording the renderer is busy with the video; the key gets its picture when the recording ends (see Dock).
+  if (!recording) {
+    paintThumb(rollThumb, rolled);
+    draw();
+    replay(rollKey, "is-rolling");
+  }
   rolls++;
-  for (const button of root.querySelectorAll("[data-random]")) button.style.setProperty("--turn", `${rolls * 120}deg`);
+  for (const el of root.querySelectorAll("[data-random], [data-roll]")) el.style.setProperty("--turn", `${rolls * 120}deg`);
 }
 
 for (const button of root.querySelectorAll("[data-random]")) button.addEventListener("click", randomize);
+rollKey.addEventListener("click", () => {
+  if (!rolled || rollKey.classList.contains("is-on")) return randomize();
+  trying = null;
+  applyLook(rolled);
+  for (const input of root.querySelectorAll("input[name=preset]")) input.checked = false;
+  showRoll(true);
+});
 
 // --- Try on hover ---
 
-// With a mouse, hovering a preset key shows that look on the stage, and hovering Avatar or App Store shows that framing:
-// the glass eases there and back when the mouse leaves. Nothing is selected until a click. Touch screens skip it.
-let trying = null; // { preset } or { format }
+// With a mouse, hovering a preset key (or Random with a roll in it) shows that look on the stage, and hovering Avatar
+// or App Store shows that framing: the glass eases there and back when the mouse leaves. Nothing is selected until a click.
+// Touch screens skip it.
+let trying = null; // { preset }, { look } or { format }
 if (matchMedia("(hover: hover) and (pointer: fine)").matches) {
+  rollKey.addEventListener("pointerenter", () => {
+    if (!rolled || rollKey.classList.contains("is-on") || recording) return;
+    trying = { look: rolled };
+    kick();
+  });
+  rollKey.addEventListener("pointerleave", () => {
+    trying = null;
+    kick();
+  });
   for (const input of root.querySelectorAll("input[name=preset], input[name=image]")) {
     const key = input.parentElement;
     key.addEventListener("pointerenter", () => {
@@ -1103,6 +1200,99 @@ if (matchMedia("(hover: hover) and (pointer: fine)").matches) {
     input.addEventListener("change", () => (trying = null));
   }
 }
+
+// --- Dock ---
+
+// The dock wears its hairline and frost only while the panel runs under it: stuck to the bottom of the screen,
+// it pokes a pixel past the trimmed edge of the viewport.
+const dock = root.querySelector(".dock");
+new IntersectionObserver((entries) => dock.classList.toggle("is-stuck", entries.at(-1).intersectionRatio < 1), {
+  threshold: 1,
+  rootMargin: "0px 0px -1px 0px",
+}).observe(dock);
+
+// A press on Download PNG runs a band of light across its key.
+pngButton.addEventListener("click", () => replay(pngButton.closest(".key"), "is-flash"));
+
+// While a video records, its own key says so and counts the seconds down, over the fill that shows the progress.
+// The line under the keys stays for what only it can say (recording on light when the background is None);
+// the status still tells screen readers.
+const videoName = root.querySelector("[data-video-name]");
+const RECORD = videoName.textContent;
+let countdown = 0;
+new MutationObserver(() => {
+  const on = root.classList.contains("is-recording");
+  if (on === Boolean(countdown)) return;
+  if (!on) {
+    clearInterval(countdown);
+    countdown = 0;
+    videoName.textContent = RECORD;
+    showCaption();
+    // A roll made while the video recorded got no picture then (the renderer was busy): it gets it now.
+    if (rolled) {
+      paintThumb(rollThumb, rolled);
+      draw();
+    }
+    return;
+  }
+  const end = performance.now() + (parseFloat(videoButton.style.getPropertyValue("--rec")) || PERIOD);
+  const tick = () => (videoLength.textContent = `${Math.max(1, Math.ceil((end - performance.now()) / 1000))} s`);
+  videoName.textContent = "Recording…";
+  tick();
+  countdown = setInterval(tick, 200);
+}).observe(root, { attributes: true, attributeFilter: ["class"] });
+
+// --- Formats ---
+
+// The arrow at the end of each key opens its formats over the key, as wide as the key. A tap on a format picks it and
+// closes the menu; arrow keys move between formats and leave it open. The menu is pinned in place, so scrolling closes it.
+const menus = [...root.querySelectorAll(".menu[popover]")];
+const popovers = "popover" in HTMLElement.prototype;
+for (const menu of menus) {
+  const opener = root.querySelector(`[popovertarget="${menu.id}"]`);
+  // The arrow turns over while its menu is open (and says so to screen readers).
+  opener.setAttribute("aria-expanded", "false");
+  // Without the popover API (Safari before 17) the formats simply show and hide in the dock, under the keys.
+  if (!popovers) {
+    menu.hidden = true;
+    opener.addEventListener("click", () => {
+      menu.hidden = !menu.hidden;
+      opener.setAttribute("aria-expanded", String(!menu.hidden));
+    });
+    continue;
+  }
+  let pointed = false;
+  menu.addEventListener("beforetoggle", (e) => {
+    if (e.newState !== "open") return;
+    const r = opener.closest(".key").getBoundingClientRect();
+    menu.style.left = `${r.left}px`;
+    menu.style.width = `${r.width}px`;
+    menu.style.bottom = `${innerHeight - r.top + 8}px`;
+  });
+  menu.addEventListener("toggle", (e) => {
+    opener.setAttribute("aria-expanded", String(e.newState === "open"));
+    if (e.newState === "open") return void menu.querySelector("input:checked")?.focus({ preventScroll: true });
+    trying = null; // a framing tried on hover goes when the menu does
+    kick();
+  });
+  menu.addEventListener("pointerdown", () => (pointed = true));
+  menu.addEventListener("click", (e) => {
+    if (pointed && e.target.closest("label")) queueMicrotask(() => menu.hidePopover());
+    pointed = false;
+  });
+  // Enter picks and closes. Without preventDefault the same Enter, landing on the arrow that gets the focus back,
+  // would open the menu again.
+  menu.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    menu.hidePopover();
+  });
+}
+function closeMenus() {
+  if (popovers) for (const menu of menus) if (menu.matches(":popover-open")) menu.hidePopover();
+}
+addEventListener("resize", closeMenus);
+addEventListener("scroll", closeMenus, { passive: true });
 
 // --- Link to a look ---
 
@@ -1144,6 +1334,7 @@ function openLook() {
   if (!look) return;
   applyLook(look);
   for (const input of root.querySelectorAll("input[name=preset]")) input.checked = false;
+  showRoll(false); // a link's look is neither a preset nor the roll: Random brings the roll back
 }
 
 async function copyLink() {
@@ -1186,11 +1377,15 @@ const clearPreset = (e) => {
   const name = e.target.name;
   if (applyingPreset || !PRESET_KEYS.has(name)) return;
   for (const input of root.querySelectorAll("input[name=preset]")) input.checked = false;
+  showRoll(false); // the roll stays in its key; the glass now shows something else
 };
 root.addEventListener("input", clearPreset);
 root.addEventListener("change", clearPreset);
 
 // Figma's "Copy as SVG" copies text, so accept both text and an image from the clipboard.
+// A plain copy in Figma carries Figma's own format, which only Figma can read: then the status says how to copy instead,
+// at the moment it's needed rather than in a hint everyone reads.
+const FROM_FIGMA = "From Figma, use Copy as SVG, then paste.";
 document.addEventListener("paste", (e) => {
   const data = e.clipboardData;
   if (!data) return;
@@ -1206,8 +1401,11 @@ document.addEventListener("paste", (e) => {
     e.preventDefault();
     textInput.value = "";
     textTurn++;
+    if (document.activeElement !== textInput) openText(false);
     if (autoColor) setColor("original");
     loadSvg(text, "paste");
+  } else if (!text && /\(fig(meta|ma)\)/.test(data.getData("text/html"))) {
+    say(FROM_FIGMA);
   }
 });
 
@@ -1228,10 +1426,10 @@ function frameInto(out, p, phase, opaque = false) {
 // What Download PNG makes. Avatar: the glass as a circle filling the frame, for round profile pictures.
 // App Store: the shape fills the square with no shadow and no transparency; the store rounds the corners itself.
 const IMAGES = {
-  icon: { px: EXPORT_PX, name: "glass-icon.png", note: "PNG 1024 px" },
-  large: { px: 2048, name: "glass-icon-2048.png", note: "PNG 2048 px", told: "image:2048" },
-  avatar: { px: 1024, name: "glass-avatar.png", note: "Avatar PNG 1024 px", fill: true, shape: "circle", told: "image:avatar" },
-  store: { px: 1024, name: "glass-app-store.png", note: "App Store PNG 1024 px", fill: true, opaque: true, told: "image:store" },
+  icon: { px: EXPORT_PX, name: "glass-icon.png", spec: "1024 px" },
+  large: { px: 2048, name: "glass-icon-2048.png", spec: "2048 px", told: "image:2048" },
+  avatar: { px: 1024, name: "glass-avatar.png", spec: "Avatar", fill: true, shape: "circle", told: "image:avatar" },
+  store: { px: 1024, name: "glass-app-store.png", spec: "App Store", fill: true, opaque: true, told: "image:store" },
 };
 const imageFormat = () => IMAGES[root.querySelector("input[name=image]:checked")?.value] ?? IMAGES.icon;
 
@@ -1524,6 +1722,13 @@ function dataUrlBytes(url) {
 
 function say(text) {
   status.textContent = text;
+}
+
+// Plays a CSS animation again from the start, even if the class is still on from the last time.
+function replay(el, cls) {
+  el.classList.remove(cls);
+  void el.offsetWidth;
+  el.classList.add(cls);
 }
 
 function hexToRgb(hex) {
