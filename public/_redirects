@@ -1,6 +1,7 @@
 /portfolio  /portfolio.pdf  302
 
-# Before launch: every site page redirects to the PDF. To launch, delete the lines below to the end of the file.
+# Before launch: every site page redirects to the PDF. To launch, delete the lines below to the end of the file, and point
+# the wordmarks (src/pages/glass.astro, src/layouts/Site.astro) back to / from /review/.
 /           /portfolio.pdf  302
 /manifesto  /portfolio.pdf  302
 /manifesto/ /portfolio.pdf  302

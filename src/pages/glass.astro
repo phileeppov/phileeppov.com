@@ -32,10 +32,11 @@ const app = {
     <script is:inline type="application/ld+json" set:html={JSON.stringify(app)} />
   </Fragment>
 
-  <!-- Author links: wordmark → portfolio, handle → X profile, the pill → the video review form. Every link off this page
-       opens in a new tab, so the uploaded logo and settings aren't lost. -->
+  <!-- Author links: wordmark and the pill → the video review form (until the site launches the home page is the PDF; at
+       launch the wordmark goes back to /), handle → X profile. Every link off this page opens in a new tab, so the
+       uploaded logo and settings aren't lost. -->
   <header class="top">
-    <a class="mark" href="/" target="_blank" rel="noopener" aria-label="phil01ppov, portfolio" title="Portfolio" data-link="wordmark">phil<i>01</i>ppov</a>
+    <a class="mark" href="/review/" target="_blank" rel="noopener" aria-label="phil01ppov, work with me" data-link="wordmark">phil<i>01</i>ppov</a>
     <nav>
       <a href="https://x.com/phileeppov" target="_blank" rel="noopener" data-link="x-handle">@phileeppov</a>
       <a class="work" href="/review/" target="_blank" rel="noopener" data-link="review-pill">Work with me</a>
@@ -288,7 +289,7 @@ const app = {
   .top:has(~ .glass.is-full) {
     display: none;
   }
-  /* The wordmark leads to the portfolio, so it responds to hover like a link. */
+  /* The wordmark is a link (to the video review form until the site launches), so it responds to hover like one. */
   .mark:hover {
     opacity: 0.6;
   }
