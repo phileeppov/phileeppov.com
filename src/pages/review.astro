@@ -8,24 +8,24 @@ import Site from "../layouts/Site.astro";
 import ReviewScreen from "../components/ReviewScreen.astro";
 ---
 
-<Site title="Video review" description="Send me your product. Get a video review in return." image="/review-og.png">
+<Site title="Video review" description="Send me what you're building. Get a video review in return." image="/review-og.png">
   <!-- Preview and icons: the screen-form, and the reviewer's camera as a coin with a smile, like /glass has its own. -->
   <Fragment slot="head">
     <link rel="icon" type="image/png" sizes="64x64" href="/review-favicon.png" />
     <link rel="apple-touch-icon" href="/review-touch-icon.png" />
   </Fragment>
-  <!-- Filled in from /api/review once the page loads: open this week, or the week a request sent now goes into. Hover
-       or tap shows the weekly limit, so "open" doesn't read as a sales trick. -->
-  <button type="button" class="status" slot="aside" data-status hidden aria-describedby="review-weekly">
+  <!-- Filled in from /api/review once the page loads: open this week, with the weekly limit in the same line so "open"
+       doesn't read as a sales trick; or the week a request sent now goes into, with the limit under it on hover or tap. -->
+  <button type="button" class="status" slot="aside" data-status hidden>
     <span data-status-text></span>
-    <!-- Hidden from the button's name; screen readers get it once, as its description. -->
+    <!-- Hidden from the button's name; with a queue, screen readers get it once, as its description. -->
     <span class="tip" id="review-weekly" role="tooltip" aria-hidden="true">I do three reviews a week.</span>
   </button>
 
   <main class="review">
     <section class="offer">
       <p class="who">Nikita Filippov, product designer. I redesigned game recording in Medal.tv, an&nbsp;app with 3M daily users.</p>
-      <h1><span>Send me your product.</span> <span>Get a video review in&nbsp;return.</span></h1>
+      <h1><span>Send me what you're building.</span> <span>Get a video review in&nbsp;return.</span></h1>
       <ul class="terms">
         <li>Free</li>
         <li data-in-48>Within 48 hours</li>
@@ -34,8 +34,13 @@ import ReviewScreen from "../components/ReviewScreen.astro";
       </ul>
     </section>
     <section class="after">
-      <!-- 1 and 2 match the points marked on the screen; the numbers are drawn in CSS, the sentence stays as written. -->
-      <p class="contents"><span data-n="1">What I see,</span> <span data-n="2">what I'd do,</span> <span data-n="3">what it would cost.</span></p>
+      <!-- 1 and 2 match the points marked on the screen; the numbers are drawn in CSS, the sentence stays as written.
+           From scratch (chosen on the screen) the review is about what to make, so the line changes with it. -->
+      <p class="contents" data-for="product"><span data-n="1">What I see,</span> <span data-n="2">what I'd do,</span> <span data-n="3">what it would cost.</span></p>
+      <p class="contents" data-for="scratch" hidden><span data-n="1">What to build first,</span> <span data-n="2">how it could look,</span> <span data-n="3">what it would cost.</span></p>
+      <!-- Where the cost starts, so nobody spends a slot to find out it's out of reach. -->
+      <p class="price" data-for="product">Projects from $3,500.</p>
+      <p class="price" data-for="scratch" hidden>A brand and first screens from $5,000.</p>
       <p>If we're not aligned, we stop there. You keep the review.</p>
       <p>If we are, we work async. Video updates, shared Figma, decisions in writing. Calls when useful.</p>
     </section>
@@ -47,20 +52,40 @@ import ReviewScreen from "../components/ReviewScreen.astro";
 
 <script>
   import { weekLabel } from "../scripts/review-form";
+  import { count } from "../scripts/review-count";
+
+  // A visit, counted once (src/scripts/review-count.ts): Web Analytics misses many of them to blockers.
+  count("review:view");
+
+  // The screen switched between a product and from scratch (ReviewScreen.astro): the line about the review follows.
+  const page = document.querySelector<HTMLElement>("main.review");
+  page?.addEventListener("review:mode", (event) => {
+    const mode = (event as CustomEvent<string>).detail;
+    page.querySelectorAll<HTMLElement>(".after [data-for]").forEach((el) => (el.hidden = el.dataset.for !== mode));
+  });
 
   // This week open, or the week a new request would land in (worker/index.js). While a queue stands, "within 48 hours"
   // isn't true from today, so that token steps aside. Nothing shows if the request fails.
-  const status = document.querySelector<HTMLElement>("[data-status]");
+  const status = document.querySelector<HTMLButtonElement>("[data-status]");
   const statusText = status?.querySelector<HTMLElement>("[data-status-text]");
   const in48 = document.querySelector<HTMLElement>("[data-in-48]");
   fetch("/api/review", { headers: { Accept: "application/json" } })
     .then((res) => (res.ok ? res.json() : null))
-    .then((s: { queue?: number; week?: string } | null) => {
+    // The dev server has no Worker behind /api: there the week shows as open, so the header can be looked at locally.
+    .then((s: { queue?: number; week?: string } | null) => s ?? (import.meta.env.DEV ? { queue: 0 } : null))
+    .then((s) => {
       if (!status || !statusText || !s) return;
       const queue = Number(s.queue) || 0;
       const ahead = queue > 0 && !!s.week;
-      statusText.textContent = ahead ? `Now booking the week of ${weekLabel(s.week!)}` : "Open this week";
+      // The limit is its own piece, so the narrowest phones can drop it rather than wrap the header.
+      if (ahead) statusText.textContent = `Now booking the week of ${weekLabel(s.week!)}`;
+      else statusText.replaceChildren("Open this week", Object.assign(document.createElement("span"), { className: "limit", textContent: " · 3 reviews a week" }));
       status.classList.toggle("is-open", !ahead);
+      // Open, the limit is in the words; with a queue it's the tip under the date, and only then the status takes focus.
+      status.classList.toggle("has-tip", ahead);
+      status.tabIndex = ahead ? 0 : -1;
+      if (ahead) status.setAttribute("aria-describedby", "review-weekly");
+      else status.removeAttribute("aria-describedby");
       status.hidden = false;
       if (queue > 0 && in48) in48.hidden = true;
     })
@@ -68,6 +93,7 @@ import ReviewScreen from "../components/ReviewScreen.astro";
   // On a phone there's no hover: a tap shows the limit for a moment.
   let tipTimer = 0;
   status?.addEventListener("click", () => {
+    if (!status.classList.contains("has-tip")) return;
     status.classList.add("is-tip");
     clearTimeout(tipTimer);
     tipTimer = window.setTimeout(() => status.classList.remove("is-tip"), 2600);
@@ -111,11 +137,13 @@ import ReviewScreen from "../components/ReviewScreen.astro";
     font-size: var(--text-meta);
     line-height: 1.45;
   }
+  /* As wide as the window's height allows for the screen (16 by 10 and the tab strip, about 4% of the width more) and
+     the dock under it. */
   .form {
     grid-area: form;
     width: 100%;
-    max-width: calc((100vh - 250px) * 1.6 + 36px);
-    max-width: calc((100svh - 250px) * 1.6 + 36px);
+    max-width: calc((100vh - 250px) * 1.5 + 36px);
+    max-width: calc((100svh - 250px) * 1.5 + 36px);
   }
 
   .status {
@@ -138,7 +166,7 @@ import ReviewScreen from "../components/ReviewScreen.astro";
     outline-offset: 4px;
     border-radius: 4px;
   }
-  /* The limit under the status: on hover, keyboard focus, or a tap. */
+  /* The limit under the status, with a queue: on hover, keyboard focus, or a tap. */
   .tip {
     position: absolute;
     top: calc(100% + 10px);
@@ -154,20 +182,26 @@ import ReviewScreen from "../components/ReviewScreen.astro";
     pointer-events: none;
     transition: opacity 180ms ease-out, translate 180ms ease-out;
   }
-  .status:focus-visible .tip,
-  .status.is-tip .tip {
+  .status.has-tip:focus-visible .tip,
+  .status.has-tip.is-tip .tip {
     opacity: 1;
     translate: 0 0;
   }
   /* Hover only where there is one: on a phone a tap would leave it stuck on. */
   @media (hover: hover) {
-    .status:hover .tip {
+    .status.has-tip:hover .tip {
       opacity: 1;
       translate: 0 0;
     }
   }
   .status[hidden] {
     display: none;
+  }
+  /* Under 360px the line wouldn't fit next to the wordmark: the limit gives way. */
+  @media (max-width: 359px) {
+    .status :global(.limit) {
+      display: none;
+    }
   }
   .status::before {
     content: "";
@@ -244,6 +278,12 @@ import ReviewScreen from "../components/ReviewScreen.astro";
     margin: 0;
     text-wrap: pretty;
   }
+  .after p[hidden] {
+    display: none;
+  }
+  .after .price {
+    margin-top: -4px;
+  }
   .after p:not(.contents) {
     opacity: 0.6;
   }
@@ -251,9 +291,11 @@ import ReviewScreen from "../components/ReviewScreen.astro";
     font-size: 15px;
     font-weight: 500;
   }
-  /* Each number points at its mark on the screen (the script makes it jump); on hover the number fills in. */
+  /* Each number points at its mark on the screen (the script makes it jump); on hover the number fills in. A number
+     never ends a line apart from its words: the line breaks between the parts, not inside one. */
   .contents span {
     cursor: default;
+    white-space: nowrap;
   }
   @media (hover: hover) {
     .contents span:hover::before {

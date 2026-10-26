@@ -1,12 +1,13 @@
 // Site Worker: takes the video review form (/api/review), books a slot and sends an email to gmail via Email Routing.
-// Plus an anonymous event counter for /glass (/api/event). Both keep their tables in the D1 database glass-events.
+// Plus an anonymous event counter for /glass and /review (/api/event). Both keep their tables in the D1 database
+// glass-events.
 // Everything else is served as static assets (wrangler.jsonc, run_worker_first only for /api/*).
 import { EmailMessage } from "cloudflare:email";
 
 const FROM = "form@phileeppov.com";
 const TO = "phileeppov@gmail.com";
 const MIN_FILL_MS = 3000; // faster means a bot
-const LIMITS = { link: 2000, stuck: 500, contact: 200 };
+const LIMITS = { link: 2000, what: 500, stuck: 500, who: 500, contact: 200 };
 const WEEKLY_REVIEWS = 3; // free reviews a week; past that, requests queue up for the next weeks
 const PER_SENDER = 2; // requests a week from one IP; more get the error state with the email address
 const WEEKS_AHEAD = 26; // the queue never books further out than this
@@ -33,10 +34,14 @@ const EVENT = new RegExp(
   `^(png|video|video-wide|share|upload|ping|advanced|text|random|tilt|tap|sing|full|track:pick|preset:(studio|melt|prism|lens|night)|knob:(${KNOBS})|from:(file|drop|paste)|link:(${LINKS})|sound:(demo|mic|track)|image:(2048|avatar|store)|logo:(thin|mid|bold|fill))$`,
 );
 
+// /review counter, once per visit each (src/scripts/review-count.ts): the page opened, something typed, a switch to
+// "from scratch", a request sent and which kind.
+const REVIEW_EVENT = /^review:(view|start|scratch|send:(product|scratch))$/;
+
 async function track(request, env) {
   if (request.method !== "POST") return new Response(null, { status: 405, headers: { Allow: "POST" } });
   const name = (await request.text()).trim().slice(0, 40);
-  if (!EVENT.test(name)) return new Response(null, { status: 400 });
+  if (!EVENT.test(name) && !REVIEW_EVENT.test(name)) return new Response(null, { status: 400 });
   const day = new Date().toISOString().slice(0, 10);
   try {
     await env.EVENTS.batch([
@@ -63,8 +68,12 @@ async function review(request, env) {
   } catch {
     return reply(request, 400, "bad form");
   }
-  const field = (name) => String(form.get(name) ?? "").trim();
-  const data = { link: field("link"), stuck: field("stuck"), contact: field("contact") };
+  // Line breaks come as CRLF, two characters, where the page's maxlength counted one: count them as the page did.
+  const field = (name) => String(form.get(name) ?? "").replace(/\r\n/g, "\n").trim();
+  // Two kinds of request: a product that exists (its link, what's stuck), or one built from scratch (what it is, who
+  // it's for; a deck or Notion link in place of the words works too). The home page form sends no mode: a product.
+  const mode = field("mode") === "scratch" ? "scratch" : "product";
+  const data = { link: field("link"), what: field("what"), stuck: field("stuck"), who: field("who"), contact: field("contact") };
 
   // Bot traps. Only bots fill the "message" field: it isn't rendered, so people and browser autofill never see it.
   // "t" is how long the page was open before the submit, measured in the browser (browser and server clocks can disagree,
@@ -75,7 +84,8 @@ async function review(request, env) {
   // No "t" means the page script never ran: a bot posting directly, or a person without JS, who gets the email address.
   if (!(elapsed > 0)) return reply(request, 400, "no timer");
 
-  if (!data.link || !data.contact) return reply(request, 400, "link and contact are required");
+  const about = mode === "scratch" ? data.what || data.link : data.link;
+  if (!about || !data.contact) return reply(request, 400, `${mode === "scratch" ? "what" : "link"} and contact are required`);
   for (const [name, max] of Object.entries(LIMITS)) {
     if (data[name].length > max) return reply(request, 400, `${name} is too long`);
   }
@@ -90,7 +100,7 @@ async function review(request, env) {
   if (slot?.refused) return reply(request, 429, "too many requests");
 
   try {
-    await env.MAIL.send(new EmailMessage(FROM, TO, mime(data, slot)));
+    await env.MAIL.send(new EmailMessage(FROM, TO, mime(data, mode, slot)));
   } catch (error) {
     console.error("review mail failed", error);
     // The email didn't go, so the slot goes back.
@@ -191,8 +201,9 @@ function reply(request, status, error, slot) {
   return Response.redirect(new URL("/review/", request.url), 303);
 }
 
-// Subject and body say where the request landed: this week, the queue, or not counted if the database failed.
-function mime({ link, stuck, contact }, slot) {
+// Subject and body say what kind of request it is and where it landed: this week, the queue, or not counted if the
+// database failed.
+function mime({ link, what, stuck, who, contact }, mode, slot) {
   const oneLine = (s) => s.replace(/[\r\n]+/g, " ");
   const isEmail = /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(contact);
   const date = (week) => week.split("-").reverse().join(".");
@@ -201,15 +212,19 @@ function mime({ link, stuck, contact }, slot) {
     : slot.queue === 0
       ? [`[This week ${slot.place}/${WEEKLY_REVIEWS}]`, `this week, ${slot.place} of ${WEEKLY_REVIEWS}`]
       : [`[Queue ${date(slot.week)}]`, `queue, week of ${date(slot.week)}, ${slot.place} of ${WEEKLY_REVIEWS}`];
-  const subject = `${tag} Video review: ${oneLine(link).slice(0, 80)}`;
+  const scratch = mode === "scratch";
+  const subject = `${tag} ${scratch ? "From scratch" : "Video review"}: ${oneLine(scratch ? what || link : link).slice(0, 80)}`;
   const body = [
-    `Link: ${link}`,
-    `Stuck: ${stuck || "—"}`,
+    ...(scratch
+      ? [`Building: ${what || link}`, what && link ? `Link: ${link}` : null, who ? `Who it's for: ${who}` : null, stuck ? `Stuck: ${stuck}` : null]
+      : [`Link: ${link}`, `Stuck: ${stuck || "—"}`]),
     `Contact: ${contact}`,
     `Slot: ${where}`,
     "",
     "Sent from phileeppov.com",
-  ].join("\n");
+  ]
+    .filter((line) => line != null)
+    .join("\n");
 
   const headers = [
     `From: phileeppov.com <${FROM}>`,

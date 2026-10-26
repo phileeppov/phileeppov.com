@@ -3,17 +3,25 @@
 // sticky note is "What's stuck?"; under it, the contact field and SEND, like a player's dock. The product sketched in
 // the screen follows the link — a website, a Figma file, a GitHub repo, an app, a doc — with the name taken from it.
 // The review marks: the ring around what's stuck, the note and the reviewer's camera stay put; point 1 follows the name.
+// Two kinds of request, two browser tabs over the address bar: a product that exists, or none yet — then the
+// bar asks what it is, the note who it's for, and the sketch is a blank page waiting for the design.
 // Copy: questions and states — site.md §1.6; the rest — §8. Submit: src/scripts/review-form.ts → worker/index.js.
 ---
 
 <div class="review-screen" data-review>
   <form class="device" method="post" action="/api/review" data-review-form>
     <div class="screen" data-screen>
-      <div class="bar">
+      <!-- The two kinds as browser tabs, sharing the strip like two open tabs do; the other one is a blank page. Once a
+           link is in, the first tab takes the product's name, like a tab takes a page's title. -->
+      <div class="tabs" role="radiogroup" aria-label="What you're sending">
         <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        <label class="tab"><input type="radio" name="mode" value="product" checked autocomplete="off" aria-label="I have a product" /><i class="fav" aria-hidden="true"></i><span data-tab-name>I have a product</span></label>
+        <label class="tab"><input type="radio" name="mode" value="scratch" autocomplete="off" /><i class="page" aria-hidden="true"></i><span>No product yet</span></label>
+      </div>
+      <div class="bar">
         <!-- The address bar is the link field. The question sits in it like "https://" does and folds away once a link
-             is in, so the link gets the whole bar. -->
-        <label class="url" data-field>
+             is in, so the link gets the whole bar. From scratch, it asks what it is instead. -->
+        <label class="url" data-field data-for="product">
           <b>What's the link?</b>
           <input
             name="link"
@@ -30,7 +38,12 @@
           />
           <span class="load" aria-hidden="true"></span>
         </label>
+        <label class="url" data-field data-for="scratch" hidden>
+          <b>What are you building?</b>
+          <input name="what" type="text" required disabled maxlength="500" autocomplete="off" enterkeyhint="next" placeholder="e.g. a booking app for barbers" />
+        </label>
         <span class="err" id="review-link-error" data-error-for="link" role="alert" hidden>Paste a link first.</span>
+        <span class="err" id="review-what-error" data-error-for="what" role="alert" hidden>Add a few words first.</span>
       </div>
       <div class="sk" data-sk aria-hidden="true"></div>
       <span class="cta" aria-hidden="true"></span>
@@ -40,11 +53,17 @@
         <path pathLength="1" d="M34,66 C16,42 50,10 116,9 C182,8 223,24 220,50 C217,79 168,94 110,93 C54,92 12,79 22,50 C27,36 46,28 66,24" />
       </svg>
       <!-- The sticky note is the "What's stuck?" field, pinned next to the circled button. The field is drawn on the
-           note, so it reads as a place to write before anything is typed. -->
-      <label class="note">
-        <b>What's stuck?</b>
-        <span class="field"><textarea name="stuck" rows="2" maxlength="500" enterkeyhint="next" placeholder="e.g. people sign up, then leave"></textarea></span>
-      </label>
+           note, so it reads as a place to write before anything is typed. From scratch, it asks who it's for. -->
+      <div class="note">
+        <label data-for="product">
+          <b>What's stuck?</b>
+          <span class="field"><textarea name="stuck" rows="2" maxlength="500" enterkeyhint="next" placeholder="e.g. people sign up, then leave"></textarea></span>
+        </label>
+        <label data-for="scratch" hidden>
+          <b>Who's it for?</b>
+          <span class="field"><textarea name="who" rows="2" maxlength="500" enterkeyhint="next" disabled autocomplete="off" placeholder="e.g. barbers who work alone"></textarea></span>
+        </label>
+      </div>
       <span class="cam" aria-hidden="true">
         <!-- The smile from the favicon, drawn, so it's the same mark everywhere. -->
         <i>
@@ -65,20 +84,24 @@
     <!-- Bot trap: not rendered, so neither a person nor browser autofill fills it in; bots fill every field. -->
     <input class="trap" name="message" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" />
     <input type="hidden" name="t" value="" />
-    <p class="below" data-hide-on-sent>Behind a login? I'll ask for access.<br /> Private. Nothing gets posted without your OK.</p>
+    <p class="below" data-hide-on-sent><span data-for="product">Behind a login? I'll register, or ask for a&nbsp;test&nbsp;account.</span><span data-for="scratch" hidden>Got slides, Figma or Notion? Paste a link after the&nbsp;words, or send it later.</span><br /> Private. Nothing gets posted without your OK.</p>
     <p class="error" data-state="error" role="alert" hidden>That didn't go through. Write to <a href="mailto:nikita@phileeppov.com">nikita@phileeppov.com</a> instead.</p>
     <div class="done" tabindex="-1" aria-live="polite" data-done>
       <p data-state="sent" hidden>Got it. I'll send the review to <span data-contact>[contact]</span>.</p>
       <p data-state="next" hidden>Got it. This week is full, so I'll send the review to <span data-contact>[contact]</span> next week.</p>
       <p data-state="later" hidden>Got it. There's a queue, so I'll send the review to <span data-contact>[contact]</span> the week of <span data-week>[date]</span>.</p>
     </div>
+    <!-- No confirmation email goes out, so this is the thread to add slides or a test login after sending. -->
+    <p class="done-note" data-show-on-sent hidden>Anything to add? Write to <a href="mailto:nikita@phileeppov.com">nikita@phileeppov.com</a>.</p>
   </form>
 </div>
 
 <script>
   import { wireReviewForm } from "../scripts/review-form";
+  import { count } from "../scripts/review-count";
 
-  type Read = { type: "web" | "figma" | "github" | "app" | "doc"; name: string; owner?: string; store?: string };
+  type Mode = "product" | "scratch";
+  type Read = { type: "web" | "figma" | "github" | "app" | "doc" | "idea" | "self"; name: string; owner?: string; store?: string };
 
   // Links to a platform rather than a product: no name to take, so the sketch stays plain.
   const PLATFORMS = /(^|\.)(loom\.com|youtube\.com|youtu\.be|vimeo\.com|dropbox\.com|canva\.com|miro\.com|framer\.com|webflow\.com|x\.com|twitter\.com|linkedin\.com|t\.me)$/;
@@ -117,8 +140,26 @@
       return { type: "doc", name: short(cap(words(last.replace(/-?[0-9a-f]{32}$/i, "")))) };
     }
     if (host === "docs.google.com" || host === "drive.google.com") return { type: "doc", name: "" };
+    // This very page sent to itself: the screen draws the review page, a review of the review.
+    if (host === "phileeppov.com" && parts[0] === "review") return { type: "self", name: "Phileeppov" };
     if (PLATFORMS.test(host)) return { type: "web", name: "" };
-    return { type: "web", name: short(cap(host.split(".")[0])) };
+    // A product behind a login usually lives on a subdomain (app.drawline.io): the name is the next part.
+    const labels = host.split(".");
+    const label = labels.length > 2 && /^(app|my|go|web|dashboard|admin|portal|beta)$/.test(labels[0]) ? labels[1] : labels[0];
+    return { type: "web", name: short(cap(label)) };
+  }
+
+  // A link has no spaces and a dot in it (or starts with http); anything else is a few words about the product.
+  const isLink = (v: string) => /^https?:\/\//i.test(v) || /^[^\s]+\.[^\s]+$/.test(v);
+  // From scratch: the words become the name on a blank page, cut at a word so the name never ends mid-word.
+  function idea(raw: string): Read {
+    const all = raw.trim().replace(/\s+/g, " ");
+    let name = "";
+    for (const word of all.split(" ")) {
+      if (name && name.length + word.length + 1 > 26) return { type: "idea", name: cap(name) + "…" };
+      name = name ? `${name} ${word}` : word;
+    }
+    return { type: "idea", name: cap(short(name, 26)) };
   }
 
   // The sketch, drawn from a few primitives in cqi so it scales with the screen. Each kind keeps something to circle
@@ -146,6 +187,12 @@
         case "doc":
           return [k("f", 0, 13.2, 100, 8), k("o", 6, 17, 8, 8), name ? k("name", 6, 28, null, null, name, 6.4) : k("t h", 6, 30, 60),
             k("t", 6, 37.5, 10) + k("t", 19, 37.5, 22), k("f", 4, 46, 92, 21)].join("");
+        case "self":
+          return [k("t", 5, 15, 46), k("t h", 5, 19.5, 74), k("t h", 5, 24, 52), ...[0, 1, 2, 3].map((i) => k("o pill", 5 + i * 15.5, 30, 13.5, 4)),
+            k("f dev", 4, 38, 92, 40), k("t", 8, 41.5, 18), k("t", 29, 41.5, 18), k("o pill", 8, 45.5, 84, 5)].join("");
+        case "idea":
+          return [k("grid", 0, 0), k("o d", 5, 16, 4.4, 4.4), k("t", 12, 17.8, 14),
+            name ? k("name", 5.6, 24, null, null, name, 9) : k("t h d", 6, 26, 62) + k("t h d", 6, 31.5, 40), bars(6, 39, [66, 58, 42], 3.2)].join("");
         default:
           return [k("o", 5, 16, 4.4, 4.4), name ? k("txt", 11.4, 16.2, null, null, name.toLowerCase(), 3.4) : k("t", 12, 17.8, 14),
             name ? k("name", 5.6, 24, null, null, name, 9) : k("t h", 6, 26, 62) + k("t h", 6, 31.5, 40), bars(6, 39, [66, 58, 42], 3.2)].join("");
@@ -173,6 +220,17 @@
         return [k("f", 0, 9.6, 100, 6), k("o", 6, 13, 5, 5), name ? k("name", 6, 20, null, null, name, 4.6) : k("t h", 6, 21.5, 34),
           k("t", 6, 27, 6) + k("t", 14, 27, 12), k("t", 6, 29.6, 6) + k("t", 14, 29.6, 9), bars(6, 34, [44, 40]), k("f", 4.6, 39.6, 48, 12.6),
           bars(6, 58, [14]), bars(24, 58, [30]), k("t", 72, 21, 10), bars(72, 24.4, [18, 14, 16, 12], 2.6)].join("");
+      case "self":
+        return [k("t", 5, 11.4, 22), k("t", 5, 13.4, 14), k("t h", 5, 17, 30), k("t h", 5, 20.6, 22),
+          ...[0, 1, 2, 3].map((i) => k("o pill", 5 + i * 7.4, 26, 6.4, 2.4)), k("t", 5, 31, 26), bars(5, 34.4, [28, 22], 2.4),
+          k("f dev", 42, 10, 53, 41), k("t", 46, 12.2, 7), k("t", 55, 12.2, 7), k("o pill", 45, 15, 47, 2.8), bars(46, 20.4, [20, 14]),
+          k("o", 72, 20, 18, 12), k("f", 58, 31, 12, 6), k("o pill", 87, 34.5, 4.4, 4.4), k("o pill", 43.5, 46.6, 38, 2.8), k("dark pill", 83.5, 46.6, 9.5, 2.8)].join("");
+      // A page that isn't there yet: a canvas, dashed outlines where things will go, the picture to come crossed out
+      // like a wireframe, and the words as its name.
+      case "idea":
+        return [k("grid", 0, 0), k("o d", 5, 10.2, 2.8, 2.8), k("t", 9, 11.2, 7), k("t", 58, 11.2, 5.4), k("t", 65.5, 11.2, 5.4), k("t", 73, 11.2, 5.4),
+          k("o d pill", 84, 10, 9, 3.6), name ? k("name", 5.6, 17.6, null, null, name, 6.6) : k("t h d", 6, 19.6, 36) + k("t h d", 6, 23.6, 24),
+          bars(6, 30.4, [34, 31, 22]), k("o d x", 58, 19, 35, 29), k("o d", 6, 54, 22, 6.5), k("o d", 31, 54, 22, 6.5)].join("");
       default:
         return [k("o", 5, 10.2, 2.8, 2.8), name ? k("txt", 8.8, 10.1, null, null, name.toLowerCase(), 2.1) : k("t", 9, 11.2, 7),
           k("t", 58, 11.2, 5.4), k("t", 65.5, 11.2, 5.4), k("t", 73, 11.2, 5.4), k("o pill", 84, 10, 9, 3.6),
@@ -182,16 +240,18 @@
   }
 
   // Where point 2 sits; point 1 follows the end of the name (or the first heading when there is none).
-  const POINT2: Record<Read["type"], [number, number] | null> = { web: [56.4, 17.4], figma: [77.6, 16], github: [56.6, 20], app: [57.6, 30.6], doc: [70, 18.6] };
+  const POINT2: Record<Read["type"], [number, number] | null> = { web: [56.4, 17.4], figma: [77.6, 16], github: [56.6, 20], app: [57.6, 30.6], doc: [70, 18.6], idea: [56.4, 17.4], self: [39.6, 10.4] };
   // How far right the big name may run on the wide screen, in cqi: up to the next block or point 2, less room for
   // point 1. On the phone the name has its row to itself.
-  const ROOM: Record<Read["type"], number> = { web: 49.5, figma: 50, github: 49.5, app: 78, doc: 64 };
+  const ROOM: Record<Read["type"], number> = { web: 49.5, figma: 50, github: 49.5, app: 78, doc: 64, idea: 49.5, self: 38 };
 
   const root = document.querySelector<HTMLElement>("[data-review]");
   const screen = root?.querySelector<HTMLElement>("[data-screen]");
   const sk = root?.querySelector<HTMLElement>("[data-sk]");
   const link = root?.querySelector<HTMLInputElement>("input[name=link]");
+  const what = root?.querySelector<HTMLInputElement>("input[name=what]");
   const stuck = root?.querySelector<HTMLTextAreaElement>("textarea[name=stuck]");
+  const who = root?.querySelector<HTMLTextAreaElement>("textarea[name=who]");
   const [pt1, pt2] = [1, 2].map((n) => root?.querySelector<HTMLElement>(`[data-pt="${n}"]`));
 
   // While the bar is empty, its placeholder types through what can go in it, and the sketch turns into each kind.
@@ -206,22 +266,53 @@
   ];
   const still = matchMedia("(prefers-reduced-motion: reduce)");
 
-  if (root && screen && sk && link && pt1 && pt2) {
-    wireReviewForm(root);
+  if (root && screen && sk && link && what && stuck && who && pt1 && pt2) {
+    // The page always opens on a product: the radios aren't restored by the browser (autocomplete="off"), and this
+    // covers a browser that restores them anyway, so nothing opens half-switched.
+    const product = root.querySelector<HTMLInputElement>("input[name=mode][value=product]");
+    if (product) product.checked = true;
+    const tabName = root.querySelector<HTMLElement>("[data-tab-name]");
+    const tabLabel = tabName?.textContent ?? "";
+    let mode: Mode = "product";
+
+    wireReviewForm(root, { onSent: (sent) => count(`review:send:${sent.get("mode") === "scratch" ? "scratch" : "product"}`) });
+    // Typing anything counts as starting, once; switching the kind doesn't.
+    root.addEventListener("input", (event) => {
+      if (event.target instanceof HTMLInputElement && event.target.type === "radio") return;
+      count("review:start");
+    });
+
     const hint = link.placeholder;
     let shown: Read | null = null;
     let last = "";
     let force = false;
+    // What the screen shows: the product from its link; from scratch, the words on a blank page (a deck or Notion link
+    // draws as what it is).
+    const current = (): Read => {
+      if (mode === "scratch") {
+        const v = what.value.trim();
+        return v ? (isLink(v) ? read(v) : idea(v)) : { type: "idea", name: "" };
+      }
+      const v = link.value.trim();
+      return v ? read(v) : (shown ?? read(""));
+    };
     const render = () => {
       // One switch for the phone layout, used by both the sketch and the CSS (.is-narrow), so they never disagree.
       const narrow = screen.clientWidth < 520;
       screen.classList.toggle("is-narrow", narrow);
-      const r = link.value.trim() ? read(link.value) : (shown ?? read(""));
-      const key = `${narrow}|${r.type}|${r.name}|${r.owner}|${r.store}`;
-      screen.classList.toggle("has-link", !!link.value.trim());
+      const r = current();
+      const field = mode === "scratch" ? what : link;
+      screen.classList.toggle("has-link", !!field.value.trim());
+      screen.classList.toggle("is-idea", r.type === "idea");
+      // From scratch the bar shows an example, and in focus says what it takes; the question takes half the bar on a
+      // phone, so there it's short.
+      what.placeholder = narrow ? "a few words" : document.activeElement === what ? "a few words, plus a link if you have one" : "e.g. a booking app for barbers";
+      // The first tab takes the product's name, like a browser tab takes the page's title.
+      if (tabName) tabName.textContent = (mode === "product" && link.value.trim() && r.name) || tabLabel;
+      const key = `${mode}|${narrow}|${r.type}|${r.name}|${r.owner}|${r.store}`;
       if (key === last) return;
       // A new kind of product draws in piece by piece; a name being typed just updates.
-      const kind = force || (last && last.split("|").slice(0, 2).join() !== key.split("|").slice(0, 2).join());
+      const kind = force || (last && last.split("|").slice(0, 3).join() !== key.split("|").slice(0, 3).join());
       last = key;
       sk.classList.remove("is-in");
       sk.innerHTML = draw(r, narrow);
@@ -235,36 +326,46 @@
       const name = sk.querySelector<HTMLElement>(".name");
       const room = name ? (narrow ? 88 : ROOM[r.type]) * cqi - name.offsetLeft : 0;
       if (name && name.offsetWidth > room) name.style.fontSize = `${(parseFloat(name.style.fontSize) * room) / name.offsetWidth}cqi`;
-      // The big name first, then the headline bar, then the small title (GitHub, an app with no name).
+      // The big name first, then the headline bar, then the small title (GitHub, an app with no name). The sketch
+      // starts under the tab strip, so its own top is added.
       const head = sk.querySelector<HTMLElement>(".name") ?? sk.querySelector<HTMLElement>(".t.h") ?? sk.querySelector<HTMLElement>(".txt");
       if (head) {
-        const y = head.offsetTop + head.offsetHeight / 2 - 1.5 * cqi;
+        const y = sk.offsetTop + head.offsetTop + head.offsetHeight / 2 - 1.5 * cqi;
         pt1.style.left = `${Math.min(head.offsetLeft + head.offsetWidth + 1.4 * cqi, screen.clientWidth - 6 * cqi)}px`;
         pt1.style.top = `${y}px`;
       }
       const p2 = narrow ? null : POINT2[r.type];
       pt2.hidden = !p2;
-      if (p2) Object.assign(pt2.style, { left: `${p2[0]}cqi`, top: `${p2[1]}cqi` });
+      if (p2) Object.assign(pt2.style, { left: `${p2[0]}cqi`, top: `calc(${p2[1]}cqi + var(--top))` });
     };
     // The note grows with what's written, up to its max-height, so the words stay in view.
     const grow = () => {
-      if (!stuck) return;
-      stuck.style.height = "auto";
-      stuck.style.height = `${stuck.scrollHeight}px`;
+      const note = mode === "scratch" ? who : stuck;
+      note.style.height = "auto";
+      note.style.height = `${note.scrollHeight}px`;
     };
-    // The ring is drawn again when "what's stuck" changes, so the mark follows the words.
+    // The ring is drawn again when the note changes, so the mark follows the words.
     let redraw = 0;
-    stuck?.addEventListener("input", () => {
-      grow();
+    const circle = () => {
+      screen.classList.remove("is-drawn");
+      void screen.offsetWidth;
+      screen.classList.add("is-drawn");
+    };
+    const ring = () => {
       clearTimeout(redraw);
-      redraw = window.setTimeout(() => {
-        screen.classList.remove("is-drawn");
-        void screen.offsetWidth;
-        screen.classList.add("is-drawn");
-      }, 350);
-    });
+      redraw = window.setTimeout(circle, 350);
+    };
+    [stuck, who].forEach((note) =>
+      note.addEventListener("input", () => {
+        grow();
+        ring();
+      }),
+    );
     link.addEventListener("input", render);
-    // Enter moves on the way the form reads: link → note → contact, and Enter in the contact sends. Shift+Enter in the
+    what.addEventListener("input", render);
+    what.addEventListener("focus", render);
+    what.addEventListener("blur", render);
+    // Enter moves on the way the form reads: bar → note → contact, and Enter in the contact sends. Shift+Enter in the
     // note is still a new line.
     const contact = root.querySelector<HTMLInputElement>("input[name=contact]");
     const onEnter = (from: HTMLElement, to: HTMLElement | null) =>
@@ -274,8 +375,10 @@
         event.preventDefault();
         to.focus();
       });
-    onEnter(link, stuck ?? null);
-    if (stuck) onEnter(stuck, contact);
+    onEnter(link, stuck);
+    onEnter(what, who);
+    onEnter(stuck, contact);
+    onEnter(who, contact);
 
     // A link going in plays the loading line along the bar and the sketch draws in again behind it, like a page
     // loading: pasted — at once, typed — once the typing stops.
@@ -313,7 +416,8 @@
     requestAnimationFrame(() => screen.classList.add("is-drawn"));
 
     // The demo: types a kind into the placeholder, holds it, erases it, moves on. It stops the moment the field is
-    // focused (the sketch keeps the kind it was showing) and comes back if the field is left empty.
+    // focused (the sketch keeps the kind it was showing) and comes back if the field is left empty. Only for a product:
+    // from scratch the bar holds one example.
     let run = 0;
     const pause = (ms: number) => new Promise((done) => setTimeout(done, ms));
     const demo = async () => {
@@ -344,7 +448,7 @@
     let resume = 0;
     const start = (delay: number) => {
       clearTimeout(resume);
-      if (still.matches || link.value || link.readOnly) return;
+      if (still.matches || mode === "scratch" || link.value || link.readOnly) return;
       resume = window.setTimeout(demo, delay);
     };
     link.addEventListener("focus", () => {
@@ -353,6 +457,138 @@
     });
     link.addEventListener("blur", () => start(1400));
     start(1800);
+
+    // The tabs switch between the kinds. With no product yet, the bar asks what it is and the note who it's for; each
+    // kind keeps what was typed in it, and only the shown one is sent. The page's own text follows (review:mode).
+    // Only the shown kind's fields are in the form.
+    const lay = () =>
+      root.querySelectorAll<HTMLElement>("[data-for]").forEach((el) => {
+        const on = el.dataset.for === mode;
+        el.hidden = !on;
+        el.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>("input, textarea").forEach((field) => (field.disabled = !on));
+      });
+    lay();
+    const setMode = (next: Mode) => {
+      if (next === mode) return;
+      mode = next;
+      lay();
+      // A message about a field that's gone goes with it.
+      root.querySelectorAll<HTMLElement>(".bar .err").forEach((message) => (message.hidden = true));
+      [link, what].forEach((field) => {
+        field.removeAttribute("aria-invalid");
+        field.removeAttribute("aria-describedby");
+        field.closest(".url")?.classList.remove("is-invalid", "is-invalid-focused");
+      });
+      root.dispatchEvent(new CustomEvent("review:mode", { bubbles: true, detail: mode }));
+      if (mode === "scratch") {
+        clearTimeout(resume);
+        stop();
+        shown = null;
+        count("review:scratch");
+      } else start(900);
+      force = true;
+      last = "";
+      render();
+      force = false;
+      grow();
+      ring();
+    };
+    root.querySelectorAll<HTMLInputElement>("input[name=mode]").forEach((radio) => {
+      radio.addEventListener("change", () => radio.checked && setMode(radio.value as Mode));
+      // Enter on a tab would send the form, as browsers do for radios; the tabs switch with arrows, a click or a tap.
+      radio.addEventListener("keydown", (event) => event.key === "Enter" && event.preventDefault());
+    });
+    // Easter eggs. Nothing tells about them; each answers a thing people do anyway.
+    // The tabs drag like a browser's: the tab picked up becomes the open one, and once it covers more than half of its
+    // neighbour they swap places. The strip keeps the new order until the page is opened again.
+    const strip = root.querySelector<HTMLElement>(".tabs");
+    // A tab slides from where it was to where it is now.
+    const glide = (el: HTMLElement, from: number) => {
+      if (!from || still.matches || !el.animate) return;
+      el.animate([{ translate: `${from}px 0` }, { translate: "0 0" }], { duration: 280, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)" });
+    };
+    strip?.addEventListener("pointerdown", (down) => {
+      const tab = (down.target as Element).closest<HTMLElement>(".tab");
+      if (!tab || down.button !== 0 || root.classList.contains("is-done")) return;
+      // The tab holds the pointer from the start, so the drag ends wherever the button or the finger comes up.
+      tab.setPointerCapture(down.pointerId);
+      let dragged = false;
+      // Where the pointer would be if the tab sat in its place: moves along when the tabs swap.
+      let origin = down.clientX;
+      // The first swap comes right past the middle; after it, going back takes an eighth of a tab more, so at the line
+      // the tabs don't flicker.
+      let margin = 0;
+      const neighbour = (el: Element | null) => (el?.classList.contains("tab") ? (el as HTMLElement) : null);
+      const move = (e: PointerEvent) => {
+        if (e.pointerId !== down.pointerId) return;
+        let dx = e.clientX - origin;
+        if (!dragged) {
+          if (Math.abs(dx) < 5) return;
+          dragged = true;
+          tab.classList.add("is-dragging");
+          // Picked up, it opens, as a browser tab does.
+          const radio = tab.querySelector<HTMLInputElement>("input[name=mode]");
+          if (radio && !radio.checked && !radio.disabled) {
+            radio.checked = true;
+            radio.dispatchEvent(new Event("change", { bubbles: true }));
+          }
+        }
+        // Past the strip's ends it follows with some give, like a tab pulled against the window's edge; the give stops
+        // at 6px, so a tab pulled hard never covers the window's lights.
+        const tabs = [...strip.querySelectorAll<HTMLElement>(".tab")];
+        const min = tabs[0].offsetLeft - tab.offsetLeft;
+        const last = tabs[tabs.length - 1];
+        const max = last.offsetLeft + last.offsetWidth - tab.offsetLeft - tab.offsetWidth;
+        if (dx < min) dx = min - Math.min(6, (min - dx) * 0.25);
+        if (dx > max) dx = max + Math.min(6, (dx - max) * 0.25);
+        tab.style.translate = `${dx}px 0`;
+        // Its leading edge past a neighbour's middle (more than half of the neighbour covered): they swap. The neighbour
+        // moves and glides to the free place; the held tab keeps its place in the strip and stays under the pointer.
+        const left = tab.offsetLeft + dx;
+        const right = left + tab.offsetWidth;
+        const next = neighbour(tab.nextElementSibling);
+        const prev = neighbour(tab.previousElementSibling);
+        const other =
+          next && right > next.offsetLeft + next.offsetWidth / 2 + margin ? next : prev && left < prev.offsetLeft + prev.offsetWidth / 2 - margin ? prev : null;
+        if (!other) return;
+        margin = tab.offsetWidth / 8;
+        const otherFrom = other.offsetLeft;
+        const tabFrom = tab.offsetLeft;
+        strip.insertBefore(other, other === next ? tab : tab.nextSibling);
+        origin += tab.offsetLeft - tabFrom;
+        tab.style.translate = `${e.clientX - origin}px 0`;
+        glide(other, otherFrom - other.offsetLeft);
+      };
+      const end = (e: PointerEvent) => {
+        if (e.pointerId !== down.pointerId) return;
+        tab.removeEventListener("pointermove", move);
+        tab.removeEventListener("pointerup", end);
+        tab.removeEventListener("pointercancel", end);
+        tab.removeEventListener("lostpointercapture", end);
+        if (!dragged) return;
+        tab.classList.remove("is-dragging");
+        glide(tab, parseFloat(tab.style.translate) || 0);
+        tab.style.translate = "";
+      };
+      tab.addEventListener("pointermove", move);
+      tab.addEventListener("pointerup", end);
+      tab.addEventListener("pointercancel", end);
+      tab.addEventListener("lostpointercapture", end);
+    });
+    // The reviewer's camera winks when poked: in both research rounds everybody poked it.
+    const cam = root.querySelector<HTMLElement>(".cam i");
+    cam?.addEventListener("click", () => {
+      cam.classList.remove("is-winking", "is-ping");
+      void cam.offsetWidth;
+      cam.classList.add("is-winking");
+    });
+    // The wink and the nod for "3" (review.astro) run the same animation: whichever ran is cleared when it ends, so the
+    // next one plays again.
+    cam?.addEventListener("animationend", (event) => event.target === cam && cam.classList.remove("is-winking", "is-ping"));
+    // A click on the circled button circles it again, by hand.
+    root.querySelector<HTMLElement>(".cta")?.addEventListener("click", circle);
+    // Back and forward can bring typed words back after the page has started, without an input event: draw them again.
+    addEventListener("pageshow", () => requestAnimationFrame(again));
   }
 </script>
 
@@ -374,7 +610,187 @@
       0 2px 4px color-mix(in srgb, var(--color-black) 5%, transparent),
       0 30px 60px -28px color-mix(in srgb, var(--color-black) 30%, transparent);
   }
+
+  /* The two kinds as browser tabs over the address bar, sharing the strip the way two open tabs do. The open tab is
+     the page's own color and joins it, its bottom corners flaring into the strip like a browser tab's. */
+  .tabs {
+    position: absolute;
+    z-index: 4;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: var(--shift);
+    display: flex;
+    align-items: flex-end;
+    padding: 0 2.4cqi;
+    background: color-mix(in srgb, var(--color-black) 5%, #fbfbfa);
+    box-shadow: inset 0 -0.5px 0 var(--line);
+  }
+  /* The window's lights, where a browser keeps them: before the tabs, level with the tabs' words (a box as tall as a
+     tab, at the strip's bottom). */
+  .tabs .dots {
+    align-self: flex-end;
+    align-items: center;
+    height: calc(100% - max(6px, 0.8cqi));
+    margin-right: max(10px, 1.4cqi);
+  }
+  .tab {
+    --r: max(9px, 1.1cqi);
+    position: relative;
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: max(180px, 25cqi);
+    display: flex;
+    align-items: center;
+    gap: max(6px, 0.7cqi);
+    height: calc(100% - max(6px, 0.8cqi));
+    padding: 0 max(12px, 1.4cqi);
+    border-radius: var(--r) var(--r) 0 0;
+    color: color-mix(in srgb, var(--color-black) 55%, transparent);
+    font-size: max(13px, 1.35cqi);
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color 160ms ease-out, color 160ms ease-out;
+  }
+  /* A long product name in the first tab gives way with an ellipsis; the other tab keeps its words. */
+  .tab span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  /* The radio stays in its tab, invisible: the tab shows the choice and its focus. */
+  .tab input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .tab:has(input:checked) {
+    z-index: 1;
+    background: #fbfbfa;
+    box-shadow: 0 -0.5px 0 var(--line), 0.5px 0 0 var(--line), -0.5px 0 0 var(--line);
+    color: var(--ink);
+  }
+  /* The flares: a quarter circle cut out of the page's color on each side, its edge in the same hairline. */
+  .tab:has(input:checked)::before,
+  .tab:has(input:checked)::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    width: var(--r);
+    height: var(--r);
+    pointer-events: none;
+  }
+  .tab:has(input:checked)::before {
+    left: calc(-1 * var(--r));
+    background: radial-gradient(circle var(--r) at 0 0, transparent calc(100% - 0.5px), var(--line) calc(100% - 0.5px), var(--line) 100%, #fbfbfa 100%);
+  }
+  .tab:has(input:checked)::after {
+    right: calc(-1 * var(--r));
+    background: radial-gradient(circle var(--r) at 100% 0, transparent calc(100% - 0.5px), var(--line) calc(100% - 0.5px), var(--line) 100%, #fbfbfa 100%);
+  }
+  .tab:has(input:focus-visible) {
+    outline: 2px solid var(--ink);
+    outline-offset: -4px;
+  }
+  .tab:has(input:disabled) {
+    cursor: default;
+  }
+  @media (hover: hover) {
+    .tab:not(:has(input:checked, input:disabled)):hover {
+      background: color-mix(in srgb, var(--color-black) 4%, transparent);
+      color: var(--ink);
+    }
+  }
+  /* The tab icons: the product's dot, like the logo in the sketch, and a blank page for no product yet. */
+  .tab i {
+    flex: none;
+    width: max(9px, 1cqi);
+    height: max(9px, 1cqi);
+  }
+  .tab .fav {
+    border: 1px solid currentColor;
+    border-radius: 50%;
+    opacity: 0.7;
+  }
+  .tab .page {
+    border: 1px dashed currentColor;
+    border-radius: 2px;
+  }
+  /* Tabs move under a finger sideways and the page still scrolls up and down; their words don't get selected. */
+  .tabs {
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .tab {
+    touch-action: pan-y;
+  }
+  /* A tab being dragged is picked up: the page's color under it, lifted off the strip by a soft shadow. */
+  .tabs .tab.is-dragging {
+    z-index: 2;
+    background: #fbfbfa;
+    box-shadow: var(--raise);
+    color: var(--ink);
+    cursor: grabbing;
+  }
+  /* Under the mouse the window's lights wake up as on a Mac: their colours and their signs. The only colour here besides
+     the states: it shows on hover, which is a state too. */
+  .tabs .dots i {
+    position: relative;
+    transition: background-color 160ms ease-out, border-color 160ms ease-out;
+  }
+  /* The signs are of one weight, by eye: one stroke, the ×'s a touch heavier (diagonals look lighter), and the × a little
+     smaller than the +, so they look the same size. Each is a dark of its own light, as far from it in lightness (ΔL* 38,
+     the three's average before); the − a little further and heavier, as a dark line on the bright yellow looks thinner. */
+  @media (hover: hover) {
+    .tabs .dots:hover i:nth-child(1) {
+      --sign: #61241f;
+      --glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M3.3 3.3l5.4 5.4m0-5.4l-5.4 5.4' fill='none' stroke='black' stroke-width='1.2' stroke-linecap='round'/%3E%3C/svg%3E");
+      border-color: #e0443e;
+      background: #ff5f57;
+    }
+    .tabs .dots:hover i:nth-child(2) {
+      --sign: #715311;
+      --glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M3.1 6h5.8' fill='none' stroke='black' stroke-width='1.15' stroke-linecap='round'/%3E%3C/svg%3E");
+      border-color: #dea123;
+      background: #febc2e;
+    }
+    .tabs .dots:hover i:nth-child(3) {
+      --sign: #125a1d;
+      --glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M3.1 6h5.8M6 3.1v5.8' fill='none' stroke='black' stroke-width='1.1' stroke-linecap='round'/%3E%3C/svg%3E");
+      border-color: #1aab29;
+      background: #28c840;
+    }
+    .tabs .dots:hover i::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: var(--sign);
+      -webkit-mask: var(--glyph) center / 100% no-repeat;
+      mask: var(--glyph) center / 100% no-repeat;
+    }
+  }
+  /* A narrow screen: the lights give way, so both tabs keep their words. */
+  .screen.is-narrow .tabs .dots {
+    display: none;
+  }
+  .screen.is-narrow .tabs {
+    padding-inline: max(10px, 2.4cqi);
+  }
+  .screen.is-narrow .tab {
+    max-width: none;
+    padding: 0 max(10px, 2.6cqi);
+    font-size: 12px;
+  }
   .screen {
+    /* How far the page in the screen sits below the top (--top): the tab strip (--shift), and on a small screen a little
+       more (--lift), so the page's first row clears the address bar, which stays 40px tall however small the screen. */
+    --shift: max(30px, 4.2cqi);
+    --lift: max(0px, 46px - 7.6cqi);
+    --top: calc(var(--shift) + var(--lift));
     --line: color-mix(in srgb, var(--color-black) 12%, transparent);
     --bar: color-mix(in srgb, var(--color-black) 10%, transparent);
     --bar-strong: color-mix(in srgb, var(--color-black) 16%, transparent);
@@ -382,6 +798,11 @@
     --fill: color-mix(in srgb, var(--color-black) 3%, transparent);
     --name: color-mix(in srgb, var(--color-black) 72%, transparent);
     position: relative;
+    /* The tab strip is padding on top of the page's own 16 by 10, and the lift is padding under it, so the page keeps all
+       of its height: percentages of the width, the same as --shift and --lift. */
+    box-sizing: content-box;
+    padding-top: max(30px, 4.2%);
+    padding-bottom: max(0px, 46px - 7.6%);
     aspect-ratio: 16 / 10;
     overflow: hidden;
     border-radius: 20px;
@@ -409,7 +830,7 @@
   .bar {
     position: absolute;
     z-index: 4;
-    top: 2.2cqi;
+    top: calc(2.4cqi + var(--shift));
     left: 2.4cqi;
     right: 2.4cqi;
     display: flex;
@@ -535,7 +956,7 @@
   /* The product sketch: thin bars for text, outlines for boxes; the name from the link in real type. */
   .sk {
     position: absolute;
-    inset: 0;
+    inset: var(--top) 0 0;
   }
   .sk > :global(span) {
     position: absolute;
@@ -611,23 +1032,46 @@
     inset: 9.6cqi 0 0 0;
     background: radial-gradient(circle, color-mix(in srgb, var(--color-black) 11%, transparent) 0.12cqi, transparent 0.14cqi) 0 0 / 1.8cqi 1.8cqi;
   }
+  /* From scratch: dashed outlines where things will go, and the picture to come crossed out, like on a wireframe. */
+  .sk :global(.d) {
+    border-style: dashed;
+  }
+  .sk :global(.t.d) {
+    border: 1px dashed var(--bar-strong);
+    background: none;
+  }
+  /* The page in miniature (a link to /review itself): its device has the device's rounder corners. */
+  .sk :global(.dev) {
+    border-radius: 2cqi;
+  }
+  .sk :global(.x) {
+    background:
+      linear-gradient(to top right, transparent calc(50% - 0.5px), var(--line) 50%, transparent calc(50% + 0.5px)),
+      linear-gradient(to bottom right, transparent calc(50% - 0.5px), var(--line) 50%, transparent calc(50% + 0.5px));
+  }
 
   /* The review marks, in ink. */
   .cta {
     position: absolute;
     z-index: 1;
     left: 6cqi;
-    top: 44cqi;
+    top: calc(44cqi + var(--top));
     width: 15cqi;
     height: 4.6cqi;
     border-radius: 999px;
     background: var(--bar-strong);
   }
+  /* On a page from scratch the circled button isn't there yet either. */
+  .is-idea .cta {
+    border: 1px dashed var(--bar-strong);
+    background: none;
+  }
   .ring {
     position: absolute;
     z-index: 2;
+    pointer-events: none;
     left: 1.6cqi;
-    top: 40.6cqi;
+    top: calc(40.6cqi + var(--top));
     width: 24cqi;
     height: 11.4cqi;
     overflow: visible;
@@ -676,6 +1120,23 @@
       box-shadow: 0 0 0 0.7cqi color-mix(in srgb, var(--emerald) 16%, transparent);
     }
   }
+  /* The wink: the right eye closes and opens, the coin nods. */
+  .cam .smile circle {
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+  .cam i:global(.is-winking) {
+    animation: nod 560ms cubic-bezier(0.3, 1.5, 0.4, 1);
+  }
+  .cam i:global(.is-winking) .smile circle:last-of-type {
+    animation: wink 420ms ease-in-out;
+  }
+  @keyframes wink {
+    35%,
+    60% {
+      scale: 1 0.12;
+    }
+  }
   .cam i:global(.is-ping) {
     animation: nod 560ms cubic-bezier(0.3, 1.5, 0.4, 1);
   }
@@ -692,15 +1153,13 @@
     display: none;
   }
 
-  /* The note = the "What's stuck?" field. */
+  /* The note = the "What's stuck?" field ("Who's it for?" from scratch). */
   .note {
     position: absolute;
     z-index: 2;
     left: 28cqi;
-    top: 38cqi;
+    top: calc(38cqi + var(--top));
     width: 27cqi;
-    /* The field reaches 0.7cqi into the sides (margin below), so 0.9cqi is left there; the bottom matches. */
-    padding: 1.3cqi 1.6cqi 0.9cqi;
     border-radius: 1.4cqi;
     background: linear-gradient(180deg, #fff, #fafaf8);
     box-shadow: var(--raise), 0 2.2cqi 3cqi -2cqi rgb(0 0 0 / 0.18);
@@ -733,6 +1192,16 @@
   .review-screen:not(.is-done) .note:focus-within::before {
     transform: translateX(-50%) scale(0.8);
     box-shadow: inset 0 0.15cqi 0.2cqi rgb(0 0 0 / 0.55), 0 0 0 0.5px rgb(0 0 0 / 0.5);
+  }
+  /* The label fills the note, so a click anywhere on it goes into the field. The field reaches 0.7cqi into the sides
+     (margin below), so 0.9cqi is left there; the bottom matches. */
+  .note label {
+    display: block;
+    padding: 1.3cqi 1.6cqi 0.9cqi;
+  }
+  .note label[hidden],
+  .url[hidden] {
+    display: none;
   }
   .note b {
     display: block;
@@ -990,7 +1459,7 @@
     grid-row: 1;
   }
 
-  button {
+  .dock button {
     height: 46px;
     padding: 0 30px;
     border: 0;
@@ -1004,32 +1473,44 @@
     cursor: pointer;
     transition: transform 120ms ease-out, filter 120ms ease-out, opacity 120ms ease-out, box-shadow 120ms ease-out;
   }
-  button:hover {
+  .dock button:hover {
     filter: brightness(1.12);
   }
   /* Pressed: the button goes into the dock — down a pixel, the light edge gives way to an inner shadow. */
-  button:active {
+  .dock button:active {
     transform: translateY(1px) scale(0.99);
     box-shadow: inset 0 1.5px 3px rgb(0 0 0 / 0.55), 0 0 0 0.5px rgb(0 0 0 / 0.5);
     filter: brightness(0.92);
   }
-  button:focus-visible {
+  .dock button:focus-visible {
     outline: 2px solid var(--ink);
     outline-offset: 2px;
   }
-  button:disabled {
+  .dock button:disabled {
     opacity: 0.4;
     cursor: default;
   }
   .below,
-  .error {
+  .error,
+  .done-note {
     margin: 0;
     padding: 0 10px;
     font-size: 12px;
     line-height: 1.5;
   }
-  .below {
+  .below,
+  .done-note {
     opacity: 0.7;
+  }
+  .done-note a {
+    color: inherit;
+  }
+  .done-note[hidden] {
+    display: none;
+  }
+  /* Comes in after the answer. */
+  .is-done .done-note {
+    animation: done-in 420ms cubic-bezier(0.2, 0.8, 0.2, 1) 900ms backwards;
   }
   .error a {
     color: inherit;
@@ -1083,24 +1564,28 @@
   /* A narrow screen (the script sets .is-narrow under 520px of screen width, whatever the window is): a taller frame,
      the review layer moves down to make room, and the sketch draws its narrow version. */
   .screen.is-narrow {
-    aspect-ratio: 1 / 1.04;
+    --lift: max(0px, 46px - 13.6cqi);
+    padding-bottom: max(0px, 46px - 13.6%);
+    aspect-ratio: 1 / 1.06;
   }
   .is-narrow .cta {
     left: 7cqi;
-    top: 52cqi;
+    top: calc(52cqi + var(--top));
     width: 22cqi;
     height: 7cqi;
   }
   .is-narrow .ring {
     left: 1cqi;
-    top: 47cqi;
+    top: calc(47cqi + var(--top));
     width: 34cqi;
     height: 16.5cqi;
   }
   .is-narrow .note {
     left: 9cqi;
-    top: 67cqi;
+    top: calc(67cqi + var(--top));
     width: 66cqi;
+  }
+  .is-narrow .note label {
     padding: 2.4cqi 3cqi 2.3cqi;
   }
   .is-narrow .note b {
@@ -1128,6 +1613,9 @@
       padding: 10px;
       border-radius: 28px;
     }
+    .screen {
+      border-radius: 18px;
+    }
     .dock {
       grid-template-columns: 1fr;
     }
@@ -1139,7 +1627,7 @@
       grid-column: auto;
       grid-row: auto;
     }
-    button {
+    .dock button {
       width: 100%;
       height: 50px;
     }
@@ -1156,8 +1644,11 @@
     /* No sweep, no wait for the answer, no jumping marks. */
     .is-done .cam .rec,
     .is-done .done p,
+    .is-done .done-note,
     .pt:global(.is-ping),
-    .cam i:global(.is-ping) {
+    .cam i:global(.is-ping),
+    .cam i:global(.is-winking),
+    .cam i:global(.is-winking) .smile circle:last-of-type {
       animation: none;
     }
   }

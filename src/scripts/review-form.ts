@@ -4,13 +4,15 @@
 // and [data-contact], filled in on success); [data-hide-on-sent] — what goes away once the request is in; [data-done] —
 // takes focus, so screen readers hear it.
 // Optional: [data-error-for="<field name>"] — the page's own message for an empty required field (then the browser's
-// bubble is off); [data-field] — the box around a field that flashes, when the field itself isn't the visible box.
+// bubble is off); [data-field] — the box around a field that flashes, when the field itself isn't the visible box;
+// [data-show-on-sent] — what comes in once the request is in. A disabled field is out of the form (the other kind of request on /review): it isn't checked or sent.
+// onSent — called once the request is in, with what was sent, e.g. to count it.
 
 // The Monday of a review week, as people read it: 2026-11-02 → "November 2".
 export const weekLabel = (week: string) =>
   new Date(`${week}T00:00:00Z`).toLocaleDateString("en-US", { month: "long", day: "numeric", timeZone: "UTC" });
 
-export function wireReviewForm(root: HTMLElement) {
+export function wireReviewForm(root: HTMLElement, { onSent }: { onSent?: (sent: FormData) => void } = {}) {
   const form = root.querySelector<HTMLFormElement>("[data-review-form]");
   const state = (name: string) => root.querySelector<HTMLElement>(`[data-state="${name}"]`);
   const error = state("error");
@@ -65,7 +67,7 @@ export function wireReviewForm(root: HTMLElement) {
     return true;
   };
   const check = () => {
-    const required = [...form.querySelectorAll<Field>("[required]")];
+    const required = [...form.querySelectorAll<Field>("[required]:not(:disabled)")];
     const empty = required.filter((field) => !field.value.trim());
     smooth(() => {
       // Fields to fill come first: a send that failed earlier is beside the point now.
@@ -119,9 +121,12 @@ export function wireReviewForm(root: HTMLElement) {
       error.hidden = true;
       form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>("input, textarea").forEach((el) => {
         el.readOnly = true;
+        // A choice can't be read-only: it's switched off instead, so the sent kind stays on screen.
+        if (el.type === "radio") el.disabled = true;
         clear(el);
       });
       root.querySelectorAll<HTMLElement>("[data-hide-on-sent]").forEach((el) => (el.hidden = true));
+      root.querySelectorAll<HTMLElement>("[data-show-on-sent]").forEach((el) => (el.hidden = false));
       if (line) line.hidden = false;
       root.classList.add("is-done");
     });
@@ -135,17 +140,25 @@ export function wireReviewForm(root: HTMLElement) {
     if (ownMessages && !check()) return;
     const button = form.querySelector<HTMLButtonElement>("button[type=submit]");
     if (button) button.disabled = true;
+    // A choice on screen (the kind of request on /review) is locked from SEND to the answer, so switching while it's
+    // under way can't change what goes. A disabled radio isn't sent, so its value is put back below.
+    const radios = [...form.querySelectorAll<HTMLInputElement>("input[type=radio]:not(:disabled)")];
+    const chosen = radios.find((radio) => radio.checked);
+    radios.forEach((radio) => (radio.disabled = true));
     // How long the page has been open, measured here: under 3 s is a bot (worker/index.js). A person can be that quick,
     // say when the phone reloads the tab with the fields still filled in, so wait out the rest rather than lose them.
     const wait = 3100 - performance.now();
     if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
     const t = form.elements.namedItem("t");
     if (t instanceof HTMLInputElement) t.value = String(Math.round(performance.now()));
+    const body = new FormData(form);
+    if (chosen) body.set(chosen.name, chosen.value);
     try {
-      const res = await fetch(form.action, { method: "POST", body: new FormData(form), headers: { Accept: "application/json" } });
+      const res = await fetch(form.action, { method: "POST", body, headers: { Accept: "application/json" } });
       const result = await res.json().catch(() => null);
       if (!res.ok || !result?.ok) throw new Error(String(res.status));
       show(Number(result.queue) || 0, typeof result.week === "string" ? result.week : null);
+      onSent?.(body);
     } catch {
       // The line comes in with the form growing to it; when it's already there, it only flashes again, so a repeat
       // failure is still seen.
@@ -156,7 +169,10 @@ export function wireReviewForm(root: HTMLElement) {
       void error.offsetWidth;
       error.classList.add("is-flash");
     } finally {
-      if (button && !sent) button.disabled = false;
+      if (!sent) {
+        if (button) button.disabled = false;
+        radios.forEach((radio) => (radio.disabled = false));
+      }
     }
   });
 }
