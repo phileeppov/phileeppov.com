@@ -1,5 +1,6 @@
 // Anonymous counter for /glass: only an event's name goes to the server (/api/event, worker/index.js). No logo, no file
-// name, no value, nothing about the visitor. Fire and forget: the page doesn't wait for an answer.
+// name, no value, nothing about the visitor but one bit on errors: whether the page ran inside an app's own browser.
+// Fire and forget: the page doesn't wait for an answer.
 // The tool (app.js and the rest of this folder) is the same code as the open repository phileeppov/glass: it only tells
 // what happened (glass:tell). Counting is this site's business, so it lives here, and the tool's files stay identical.
 
@@ -23,13 +24,18 @@ function once(name) {
 
 // What the tool tells. Uploads, presets and downloads count every time; trying a feature counts once a visit.
 const EVERY = /^(upload$|from:|logo:|preset:|png$|image:|video|share$)/;
-root.addEventListener("glass:tell", (e) => (EVERY.test(e.detail) ? send(e.detail) : once(e.detail)));
+// Inside an app's own browser (X's, or any web view: the same test as the tool's mic hint), an error gets ":app", to
+// tell whether things fail there or in a real browser. That one bit is all this says about the visitor.
+const ua = navigator.userAgent;
+const inApp = /Twitter for iPhone|TwitterAndroid|; wv\)/.test(ua) || (/iPhone|iPad|iPod/.test(ua) && !/Safari\//.test(ua));
+const named = (name) => (inApp && name.startsWith("error:") ? `${name}:app` : name);
+root.addEventListener("glass:tell", (e) => (EVERY.test(e.detail) ? send(e.detail) : once(named(e.detail))));
 
 // Errors the page didn't catch, from this site's own scripts, once a visit: the name only, no message, file or line.
 // Only thrown errors (the browser's own notices, like a ResizeObserver loop, carry none) and rejections whose stack runs
 // through this site (not an extension's). Without WebGL the tool stops on purpose and says so (error:webgl), so that one
 // isn't counted twice.
-const crashed = () => root.classList.contains("is-unsupported") || once("error:js");
+const crashed = () => root.classList.contains("is-unsupported") || once(named("error:js"));
 addEventListener("error", (e) => {
   try {
     if (e.error && e.filename && new URL(e.filename).origin === location.origin) crashed();

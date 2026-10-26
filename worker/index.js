@@ -26,14 +26,16 @@ export default {
 // (once per visit), whether Advanced was opened, where the logo came from and how thick it is (thin, mid, bold, a photo),
 // which author links were followed, and which new features were tried, once per visit: a sound mode (never a track's
 // name), typing, Randomize, Copy link, tilt, a tap, singing the glass, full screen, picking a track's part; and what failed, once per visit: WebGL, opening an image, a sound mode, recording,
-// recording with sound, motion access, an uncaught script error. Only the event name and the date are stored: no logo, IP or personal data. The response is always empty: the page doesn't wait for it,
+// recording with sound, motion access, an uncaught script error; for the mic, why (refused, none, busy, not offered,
+// else), and ":app" when it happened inside an app's own browser. Only the event name and the date are stored: no logo, IP or personal data. The response is always empty: the page doesn't wait for it,
 // and a database failure must not break anything.
 const KNOBS =
   "refraction|blend|logo-size|dispersion|edge-width|angle|length|spin|motion|depth|thickness|background|logo-color|shape|edges|video-format|facets";
 const LINKS = "wordmark|x-handle|portfolio|x-name|email|linkedin|github|review-pill|review-line|source|copy";
-const ERRORS = "webgl|image|demo|mic|track|record|record-sound|tilt|js";
+// error:mic is from pages loaded before the mic got its reasons (26.10.2026); a cached page may still send it.
+const ERRORS = "webgl|image|demo|mic|mic-denied|mic-none|mic-busy|mic-unsupported|mic-other|track|record|record-sound|tilt|js";
 const EVENT = new RegExp(
-  `^(png|video|video-wide|share|upload|ping|advanced|text|random|tilt|tap|sing|full|track:pick|preset:(studio|melt|prism|lens|night)|knob:(${KNOBS})|from:(file|drop|paste)|link:(${LINKS})|sound:(demo|mic|track)|image:(2048|avatar|store)|logo:(thin|mid|bold|fill)|error:(${ERRORS}))$`,
+  `^(png|video|video-wide|share|upload|ping|advanced|text|random|tilt|tap|sing|full|track:pick|preset:(studio|melt|prism|lens|night)|knob:(${KNOBS})|from:(file|drop|paste)|link:(${LINKS})|sound:(demo|mic|track)|image:(2048|avatar|store)|logo:(thin|mid|bold|fill)|error:(${ERRORS})(:app)?)$`,
 );
 
 // /review counter, once per visit each (src/scripts/review-count.ts): the page opened, something typed, a switch to
