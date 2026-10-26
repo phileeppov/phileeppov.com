@@ -5,12 +5,31 @@
 // Custom header and footer: the wordmark in version mode (phil 01 ppov is mini-project #01).
 import Base from "../layouts/Base.astro";
 import "../styles/onest.css";
+
+// Title and description carry the words people search with (logo, app icon, glass icon); the JSON-LD says it's a free
+// web app, for search results.
+const description = "Drop a logo or type a word, get it back as a glass app icon. Save a PNG or a video with sound. Free, and your logo never leaves your browser.";
+const app = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "Glass",
+  url: new URL("/glass/", Astro.site).href,
+  description,
+  applicationCategory: "DesignApplication",
+  operatingSystem: "Any",
+  browserRequirements: "Requires WebGL",
+  isAccessibleForFree: true,
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+  image: new URL("/glass-og.png", Astro.site).href,
+  author: { "@type": "Person", name: "Nikita Filippov", url: "https://x.com/phileeppov", sameAs: ["https://linkedin.com/in/phileeppov", "https://github.com/phileeppov"] },
+};
 ---
 
-<Base title="Glass" description="Drop a logo, get it back as a glass app icon. Runs in your browser." image="/glass-og.png" bare>
+<Base title="Glass: turn a logo into a glass app icon" description={description} image="/glass-og.png" bare>
   <Fragment slot="head">
     <link rel="icon" type="image/png" sizes="64x64" href="/glass-favicon.png" />
     <link rel="apple-touch-icon" href="/glass-touch-icon.png" />
+    <script is:inline type="application/ld+json" set:html={JSON.stringify(app)} />
   </Fragment>
 
   <!-- Author links: wordmark → portfolio, handle → X profile, the pill → the video review form. Every link off this page
@@ -195,7 +214,7 @@ import "../styles/onest.css";
     </form>
     <footer class="bottom">
       <p class="made">Made by <a href="https://x.com/phileeppov" target="_blank" rel="noopener" data-link="x-name">Nikita Filippov</a> ☺</p>
-      <p class="pitch">Product designer.<br /> <a href="/review/" target="_blank" rel="noopener" data-link="review-line">Send your product, get a video review →</a></p>
+      <p class="pitch">Product designer.<br /> <a href="/review/" target="_blank" rel="noopener" data-link="review-line">Send your product or idea, get a video review →</a></p>
       <p>
         <a href="mailto:nikita@phileeppov.com" data-link="email">Email</a>{" · "}
         <a href="https://linkedin.com/in/phileeppov" target="_blank" rel="noopener" data-link="linkedin">LinkedIn</a>{" · "}
@@ -539,7 +558,7 @@ import "../styles/onest.css";
       transition: none;
     }
   }
-  /* iPhone only: the one button that asks for motion access, on the stage itself, under the glass. */
+  /* Where motion access has to be asked for (iPhone): the one button that asks, on the stage itself, under the glass. */
   .tilt {
     position: absolute;
     left: 50%;

@@ -25,6 +25,22 @@ function once(name) {
 const EVERY = /^(upload$|from:|logo:|preset:|png$|image:|video|share$)/;
 root.addEventListener("glass:tell", (e) => (EVERY.test(e.detail) ? send(e.detail) : once(e.detail)));
 
+// Errors the page didn't catch, from this site's own scripts, once a visit: the name only, no message, file or line.
+// Only thrown errors (the browser's own notices, like a ResizeObserver loop, carry none) and rejections whose stack runs
+// through this site (not an extension's). Without WebGL the tool stops on purpose and says so (error:webgl), so that one
+// isn't counted twice.
+const crashed = () => root.classList.contains("is-unsupported") || once("error:js");
+addEventListener("error", (e) => {
+  try {
+    if (e.error && e.filename && new URL(e.filename).origin === location.origin) crashed();
+  } catch {
+    // Not a URL: not ours.
+  }
+});
+addEventListener("unhandledrejection", (e) => {
+  if (String(e.reason?.stack ?? "").includes(location.origin)) crashed();
+});
+
 // Author links (data-link in the markup): which one was followed. This runs apart from the tool, so links count even where
 // WebGL fails and the tool doesn't start. Middle click opens a tab without firing click, so auxclick catches it.
 const trackLink = (e) => {
