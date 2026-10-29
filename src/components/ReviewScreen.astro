@@ -150,11 +150,11 @@
     if (host === "phileeppov.com" && parts[0] === "review") return { type: "self", name: "Phileeppov" };
     // The site's other page: /glass draws as itself, the smile under glass.
     if (host === "phileeppov.com" && parts[0] === "glass") return { type: "glass", name: "Glass" };
-    // A link to X draws a post, with the handle from the link (x.com/name or x.com/@name); X's other sites (help.x.com)
-    // draw it with none.
-    if (/(^|\.)(x|twitter)\.com$/.test(host)) {
+    // A link to X draws a post, with the handle from the link (x.com/name or x.com/@name); X's other sites (help.x.com),
+    // its pages under a language (x.com/en/tos) and its short links (t.co) draw it with none.
+    if (/(^|\.)(x|twitter)\.com$/.test(host) || host === "t.co") {
       const handle = (parts[0] ?? "").replace(/^@/, "");
-      const own = /^((mobile|m)\.)?(x|twitter)\.com$/.test(host) && X_HANDLE.test(handle) && !X_PAGES.test(handle);
+      const own = /^((mobile|m)\.)?(x|twitter)\.com$/.test(host) && X_HANDLE.test(handle) && !X_PAGES.test(handle) && !X_PAGES.test(parts[1] ?? "");
       return { type: "x", name: own ? `@${handle}` : "" };
     }
     if (PLATFORMS.test(host)) return { type: "web", name: "" };
@@ -943,10 +943,14 @@
     opacity: 0;
     pointer-events: none;
   }
+  /* The hairlines are shadows moved half a pixel up and to each side, so together they lie under the whole tab. At 125%
+     or 150% zoom the tab's last row of pixels is only partly painted and they'd show through as a line along the
+     bottom: the first shadow, in the page's color a pixel lower, lies over them there (half a pixel narrower each
+     side, so the side hairlines keep their weight). */
   .tab:has(input:checked) {
     z-index: 1;
     background: #fbfbfa;
-    box-shadow: 0 -0.5px 0 var(--line), 0.5px 0 0 var(--line), -0.5px 0 0 var(--line);
+    box-shadow: 0 1.5px 0 -0.5px #fbfbfa, 0 -0.5px 0 var(--line), 0.5px 0 0 var(--line), -0.5px 0 0 var(--line);
     color: var(--ink);
   }
   /* The flares: a quarter circle cut out of the page's color on each side, its edge in the same hairline. */
@@ -1003,15 +1007,20 @@
   .tab {
     touch-action: pan-y;
   }
-  /* A tab being dragged is picked up: the page's color under it, lifted off the strip by a soft shadow. The shadow is
-     the tab's own shape, flares and all, and stops at its bottom edge, where the tab is still one with the page. */
+  /* A tab being dragged is picked up: the page's color under it, lifted off the strip by a soft shadow. The shadow
+     rises from inside the tab (pulled in and up), so it shows over the top and the rounded corners and fades out
+     before the bottom edge, where the tab is still one with the page: no line under it, nothing square. */
   .tabs .tab.is-dragging {
     z-index: 2;
     background: #fbfbfa;
+    box-shadow:
+      0 1.5px 0 -0.5px #fbfbfa,
+      0 -0.5px 0 var(--line),
+      0.5px 0 0 var(--line),
+      -0.5px 0 0 var(--line),
+      0 -3px 8px -4px color-mix(in srgb, var(--color-black) 22%, transparent);
     color: var(--ink);
     cursor: grabbing;
-    filter: drop-shadow(0 1px 5px color-mix(in srgb, var(--color-black) 16%, transparent));
-    clip-path: inset(-12px calc(-1 * var(--r) - 12px) 0);
   }
   /* Under the mouse the window's lights wake up as on a Mac: their colours and their signs. The only colour here besides
      the states: it shows on hover, which is a state too. */
