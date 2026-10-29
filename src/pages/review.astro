@@ -113,15 +113,21 @@ import ReviewScreen from "../components/ReviewScreen.astro";
 </script>
 
 <style>
-  /* The offer on the left, read first; the screen-form on the right, as tall as the window allows. */
+  /* The offer on the left, read first; the screen-form on the right, as tall as the window allows. The form's column
+     is no wider than the form (16 by 10 and the tab strip, about 4% of the width more, and the dock under it), and on a
+     window wider than both the pair sits in the middle instead of leaving the right side empty. The page stretches to
+     the window's height (Site.astro): the rows stay at the top, the space goes under them. */
   .review {
     display: grid;
-    grid-template-columns: 430px minmax(0, 1fr);
+    grid-template-columns: 430px minmax(0, calc((100vh - 250px) * 1.5 + 36px));
+    grid-template-columns: 430px minmax(0, calc((100svh - 250px) * 1.5 + 36px));
     grid-template-rows: auto 1fr;
     grid-template-areas:
       "offer form"
       "after form";
     gap: 28px 64px;
+    justify-content: center;
+    align-content: start;
     align-items: start;
   }
   .offer {
@@ -137,13 +143,9 @@ import ReviewScreen from "../components/ReviewScreen.astro";
     font-size: var(--text-meta);
     line-height: 1.45;
   }
-  /* As wide as the window's height allows for the screen (16 by 10 and the tab strip, about 4% of the width more) and
-     the dock under it. */
   .form {
     grid-area: form;
     width: 100%;
-    max-width: calc((100vh - 250px) * 1.5 + 36px);
-    max-width: calc((100svh - 250px) * 1.5 + 36px);
   }
 
   .status {
@@ -320,15 +322,13 @@ import ReviewScreen from "../components/ReviewScreen.astro";
   }
 
   /* Tablets and phones: one column — the offer, what's in a review and what comes after, then the form, so the price
-     at the end is read before sending. Below 1100px two columns leave the screen too little room. */
+     at the end is read before sending. Below 1100px two columns leave the screen too little room. The column is as
+     wide as the form at most, in the middle of a wider window, so the text and the form share their edges. */
   @media (max-width: 1100px) {
     .review {
-      grid-template-columns: minmax(0, 1fr);
+      grid-template-columns: minmax(0, 760px);
       grid-template-rows: none;
       grid-template-areas: "offer" "after" "form";
-    }
-    .form {
-      max-width: 760px;
     }
   }
   @media (max-width: 560px) {

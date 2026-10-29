@@ -67,11 +67,14 @@
       <span class="cam" aria-hidden="true">
         <!-- The smile from the favicon, drawn, so it's the same mark everywhere. -->
         <i>
-          <svg class="smile" viewBox="0 0 64 64"><circle cx="23.5" cy="26" r="3.8" /><circle cx="40.5" cy="26" r="3.8" /><path d="M20.5 37.5 Q32 49.5 43.5 37.5" /></svg>
+          <!-- The lids are the eyes closed, while the camera sleeps. -->
+          <svg class="smile" viewBox="0 0 64 64"><circle cx="23.5" cy="26" r="3.8" /><circle cx="40.5" cy="26" r="3.8" /><path d="M20.5 37.5 Q32 49.5 43.5 37.5" /><path class="lid" d="M19.8 25.2 Q23.5 29.4 27.2 25.2" /><path class="lid" d="M36.8 25.2 Q40.5 29.4 44.2 25.2" /></svg>
           <!-- After SEND: one emerald sweep around the camera, like a recording starting. -->
           <svg class="rec" viewBox="0 0 100 100"><path pathLength="1" d="M50 2a48 48 0 1 1 0 96a48 48 0 1 1 0-96" /></svg>
         </i>
         <span>Nikita</span>
+        <!-- The recording light over the camera, with the time running: the script fills it in. -->
+        <b class="tally" data-tally></b>
       </span>
     </div>
 
@@ -101,10 +104,13 @@
   import { count } from "../scripts/review-count";
 
   type Mode = "product" | "scratch";
-  type Read = { type: "web" | "figma" | "github" | "app" | "doc" | "idea" | "self"; name: string; owner?: string; store?: string };
+  type Read = { type: "web" | "figma" | "github" | "app" | "doc" | "idea" | "self" | "glass" | "x"; name: string; owner?: string; store?: string };
 
   // Links to a platform rather than a product: no name to take, so the sketch stays plain.
-  const PLATFORMS = /(^|\.)(loom\.com|youtube\.com|youtu\.be|vimeo\.com|dropbox\.com|canva\.com|miro\.com|framer\.com|webflow\.com|x\.com|twitter\.com|linkedin\.com|t\.me)$/;
+  const PLATFORMS = /(^|\.)(loom\.com|youtube\.com|youtu\.be|vimeo\.com|dropbox\.com|canva\.com|miro\.com|framer\.com|webflow\.com|linkedin\.com|t\.me)$/;
+  // X's own pages, not somebody's: no handle in them. A handle is up to 15 letters, digits and underscores.
+  const X_PAGES = /^(i|home|explore|search|settings|notifications|messages|intent|share|hashtag|compose|login|signup|logout|tos|privacy|jobs|download|account|communities)$/i;
+  const X_HANDLE = /^\w{1,15}$/;
   const words = (s: string) => {
     try {
       return decodeURIComponent(s).replace(/[-_+]+/g, " ").trim();
@@ -142,6 +148,15 @@
     if (host === "docs.google.com" || host === "drive.google.com") return { type: "doc", name: "" };
     // This very page sent to itself: the screen draws the review page, a review of the review.
     if (host === "phileeppov.com" && parts[0] === "review") return { type: "self", name: "Phileeppov" };
+    // The site's other page: /glass draws as itself, the smile under glass.
+    if (host === "phileeppov.com" && parts[0] === "glass") return { type: "glass", name: "Glass" };
+    // A link to X draws a post, with the handle from the link (x.com/name or x.com/@name); X's other sites (help.x.com)
+    // draw it with none.
+    if (/(^|\.)(x|twitter)\.com$/.test(host)) {
+      const handle = (parts[0] ?? "").replace(/^@/, "");
+      const own = /^((mobile|m)\.)?(x|twitter)\.com$/.test(host) && X_HANDLE.test(handle) && !X_PAGES.test(handle);
+      return { type: "x", name: own ? `@${handle}` : "" };
+    }
     if (PLATFORMS.test(host)) return { type: "web", name: "" };
     // A product behind a login usually lives on a subdomain (app.drawline.io): the name is the next part.
     const labels = host.split(".");
@@ -168,6 +183,11 @@
   const k = (cls: string, x: number, y: number, w?: number | null, h?: number | null, text = "", size?: number) =>
     `<span class="${cls}" style="left:${x}cqi;top:${y}cqi;${w != null ? `width:${w}cqi;` : ""}${h != null ? `height:${h}cqi;` : ""}${size ? `font-size:${size}cqi;` : ""}">${text}</span>`;
   const bars = (x: number, y: number, ws: number[], gap = 2.4) => ws.map((w, i) => k("t", x, y + i * gap, w)).join("");
+  // The /glass icon: the smile from its demo (eyes shut in a grin, a heavy ring), a fainter ring beside it where the
+  // glass bends the light, and the sheen over all of it (CSS).
+  const GLASS = `<svg viewBox="0 0 64 64"><circle class="bend" cx="33.6" cy="33.2" r="21.4" /><circle cx="32" cy="32" r="20" /><path d="M23.4 29.6q3.3-4.4 6.6 0M34 29.6q3.3-4.4 6.6 0M23.6 36.6q8.4 7.6 16.8 0" /></svg>`;
+  // Its controls: a pill track with the knob somewhere along it, as the sliders on /glass.
+  const slider = (x: number, y: number, w: number, h: number, at: number) => k("f pill", x, y, w, h) + k("o pill knob", x + at, y, w * 0.3, h);
 
   function draw(r: Read, narrow: boolean): string {
     const name = esc(r.name);
@@ -190,6 +210,13 @@
         case "self":
           return [k("t", 5, 15, 46), k("t h", 5, 19.5, 74), k("t h", 5, 24, 52), ...[0, 1, 2, 3].map((i) => k("o pill", 5 + i * 15.5, 30, 13.5, 4)),
             k("f dev", 4, 38, 92, 40), k("t", 8, 41.5, 18), k("t", 29, 41.5, 18), k("o pill", 8, 45.5, 84, 5)].join("");
+        case "glass":
+          return [k("t", 5, 17.6, 14), k("t", 52, 17.6, 14), k("o pill", 72, 15.6, 23, 4.4), k("name", 5.6, 23, null, null, name, 9), k("t", 6, 35, 36),
+            k("o pill", 6, 40, 30, 6), k("glass", 52, 23, 40, 40, GLASS), k("dark pill", 6, 95, 70, 6)].join("");
+        case "x":
+          return [k("o pill", 5, 16, 4.4, 4.4), k("o", 47.8, 16, 4.4, 4.4), k("o pill", 5, 23.4, 8, 8),
+            name ? k("txt", 15.6, 24, null, null, `<b>${name}</b>`, 3.4) : k("t", 15.6, 25, 18), k("t", 15.6, 29, 12),
+            k("t h", 5, 35, 74), bars(5, 40.6, [86, 78, 44], 3.4), ...[0, 1, 2, 3].map((i) => k("t", 44 + i * 13, 62, 6))].join("");
         case "idea":
           return [k("grid", 0, 0), k("o d", 5, 16, 4.4, 4.4), k("t", 12, 17.8, 14),
             name ? k("name", 5.6, 24, null, null, name, 9) : k("t h d", 6, 26, 62) + k("t h d", 6, 31.5, 40), bars(6, 39, [66, 58, 42], 3.2)].join("");
@@ -225,6 +252,19 @@
           ...[0, 1, 2, 3].map((i) => k("o pill", 5 + i * 7.4, 26, 6.4, 2.4)), k("t", 5, 31, 26), bars(5, 34.4, [28, 22], 2.4),
           k("f dev", 42, 10, 53, 41), k("t", 46, 12.2, 7), k("t", 55, 12.2, 7), k("o pill", 45, 15, 47, 2.8), bars(46, 20.4, [20, 14]),
           k("o", 72, 20, 18, 12), k("f", 58, 31, 12, 6), k("o pill", 87, 34.5, 4.4, 4.4), k("o pill", 43.5, 46.6, 38, 2.8), k("dark pill", 83.5, 46.6, 9.5, 2.8)].join("");
+      // /glass: the icon on its stage on the left, the name and the controls on the right, the dark download button last.
+      case "glass":
+        return [k("t", 5, 11.2, 9), k("t", 66, 11.2, 8), k("o pill", 77, 10, 16, 3.6), k("glass", 18.5, 14.4, 23, 23, GLASS),
+          k("name", 58, 15, null, null, name, 4.6), k("t", 58, 22, 22), k("o pill", 58, 25.6, 28.4, 3.6), k("o pill", 87.6, 25.6, 5.4, 3.6),
+          slider(58, 31.4, 35, 3.2, 20), slider(58, 35.6, 35, 3.2, 11), slider(58, 39.8, 35, 3.2, 6), k("dark pill", 58, 46, 27, 4.4)].join("");
+      // A post on X: the menu down the left (its button is the circled one), the post in the middle column — the
+      // handle, the words, a picture, the four actions — and the search and a box of trends on the right.
+      case "x":
+        return [k("o", 5, 10.4, 2.6, 2.6), ...[0, 1, 2, 3, 4].map((i) => k("o pill", 5.2, 15.6 + i * 4.2, 2.2, 2.2) + k("t", 9, 16.4 + i * 4.2, [7, 9, 6, 8, 6][i])),
+          k("o", 23, 9.6, 41, 62), k("o pill", 25.5, 12.2, 3.8, 3.8), name ? k("txt", 30.8, 12.4, null, null, `<b>${name}</b>`, 1.9) : k("t", 30.8, 13.2, 10),
+          k("t", 30.8, 15.6, 7), k("t h", 25.5, 19.4, 30), bars(25.5, 23.6, [36, 33, 20], 2.4), k("f", 25.5, 31, 36, 16),
+          ...[0, 1, 2, 3].map((i) => k("t", 26.5 + i * 9.4, 50.4, 4)), k("o pill", 67, 10, 26, 3.6), k("o", 67, 16, 26, 25), k("t h", 69.5, 18.6, 13),
+          bars(69.5, 23.4, [19, 12, 21, 15, 10], 3.4)].join("");
       // A page that isn't there yet: a canvas, dashed outlines where things will go, the picture to come crossed out
       // like a wireframe, and the words as its name.
       case "idea":
@@ -240,10 +280,10 @@
   }
 
   // Where point 2 sits; point 1 follows the end of the name (or the first heading when there is none).
-  const POINT2: Record<Read["type"], [number, number] | null> = { web: [56.4, 17.4], figma: [77.6, 16], github: [56.6, 20], app: [57.6, 30.6], doc: [70, 18.6], idea: [56.4, 17.4], self: [39.6, 10.4] };
+  const POINT2: Record<Read["type"], [number, number] | null> = { web: [56.4, 17.4], figma: [77.6, 16], github: [56.6, 20], app: [57.6, 30.6], doc: [70, 18.6], idea: [56.4, 17.4], self: [39.6, 10.4], glass: [40.2, 13], x: [60, 29.4] };
   // How far right the big name may run on the wide screen, in cqi: up to the next block or point 2, less room for
   // point 1. On the phone the name has its row to itself.
-  const ROOM: Record<Read["type"], number> = { web: 49.5, figma: 50, github: 49.5, app: 78, doc: 64, idea: 49.5, self: 38 };
+  const ROOM: Record<Read["type"], number> = { web: 49.5, figma: 50, github: 49.5, app: 78, doc: 64, idea: 49.5, self: 38, glass: 88, x: 49.5 };
 
   const root = document.querySelector<HTMLElement>("[data-review]");
   const screen = root?.querySelector<HTMLElement>("[data-screen]");
@@ -253,6 +293,7 @@
   const stuck = root?.querySelector<HTMLTextAreaElement>("textarea[name=stuck]");
   const who = root?.querySelector<HTMLTextAreaElement>("textarea[name=who]");
   const [pt1, pt2] = [1, 2].map((n) => root?.querySelector<HTMLElement>(`[data-pt="${n}"]`));
+  const note = root?.querySelector<HTMLElement>(".note");
 
   // While the bar is empty, its placeholder types through what can go in it, and the sketch turns into each kind.
   const DEMO: [string, Read][] = [
@@ -275,7 +316,13 @@
     const tabLabel = tabName?.textContent ?? "";
     let mode: Mode = "product";
 
-    wireReviewForm(root, { onSent: (sent) => count(`review:send:${sent.get("mode") === "scratch" ? "scratch" : "product"}`) });
+    // Sent before noon: the camera wakes up for the review's sweep (the easter eggs below).
+    wireReviewForm(root, {
+      onSent: (sent) => {
+        count(`review:send:${sent.get("mode") === "scratch" ? "scratch" : "product"}`);
+        wake();
+      },
+    });
     // Typing anything counts as starting, once; switching the kind doesn't.
     root.addEventListener("input", (event) => {
       if (event.target instanceof HTMLInputElement && event.target.type === "radio") return;
@@ -299,6 +346,12 @@
     const render = () => {
       // One switch for the phone layout, used by both the sketch and the CSS (.is-narrow), so they never disagree.
       const narrow = screen.clientWidth < 520;
+      // A note moved on one layout goes back to its place on the other: they keep it in different spots.
+      if (note && narrow !== screen.classList.contains("is-narrow")) {
+        note.style.removeProperty("--nx");
+        note.style.removeProperty("--ny");
+        note.classList.remove("is-moved");
+      }
       screen.classList.toggle("is-narrow", narrow);
       const r = current();
       const field = mode === "scratch" ? what : link;
@@ -338,11 +391,26 @@
       pt2.hidden = !p2;
       if (p2) Object.assign(pt2.style, { left: `${p2[0]}cqi`, top: `calc(${p2[1]}cqi + var(--top))` });
     };
+    // A note that was moved (the easter eggs below) stays on the screen, under the address bar, as its words grow or the
+    // screen resizes: pushed back in by as much as it sticks out.
+    const barBox = root.querySelector<HTMLElement>(".bar");
+    const fit = () => {
+      if (!note?.classList.contains("is-moved") || !barBox) return;
+      const cqi = screen.clientWidth / 100;
+      const pad = 1.2 * cqi;
+      const s = screen.getBoundingClientRect();
+      const n = note.getBoundingClientRect();
+      const dx = Math.max(s.left + pad - n.left, Math.min(0, s.right - pad - n.right));
+      const dy = Math.max(barBox.getBoundingClientRect().bottom + pad - n.top, Math.min(0, s.bottom - pad - n.bottom));
+      if (dx) note.style.setProperty("--nx", `${(parseFloat(note.style.getPropertyValue("--nx")) || 0) + dx / cqi}cqi`);
+      if (dy) note.style.setProperty("--ny", `${(parseFloat(note.style.getPropertyValue("--ny")) || 0) + dy / cqi}cqi`);
+    };
     // The note grows with what's written, up to its max-height, so the words stay in view.
     const grow = () => {
-      const note = mode === "scratch" ? who : stuck;
-      note.style.height = "auto";
-      note.style.height = `${note.scrollHeight}px`;
+      const field = mode === "scratch" ? who : stuck;
+      field.style.height = "auto";
+      field.style.height = `${field.scrollHeight}px`;
+      fit();
     };
     // The ring is drawn again when the note changes, so the mark follows the words.
     let redraw = 0;
@@ -498,7 +566,8 @@
       // Enter on a tab would send the form, as browsers do for radios; the tabs switch with arrows, a click or a tap.
       radio.addEventListener("keydown", (event) => event.key === "Enter" && event.preventDefault());
     });
-    // Easter eggs. Nothing tells about them; each answers a thing people do anyway.
+    // Easter eggs. Nothing tells about them; each answers a thing people do anyway, and none is counted. All but the
+    // window's lights (a hover, CSS) work under a finger too.
     // The tabs drag like a browser's: the tab picked up becomes the open one, and once it covers more than half of its
     // neighbour they swap places. The strip keeps the new order until the page is opened again.
     const strip = root.querySelector<HTMLElement>(".tabs");
@@ -577,14 +646,220 @@
     });
     // The reviewer's camera winks when poked: in both research rounds everybody poked it.
     const cam = root.querySelector<HTMLElement>(".cam i");
-    cam?.addEventListener("click", () => {
-      cam.classList.remove("is-winking", "is-ping");
+    const replay = (name: string) => {
+      if (!cam) return;
+      cam.classList.remove("is-winking", "is-ping", "is-waking");
       void cam.offsetWidth;
-      cam.classList.add("is-winking");
+      cam.classList.add(name);
+    };
+    // Before noon, Moscow time (UTC+3, as the review weeks in worker/index.js), the camera is asleep, as the reviewer
+    // is: the first poke wakes it, and at noon it wakes by itself.
+    const wake = () => {
+      if (!cam?.classList.contains("is-asleep")) return;
+      cam.classList.remove("is-asleep", "is-peeking");
+      replay("is-waking");
+    };
+    const toNoon = () => {
+      const moscow = new Date(Date.now() + 3 * 60 * 60 * 1000);
+      return Date.UTC(moscow.getUTCFullYear(), moscow.getUTCMonth(), moscow.getUTCDate(), 12) - moscow.getTime();
+    };
+    if (cam && toNoon() > 0) {
+      cam.classList.add("is-asleep");
+      setTimeout(wake, toNoon());
+      // A timer stands still while the phone or laptop sleeps: coming back, the clock is read again.
+      const recheck = () => toNoon() <= 0 && wake();
+      ["visibilitychange", "focus", "pageshow"].forEach((type) => addEventListener(type, recheck));
+    }
+    // A press held on the camera starts recording: the red light and the time over it. Held again, it stops; at ten
+    // minutes, the longest a review runs, it stops by itself.
+    const tally = root.querySelector<HTMLElement>("[data-tally]");
+    let recording = 0;
+    let stopping = 0;
+    const stopRec = () => {
+      clearInterval(recording);
+      clearTimeout(stopping);
+      recording = 0;
+      tally?.classList.remove("is-on");
+    };
+    const startRec = () => {
+      if (!tally) return;
+      const from = Date.now();
+      const tick = () => {
+        const s = Math.min(600, Math.floor((Date.now() - from) / 1000));
+        tally.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+        if (s < 600) return;
+        clearInterval(recording);
+        stopping = window.setTimeout(stopRec, 1400);
+      };
+      tick();
+      tally.classList.add("is-on");
+      recording = window.setInterval(tick, 250);
+    };
+    // A hold is half a second without moving off; the click that ends it doesn't wink.
+    let hold = 0;
+    let held = false;
+    let touching = false;
+    cam?.addEventListener("pointerdown", (down) => {
+      if (down.button !== 0) return;
+      held = false;
+      touching = down.pointerType !== "mouse";
+      clearTimeout(hold);
+      hold = window.setTimeout(() => {
+        held = true;
+        // Woken by the hold, it keeps its waking blink instead of the nod.
+        const slept = !!cam.classList.contains("is-asleep");
+        wake();
+        if (recording || tally?.classList.contains("is-on")) stopRec();
+        else {
+          startRec();
+          if (!slept) replay("is-ping");
+        }
+      }, 500);
+      const off = (e: PointerEvent) => {
+        if (e.pointerId !== down.pointerId) return;
+        if (e.type === "pointermove" && Math.hypot(e.clientX - down.clientX, e.clientY - down.clientY) < 8) return;
+        clearTimeout(hold);
+        ["pointermove", "pointerup", "pointercancel", "pointerleave"].forEach((type) => cam.removeEventListener(type, off as EventListener));
+      };
+      ["pointermove", "pointerup", "pointercancel", "pointerleave"].forEach((type) => cam.addEventListener(type, off as EventListener));
     });
-    // The wink and the nod for "3" (review.astro) run the same animation: whichever ran is cleared when it ends, so the
-    // next one plays again.
-    cam?.addEventListener("animationend", (event) => event.target === cam && cam.classList.remove("is-winking", "is-ping"));
+    // A finger held still would open the phone's menu on the camera instead.
+    cam?.addEventListener("contextmenu", (event) => touching && event.preventDefault());
+    cam?.addEventListener("click", () => {
+      if (held) return void (held = false);
+      if (cam.classList.contains("is-asleep")) wake();
+      else replay("is-winking");
+    });
+    // The wink, the waking and the nod for "3" (review.astro) run on the coin: whichever ran is cleared when it ends, so
+    // the next one plays again.
+    cam?.addEventListener("animationend", (event) => event.target === cam && cam.classList.remove("is-winking", "is-ping", "is-waking"));
+    // The face holds a look for a moment, then turns back; a new look takes the last one's place. A sleeping camera
+    // only peeks: one eye half open, for a moment. Nothing after sending.
+    const looks = new Map<string, number>();
+    const look = (name: string, ms: number) => {
+      if (!cam || root.classList.contains("is-done")) return;
+      const as = cam.classList.contains("is-asleep") ? "is-peeking" : name;
+      cam.classList.remove("is-looking", "is-squinting", "is-peeking");
+      void cam.offsetWidth;
+      cam.classList.add(as);
+      clearTimeout(looks.get(as));
+      looks.set(as, window.setTimeout(() => cam.classList.remove(as), ms));
+    };
+    // Back from another tab or app with the address bar still empty, most likely from copying the link: the camera
+    // looks up at the bar. It turns back once something goes in (not on focus: coming back refocuses the bar).
+    let away = 0;
+    const leave = () => (away = Date.now());
+    const back = () => {
+      const gone = away ? Date.now() - away : 0;
+      away = 0;
+      if (gone > 1200 && !(mode === "scratch" ? what : link).value.trim()) look("is-looking", 2600);
+    };
+    document.addEventListener("visibilitychange", () => (document.hidden ? leave() : back()));
+    addEventListener("blur", leave);
+    addEventListener("focus", back);
+    [link, what].forEach((field) => field.addEventListener("input", () => cam?.classList.remove("is-looking", "is-peeking")));
+    // Just "test" in a field (or asdf, 123, aaa…), and in the contact a test address too: once the typing stops, the
+    // camera squints, knowing. Nothing is blocked, and the same words don't get the look twice in a row. "www" is the
+    // start of a link being typed, and "ООО" of a Russian company's name: not tests.
+    const TEST = /^(test|testing|тест|asdf|qwerty|asd|123|1234|12345|123456|lorem ipsum.*|(?![wо])(?<c>\p{L})\k<c>{2,})$/iu;
+    const TEST_MAIL = /^((test|testing|asdf|qwerty)@[^@\s]+\.\w+|[^@\s]+@(test|example)\.\w+|(?<m>\w)@\k<m>\.\w+)$/iu;
+    const tried = new Map<HTMLElement, { timer: number; seen: string }>();
+    [link, what, stuck, who, contact].forEach((field) =>
+      field?.addEventListener("input", () => {
+        const state = tried.get(field) ?? { timer: 0, seen: "" };
+        tried.set(field, state);
+        clearTimeout(state.timer);
+        state.timer = window.setTimeout(() => {
+          const v = field.value.trim().replace(/\s+/g, " ");
+          const test = TEST.test(v) || (field === contact && TEST_MAIL.test(v));
+          if (test && v.toLowerCase() !== state.seen) look("is-squinting", 1800);
+          state.seen = test ? v.toLowerCase() : "";
+        }, 800);
+      }),
+    );
+
+    // The note peels off: picked up by the mouse or a finger, it follows, swinging a little with the hand, and stays
+    // where it's dropped. A click still goes into its field; in a field being written in, the pointer is for the words.
+    note?.addEventListener("pointerdown", (down) => {
+      if (down.button !== 0 || root.classList.contains("is-done") || !barBox) return;
+      const area = note.querySelector<HTMLTextAreaElement>("label:not([hidden]) textarea");
+      const inField = !!(down.target as Element).closest(".field");
+      const writing = () => !!area && document.activeElement === area;
+      if (inField && (writing() || (down.pointerType === "mouse" && area?.value))) return;
+      // The mouse would put the caret in or select the title, so the note holds it from the start; a click without a
+      // drag then focuses the field itself (end). A finger is held by what it touched until it moves.
+      const mouse = down.pointerType === "mouse";
+      if (mouse) {
+        down.preventDefault();
+        note.setPointerCapture(down.pointerId);
+      }
+      const cqi = screen.clientWidth / 100;
+      const from = { x: parseFloat(note.style.getPropertyValue("--nx")) || 0, y: parseFloat(note.style.getPropertyValue("--ny")) || 0 };
+      const moved = note.classList.contains("is-moved");
+      // It stays on the screen, under the address bar.
+      const s = screen.getBoundingClientRect();
+      const n = note.getBoundingClientRect();
+      const pad = 1.2 * cqi;
+      const lim = { x0: s.left + pad - n.left, x1: s.right - pad - n.right, y0: barBox.getBoundingClientRect().bottom + pad - n.top, y1: s.bottom - pad - n.bottom };
+      let dragged = false;
+      let tilt = 0;
+      let lastX = down.clientX;
+      const clamp = (v: number, a: number, b: number) => Math.min(Math.max(v, Math.min(a, 0)), Math.max(b, 0));
+      const move = (e: PointerEvent) => {
+        if (e.pointerId !== down.pointerId) return;
+        const dx = e.clientX - down.clientX;
+        const dy = e.clientY - down.clientY;
+        if (!dragged) {
+          if (Math.hypot(dx, dy) < 5) return;
+          // A finger held in the field may have started writing in it after all; and one going up or down is
+          // scrolling the page (the browser takes it a little later), unless it took the note by its title.
+          if (inField && writing()) return end(e);
+          if (!mouse && !(down.target as Element).closest("b") && Math.abs(dy) > Math.abs(dx)) return end(e);
+          dragged = true;
+          note.setPointerCapture(down.pointerId);
+          note.classList.add("is-lifted", "is-moved");
+        }
+        note.style.setProperty("--nx", `${from.x + clamp(dx, lim.x0, lim.x1) / cqi}cqi`);
+        note.style.setProperty("--ny", `${from.y + clamp(dy, lim.y0, lim.y1) / cqi}cqi`);
+        if (!still.matches) {
+          tilt = tilt * 0.75 + Math.max(-7, Math.min(7, (e.clientX - lastX) * 0.5)) * 0.25;
+          note.style.setProperty("--tilt", `${tilt}deg`);
+        }
+        lastX = e.clientX;
+      };
+      const end = (e: PointerEvent) => {
+        // A finger's hold passing from what it touched to the note says "lost" on the child, and that bubbles up here.
+        if (e.pointerId !== down.pointerId || (e.type === "lostpointercapture" && e.target !== note)) return;
+        note.removeEventListener("pointermove", move);
+        note.removeEventListener("pointerup", end);
+        note.removeEventListener("pointercancel", end);
+        note.removeEventListener("lostpointercapture", end);
+        if (!dragged) {
+          if (e.type === "pointerup" && mouse) area?.focus();
+          return;
+        }
+        dragged = false;
+        note.classList.remove("is-lifted");
+        note.style.removeProperty("--tilt");
+        // The browser took the gesture after all (a scroll, a zoom): the note goes back to where it was.
+        if (e.type === "pointercancel") {
+          note.style.setProperty("--nx", `${from.x}cqi`);
+          note.style.setProperty("--ny", `${from.y}cqi`);
+          note.classList.toggle("is-moved", moved);
+        }
+        // The click that ends a drag doesn't go into the field.
+        const swallow = (click: Event) => {
+          click.preventDefault();
+          click.stopPropagation();
+        };
+        note.addEventListener("click", swallow, { capture: true, once: true });
+        setTimeout(() => note.removeEventListener("click", swallow, { capture: true }));
+      };
+      note.addEventListener("pointermove", move);
+      note.addEventListener("pointerup", end);
+      note.addEventListener("pointercancel", end);
+      note.addEventListener("lostpointercapture", end);
+    });
     // A click on the circled button circles it again, by hand.
     root.querySelector<HTMLElement>(".cta")?.addEventListener("click", circle);
     // Back and forward can bring typed words back after the page has started, without an input event: draw them again.
@@ -728,13 +1003,15 @@
   .tab {
     touch-action: pan-y;
   }
-  /* A tab being dragged is picked up: the page's color under it, lifted off the strip by a soft shadow. */
+  /* A tab being dragged is picked up: the page's color under it, lifted off the strip by a soft shadow. The shadow is
+     the tab's own shape, flares and all, and stops at its bottom edge, where the tab is still one with the page. */
   .tabs .tab.is-dragging {
     z-index: 2;
     background: #fbfbfa;
-    box-shadow: var(--raise);
     color: var(--ink);
     cursor: grabbing;
+    filter: drop-shadow(0 1px 5px color-mix(in srgb, var(--color-black) 16%, transparent));
+    clip-path: inset(-12px calc(-1 * var(--r) - 12px) 0);
   }
   /* Under the mouse the window's lights wake up as on a Mac: their colours and their signs. The only colour here besides
      the states: it shows on hover, which is a state too. */
@@ -1049,6 +1326,41 @@
       linear-gradient(to top right, transparent calc(50% - 0.5px), var(--line) 50%, transparent calc(50% + 0.5px)),
       linear-gradient(to bottom right, transparent calc(50% - 0.5px), var(--line) 50%, transparent calc(50% + 0.5px));
   }
+  /* The /glass icon: a rounded square of glass with an inner rim, the smile under it, the sheen on top. */
+  .sk :global(.glass) {
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--line);
+    border-radius: 24%;
+    background: linear-gradient(160deg, #fff, var(--fill));
+    box-shadow:
+      inset 0 0 0 0.7cqi rgb(255 255 255 / 0.8),
+      inset 0 0 0 calc(0.7cqi + 1px) var(--line);
+  }
+  .sk :global(.glass)::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(125deg, rgb(255 255 255 / 0.7) 0%, rgb(255 255 255 / 0) 42%);
+  }
+  .sk :global(.glass svg) {
+    width: 76%;
+    fill: none;
+    stroke: var(--name);
+    stroke-width: 3.4;
+    stroke-linecap: round;
+  }
+  .sk :global(.glass .bend) {
+    stroke: var(--bar-strong);
+    stroke-width: 2.6;
+  }
+  /* The slider's knob: a white pill raised on its track. */
+  .sk :global(.knob) {
+    border: 0;
+    background: #fff;
+    box-shadow: var(--raise);
+  }
 
   /* The review marks, in ink. */
   .cta {
@@ -1145,6 +1457,123 @@
       scale: 1.1;
     }
   }
+  /* Asleep (the script, until noon): the lids instead of the eyes, and the smile breathes, slowly. */
+  .cam .smile .lid {
+    stroke-width: 3.4;
+    opacity: 0;
+  }
+  .cam i:global(.is-asleep) .smile circle {
+    opacity: 0;
+    scale: 1 0.12;
+  }
+  .cam i:global(.is-asleep) .smile .lid {
+    opacity: 1;
+  }
+  .cam i:global(.is-asleep) .smile {
+    animation: breathe 4.4s ease-in-out infinite;
+  }
+  @keyframes breathe {
+    50% {
+      scale: 1.05;
+      translate: 0 2%;
+    }
+  }
+  /* Looks (the script): up at the address bar, the face turned toward it; a knowing squint, the head tilted. */
+  .cam .smile {
+    transition: translate 420ms cubic-bezier(0.3, 1.3, 0.4, 1), rotate 420ms cubic-bezier(0.3, 1.3, 0.4, 1);
+  }
+  .cam .smile circle {
+    transition: scale 220ms ease-out;
+  }
+  .cam i:global(.is-looking) .smile {
+    translate: -14% -15%;
+    rotate: -8deg;
+  }
+  .cam i:global(.is-squinting) .smile {
+    rotate: 7deg;
+  }
+  .cam i:global(.is-squinting) .smile circle {
+    scale: 1 0.38;
+  }
+  /* Asleep, a look is only a peek: the right eye half open, then shut again. */
+  .cam i:global(.is-asleep.is-peeking) .smile circle:last-of-type {
+    opacity: 1;
+    scale: 1 0.5;
+  }
+  .cam i:global(.is-asleep.is-peeking) .smile .lid:last-of-type {
+    opacity: 0;
+  }
+  /* Woken: the eyes open, blink once, and the coin nods. */
+  .cam i:global(.is-waking) {
+    animation: nod 560ms cubic-bezier(0.3, 1.5, 0.4, 1);
+  }
+  .cam i:global(.is-waking) .smile circle {
+    animation: wake 540ms ease-out;
+  }
+  @keyframes wake {
+    0% {
+      scale: 1 0.12;
+    }
+    35%,
+    50% {
+      scale: 1;
+    }
+    65% {
+      scale: 1 0.12;
+    }
+    85% {
+      scale: 1;
+    }
+  }
+  /* A press held on the camera: the recording light over it, the dot and the time. The dot is emerald, not a camera's
+     red: recording is green here, and emerald is for what moves — it blinks once a second (ink when still). */
+  .cam {
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+  }
+  .tally {
+    position: absolute;
+    bottom: calc(100% + 0.9cqi);
+    left: 50%;
+    display: flex;
+    align-items: center;
+    gap: 0.45em;
+    padding: 0.3em 0.75em 0.3em 0.6em;
+    border-radius: 999px;
+    background: #fff;
+    box-shadow: var(--raise);
+    color: var(--ink);
+    font-size: max(10px, 1.15cqi);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    opacity: 0;
+    translate: -50% 0.4cqi;
+    scale: 0.9;
+    pointer-events: none;
+    transition: opacity 180ms ease-out, translate 260ms cubic-bezier(0.3, 1.5, 0.4, 1), scale 260ms cubic-bezier(0.3, 1.5, 0.4, 1);
+  }
+  .tally::before {
+    content: "";
+    width: 0.6em;
+    height: 0.6em;
+    border-radius: 50%;
+    background: var(--emerald);
+  }
+  .tally:global(.is-on) {
+    opacity: 1;
+    translate: -50% 0;
+    scale: 1;
+  }
+  .tally:global(.is-on)::before {
+    animation: tally 1s steps(1) infinite;
+  }
+  @keyframes tally {
+    50% {
+      opacity: 0.25;
+    }
+  }
   /* The numbers are drawn, not text: they belong to the picture. */
   .pt::before {
     content: attr(data-pt);
@@ -1153,19 +1582,37 @@
     display: none;
   }
 
-  /* The note = the "What's stuck?" field ("Who's it for?" from scratch). */
+  /* The note = the "What's stuck?" field ("Who's it for?" from scratch). Peeled off and moved (the script), it keeps
+     the place it was dropped at: --nx and --ny, in cqi, so it stays put on the picture as the screen resizes. */
   .note {
     position: absolute;
     z-index: 2;
-    left: 28cqi;
-    top: calc(38cqi + var(--top));
+    left: calc(28cqi + var(--nx, 0cqi));
+    top: calc(38cqi + var(--top) + var(--ny, 0cqi));
     width: 27cqi;
     border-radius: 1.4cqi;
     background: linear-gradient(180deg, #fff, #fafaf8);
     box-shadow: var(--raise), 0 2.2cqi 3cqi -2cqi rgb(0 0 0 / 0.18);
     transform: rotate(-2.5deg) translateY(0.8cqi);
     opacity: 0;
-    transition: transform 420ms cubic-bezier(0.3, 1.3, 0.4, 1) 520ms, opacity 200ms 520ms, box-shadow 160ms, translate 200ms ease-out;
+    touch-action: pan-y pinch-zoom;
+    transition: transform 420ms cubic-bezier(0.3, 1.3, 0.4, 1) 520ms, opacity 200ms 520ms, box-shadow 160ms, translate 200ms ease-out,
+      scale 260ms cubic-bezier(0.3, 1.5, 0.4, 1), rotate 260ms ease-out;
+  }
+  /* Under a finger the note gives the page its scroll and its zoom, so it moves sideways first; its title, where a
+     finger lands on it, takes a drag any way. The title's words don't get selected. */
+  .note b {
+    touch-action: pinch-zoom;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  /* The field scrolls on its own, so it doesn't take the note's rule from above: it needs its own. */
+  .note textarea {
+    touch-action: pan-y pinch-zoom;
+  }
+  /* Moved once, it lies on top of what it was dropped on. */
+  .note:global(.is-moved) {
+    z-index: 3;
   }
   .is-drawn .note {
     transform: rotate(-2.5deg);
@@ -1389,6 +1836,21 @@
       height: 0.9cqi;
     }
   }
+  /* Peeled off and held: a little bigger, swinging with the hand (--tilt, from the script), its shadow further down.
+     Doubled .note: the same weight as the hover above, and later, so it wins. */
+  .review-screen:not(.is-done) .is-drawn .note.note:global(.is-lifted) {
+    scale: 1.04;
+    rotate: var(--tilt, 0deg);
+    translate: 0 -0.6cqi;
+    box-shadow: var(--raise), 0 4.4cqi 5cqi -2.4cqi rgb(0 0 0 / 0.3);
+  }
+  .review-screen:not(.is-done) .is-drawn .note.note:global(.is-lifted):focus-within {
+    box-shadow: var(--raise), 0 0 0 1.5px var(--ink), 0 4.4cqi 5cqi -2.4cqi rgb(0 0 0 / 0.3);
+  }
+  .note:global(.is-lifted),
+  .note:global(.is-lifted) * {
+    cursor: grabbing;
+  }
   /* SEND with a required field empty (review-form.ts): one short red flash on the field and a message under it, instead
      of the browser's bubble; the classes go when the flash ends, the message when the field gets something. Red is
      only for errors: this and the failed-send line below. The field that takes focus (.is-invalid-focused) flashes from its focus look, so the ring fades
@@ -1581,8 +2043,8 @@
     height: 16.5cqi;
   }
   .is-narrow .note {
-    left: 9cqi;
-    top: calc(67cqi + var(--top));
+    left: calc(9cqi + var(--nx, 0cqi));
+    top: calc(67cqi + var(--top) + var(--ny, 0cqi));
     width: 66cqi;
   }
   .is-narrow .note label {
@@ -1648,8 +2110,21 @@
     .pt:global(.is-ping),
     .cam i:global(.is-ping),
     .cam i:global(.is-winking),
-    .cam i:global(.is-winking) .smile circle:last-of-type {
+    .cam i:global(.is-winking) .smile circle:last-of-type,
+    .cam i:global(.is-asleep) .smile,
+    .cam i:global(.is-waking),
+    .cam i:global(.is-waking) .smile circle,
+    .tally:global(.is-on)::before {
       animation: none;
+    }
+    .tally,
+    .cam .smile,
+    .cam .smile circle {
+      transition: none;
+    }
+    /* The recording light stays still, so it's ink: emerald only moves. */
+    .tally::before {
+      background: var(--ink);
     }
   }
 </style>
