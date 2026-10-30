@@ -576,9 +576,19 @@
       if (!from || still.matches || !el.animate) return;
       el.animate([{ translate: `${from}px 0` }, { translate: "0 0" }], { duration: 280, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)" });
     };
+    const open = (tab: HTMLElement) => {
+      const radio = tab.querySelector<HTMLInputElement>("input[name=mode]");
+      if (!radio || radio.checked || radio.disabled) return;
+      radio.checked = true;
+      radio.dispatchEvent(new Event("change", { bubbles: true }));
+    };
     strip?.addEventListener("pointerdown", (down) => {
       const tab = (down.target as Element).closest<HTMLElement>(".tab");
       if (!tab || down.button !== 0 || root.classList.contains("is-done")) return;
+      // Pressed with the mouse, a tab opens at once, as a browser's does, so its shape turns while the button is
+      // still down. Under a finger it waits for the tap or the drag: a swipe over the strip may be a scroll. Not with
+      // Ctrl: on a Mac that press opens the context menu and makes no click.
+      if (down.pointerType === "mouse" && !down.ctrlKey) open(tab);
       // The tab holds the pointer from the start, so the drag ends wherever the button or the finger comes up.
       tab.setPointerCapture(down.pointerId);
       let dragged = false;
@@ -596,11 +606,7 @@
           dragged = true;
           tab.classList.add("is-dragging");
           // Picked up, it opens, as a browser tab does.
-          const radio = tab.querySelector<HTMLInputElement>("input[name=mode]");
-          if (radio && !radio.checked && !radio.disabled) {
-            radio.checked = true;
-            radio.dispatchEvent(new Event("change", { bubbles: true }));
-          }
+          open(tab);
         }
         // Past the strip's ends it follows with some give, like a tab pulled against the window's edge; the give stops
         // at 6px, so a tab pulled hard never covers the window's lights.
@@ -635,7 +641,12 @@
         tab.removeEventListener("pointercancel", end);
         tab.removeEventListener("lostpointercapture", end);
         if (!dragged) return;
+        // Put down, it settles at once: the open tab's wait for its hairlines is for a tab opening.
+        // The transition starts as the style is read, so the delay goes back right after.
+        tab.style.transitionDelay = "0s";
         tab.classList.remove("is-dragging");
+        void getComputedStyle(tab).boxShadow;
+        tab.style.transitionDelay = "";
         glide(tab, parseFloat(tab.style.translate) || 0);
         tab.style.translate = "";
       };
@@ -926,7 +937,24 @@
     font-weight: 500;
     white-space: nowrap;
     cursor: pointer;
-    transition: background-color 160ms ease-out, color 160ms ease-out;
+    background: linear-gradient(var(--tab-hover, transparent), var(--tab-hover, transparent)), var(--tab-fill, transparent);
+    /* A tab left loses its hairlines at once (box-shadow isn't in the list), before its flares fold. */
+    transition: --tab-fill 220ms ease-out, --tab-hover 220ms ease-out, color 160ms ease-out;
+  }
+  /* The tab's color, shared with its flares (below) and registered, so the browser animates it once for both: while a
+     tab opens or closes, its flares are the tab's own color at every moment and grow out of it, never a lighter wedge
+     beside it. Where @property isn't supported the color simply switches, still shared. */
+  @property --tab-fill {
+    syntax: "<color>";
+    inherits: true;
+    initial-value: transparent;
+  }
+  /* The hover's grey lies over the tab's color instead of being it, so the flares never take it: no ledge of grey
+     beside a tab under the mouse, coming or going. */
+  @property --tab-hover {
+    syntax: "<color>";
+    inherits: false;
+    initial-value: transparent;
   }
   /* A long product name in the first tab gives way with an ellipsis; the other tab keeps its words. */
   .tab span {
@@ -947,29 +975,64 @@
      or 150% zoom the tab's last row of pixels is only partly painted and they'd show through as a line along the
      bottom: the first shadow, in the page's color a pixel lower, lies over them there (half a pixel narrower each
      side, so the side hairlines keep their weight). */
+  /* A tab opening takes its shape first and its hairlines once the flares are out: drawn earlier, the side hairlines
+     would show down the corners the small flares don't cover yet. (A tab put down after a drag skips the delay: the
+     script clears it for that once.) */
   .tab:has(input:checked) {
     z-index: 1;
-    background: #fbfbfa;
+    --tab-fill: #fbfbfa;
+    transition:
+      --tab-fill 200ms cubic-bezier(0.1, 0.8, 0.3, 1),
+      --tab-hover 200ms cubic-bezier(0.1, 0.8, 0.3, 1),
+      color 160ms ease-out,
+      box-shadow 120ms ease-out 170ms;
     box-shadow: 0 1.5px 0 -0.5px #fbfbfa, 0 -0.5px 0 var(--line), 0.5px 0 0 var(--line), -0.5px 0 0 var(--line);
     color: var(--ink);
   }
-  /* The flares: a quarter circle cut out of the page's color on each side, its edge in the same hairline. */
-  .tab:has(input:checked)::before,
-  .tab:has(input:checked)::after {
+  /* The flares: a quarter circle cut out of the tab's color on each side, its edge in the same hairline. Every tab has
+     them, folded into its bottom corners; the open tab's unfold as its color comes in, so a tab taken or tapped turns
+     from the plain box into the open tab's shape in one move, and the one left folds back the same way. */
+  /* Each reaches a pixel into the tab: at 125% or 150% zoom its inner edge would be half painted, and the tab's side
+     hairline would show through it down to the bottom, closing the curve into a little triangle.
+     Three layers. The curve grows out of the tab's corner (its size is what moves). Under it, a column of the tab's
+     color two pixels wide grows with it over the tab's edge, where at some zooms the curve's last pixel is left
+     unpainted; the column starts about √r down, below where the curve's hairline leaves the edge, so the side hairline
+     still runs into the curve. A pixel of the tab's color along the bottom is always there: it covers the strip's
+     bottom line beside the tab just as the tab does under itself, so while a tab opens or closes that line fades evenly
+     under it, corners included, instead of reaching in to the edge until the curve gets there. It stops 3px short of
+     the curve's far end, where the line runs on into the curve. */
+  .tab::before,
+  .tab::after {
+    --cut: calc(1.75px + 0.14 * var(--r));
     content: "";
     position: absolute;
     bottom: 0;
-    width: var(--r);
+    width: calc(var(--r) + 1px);
     height: var(--r);
     pointer-events: none;
+    background-repeat: no-repeat;
+    background-size: 0 0, 2px 0, calc(100% - 3px) 1px;
+    transition: background-size 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
   }
-  .tab:has(input:checked)::before {
+  .tab::before {
     left: calc(-1 * var(--r));
-    background: radial-gradient(circle var(--r) at 0 0, transparent calc(100% - 0.5px), var(--line) calc(100% - 0.5px), var(--line) 100%, #fbfbfa 100%);
+    background-image:
+      radial-gradient(100% 100% at 0 0, transparent calc(100% - 0.5px), var(--line) calc(100% - 0.5px), var(--line) 100%, var(--tab-fill) 100%),
+      linear-gradient(transparent var(--cut), var(--tab-fill) var(--cut)),
+      linear-gradient(var(--tab-fill), var(--tab-fill));
+    background-position: right 1px bottom 0, right bottom, right bottom;
   }
-  .tab:has(input:checked)::after {
+  .tab::after {
     right: calc(-1 * var(--r));
-    background: radial-gradient(circle var(--r) at 100% 0, transparent calc(100% - 0.5px), var(--line) calc(100% - 0.5px), var(--line) 100%, #fbfbfa 100%);
+    background-image:
+      radial-gradient(100% 100% at 100% 0, transparent calc(100% - 0.5px), var(--line) calc(100% - 0.5px), var(--line) 100%, var(--tab-fill) 100%),
+      linear-gradient(transparent var(--cut), var(--tab-fill) var(--cut)),
+      linear-gradient(var(--tab-fill), var(--tab-fill));
+    background-position: left 1px bottom 0, left bottom, left bottom;
+  }
+  .tab:has(input:checked)::before,
+  .tab:has(input:checked)::after {
+    background-size: var(--r) var(--r), 2px 100%, calc(100% - 3px) 1px;
   }
   .tab:has(input:focus-visible) {
     outline: 2px solid var(--ink);
@@ -980,7 +1043,7 @@
   }
   @media (hover: hover) {
     .tab:not(:has(input:checked, input:disabled)):hover {
-      background: color-mix(in srgb, var(--color-black) 4%, transparent);
+      --tab-hover: color-mix(in srgb, var(--color-black) 4%, transparent);
       color: var(--ink);
     }
   }
@@ -1012,7 +1075,8 @@
      before the bottom edge, where the tab is still one with the page: no line under it, nothing square. */
   .tabs .tab.is-dragging {
     z-index: 2;
-    background: #fbfbfa;
+    --tab-fill: #fbfbfa;
+    transition: --tab-fill 220ms ease-out, --tab-hover 220ms ease-out, color 160ms ease-out, box-shadow 160ms ease-out;
     box-shadow:
       0 1.5px 0 -0.5px #fbfbfa,
       0 -0.5px 0 var(--line),
@@ -2109,7 +2173,10 @@
     .pt,
     .url b,
     .url input,
-    .note::before {
+    .note::before,
+    .tab,
+    .tab::before,
+    .tab::after {
       transition: none !important;
     }
     /* No sweep, no wait for the answer, no jumping marks. */
