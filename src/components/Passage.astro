@@ -1,0 +1,378 @@
+---
+// The passage: the pages of the site are one object you move through, not four documents. A link opens the next page
+// as a disc of emerald glass growing from the arrow that was pressed; going back closes the page into the same arrow.
+// Cross-document View Transitions (Chromium, Safari 18.2+; elsewhere the page simply changes).
+//
+// The disc: the new page is the old snapshot's replacement inside a growing circle (clip-path on the transition's own
+// pseudo-elements). The rim is a lens: a band of glass where the page under it is pushed out and its colours part,
+// built the way the brand describes the lens: copies of the page, one per colour channel, each scaled a little
+// differently about the origin, added back together and masked to the band. The glass is one tone, a little emerald
+// where you look through its thickness; the spectrum falls on the surface beside it, a soft arc on the side away from
+// the light, never a ring. The stone on the pressed arrow (src/scripts/emerald.js) is lifted out of the old page and
+// held over the change, then settles.
+//
+// Only where heavy effects run (wide screen, fine pointer, hover, no reduced motion). Anywhere else that has the
+// transitions: a 160ms cross-fade. Reduced motion: no transition at all.
+//
+// The script is inline and in the head: "pagereveal" fires before the new page's first frame, so its listener has to
+// be there before the body is parsed. The link with blocking="render" holds that first frame until the footer is
+// parsed, so the page the disc reveals (and its copies in the rim) is the whole page.
+---
+
+<link rel="expect" href="#site-end" blocking="render" />
+<script is:inline>
+  (() => {
+    const HEAVY = "(min-width: 1024px) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)";
+    const KEY = "passage:";
+    const OPEN = 420; // ms, the disc opening
+    const CLOSE = 380; // ms, going back: the page closing into the arrow it came from
+    const BAND = 34; // px, the rim of the glass
+    const SHIFT = 12; // px the rim moves the page under it: 1.12 at 100px, the radius of the brand's lens
+    const SPLIT = 1.5; // px red and blue part at the rim
+    const MAX = 1.15; // the most the rim magnifies, while the disc is still small
+
+    // A cubic-bezier easing as a function of time, for sampling the frames the disc and its rim share.
+    const bezier = (x1, y1, x2, y2) => {
+      const c = (a, b, t) => ((1 - 3 * b + 3 * a) * t + (3 * b - 6 * a)) * t * t + 3 * a * t;
+      return (x) => {
+        let lo = 0, hi = 1, t = x;
+        for (let i = 0; i < 24; i++) { t = (lo + hi) / 2; if (c(x1, x2, t) < x) lo = t; else hi = t; }
+        return c(y1, y2, t);
+      };
+    };
+    // Opening: fast out of the arrow, then slow while the rim crosses the last of the screen. Closing: the rim comes
+    // in from the far corner at once, and slows as the page folds into the arrow it came from, so you see it land.
+    const easeOpen = bezier(0.3, 0.6, 0.25, 1);
+    const easeClose = bezier(0.3, 0.1, 0.2, 1);
+
+    // ---------- the page being left: where the link was pressed ----------
+    let origin = null;
+    // The point the disc grows from: the arrow, where the emerald stone stands; on the wordmark, its slot.
+    const pointOf = (a, e) => {
+      const g = a.querySelector(".arw") || (a.classList.contains("mark") && a.querySelector("i"));
+      if (g) { const r = g.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height * 0.54]; }
+      const r = a.getBoundingClientRect();
+      if (a.hasAttribute("data-gem")) {
+        const L = Math.min(28, parseFloat(getComputedStyle(a).fontSize) * 1.2);
+        return [r.right + 4 + L / 2, r.top + r.height * 0.54];
+      }
+      if (e.detail) return [e.clientX, e.clientY];
+      return [r.left + r.width / 2, r.top + r.height / 2];
+    };
+    addEventListener("click", (e) => {
+      const a = e.target.closest && e.target.closest("a[href]");
+      origin = a && !a.target ? pointOf(a, e) : null;
+      if (origin && e.detail) sessionStorage.setItem(KEY + "ptr", JSON.stringify({ x: e.clientX, y: e.clientY, t: Date.now() }));
+    }, true);
+
+    const back = (act) => act && act.navigationType === "traverse" && act.from && act.entry && act.entry.index < act.from.index;
+
+    addEventListener("pageswap", (e) => {
+      if (!e.viewTransition) return;
+      const act = e.activation;
+      if (!back(act) && origin && act && act.entry) {
+        const to = new URL(act.entry.url).pathname;
+        sessionStorage.setItem(KEY + to, JSON.stringify({ x: origin[0], y: origin[1], sy: scrollY, from: location.pathname }));
+      }
+      // The stone on the pressed arrow and the cursor are lifted out of the page and held over the change.
+      if (matchMedia(HEAVY).matches && !back(act)) {
+        for (const c of document.querySelectorAll("canvas[data-layer]")) c.style.viewTransitionName = "pz-" + c.dataset.layer;
+      }
+    });
+    // A page restored from the back-forward cache must not bring the names back into the next passage.
+    addEventListener("pageshow", () => {
+      for (const c of document.querySelectorAll("canvas[data-layer]")) c.style.viewTransitionName = "";
+    });
+
+    // ---------- the page arriving ----------
+    addEventListener("pagereveal", (e) => {
+      const vt = e.viewTransition;
+      if (!vt) return;
+      if (!matchMedia(HEAVY).matches) { vt.types.add("pz-plain"); return; }
+      const act = typeof navigation !== "undefined" ? navigation.activation : null;
+      const closing = back(act);
+      // Where it opened: stored under the page the link led to. Going back, that's the page being left.
+      const key = closing ? new URL(act.from.url).pathname : location.pathname;
+      let o = null;
+      try { o = JSON.parse(sessionStorage.getItem(KEY + key) || "null"); } catch {}
+      const W = document.documentElement.clientWidth, H = innerHeight;
+      let x, y;
+      if (o && closing && o.from === location.pathname) { x = o.x; y = o.y + o.sy - scrollY; }
+      else if (o && !closing && act && act.from && new URL(act.from.url).pathname === o.from) { x = o.x; y = o.y; }
+      else {
+        // No pressed point (a page reached another way): from the wordmark's slot.
+        const i = document.querySelector(".mark i");
+        const r = i ? i.getBoundingClientRect() : { left: 24, top: 16, width: 16, height: 18 };
+        x = r.left + r.width / 2; y = r.top + r.height * 0.54;
+      }
+      x = Math.max(0, Math.min(W, x)); y = Math.max(0, Math.min(H, y));
+      const far = Math.max(Math.hypot(x, y), Math.hypot(W - x, y), Math.hypot(x, H - y), Math.hypot(W - x, H - y));
+      // The disc stops as soon as the rim and the spectrum are past the farthest corner. The light travels with it:
+      // the edge catches it and the spectrum falls ahead of the rim, toward that corner, where the rim stays longest.
+      const R = closing ? far + 2 : far + BAND + 2;
+      const corner = [[0, 0], [W, 0], [0, H], [W, H]].sort((a, b) => Math.hypot(b[0] - x, b[1] - y) - Math.hypot(a[0] - x, a[1] - y))[0];
+      const ang = (Math.atan2(corner[0] - x, -(corner[1] - y)) * 180) / Math.PI;
+      vt.types.add(closing ? "pz-close" : "pz-open");
+      const root = document.documentElement;
+      root.style.setProperty("--pz-x", x + "px");
+      root.style.setProperty("--pz-y", y + "px");
+      root.style.setProperty("--pz-r0", closing ? R + "px" : "0px");
+      root.style.setProperty("--pz-a", ang.toFixed(1) + "deg");
+
+      // The rim: three copies of this page, red, green and blue, each pushed out from the origin by its own amount,
+      // added back together into the page, tinted where the glass is thick, masked to the band.
+      const pz = document.createElement("div");
+      pz.className = "pz " + (closing ? "pz-in" : "pz-out");
+      pz.setAttribute("aria-hidden", "true");
+      pz.inert = true;
+      const band = document.createElement("div");
+      band.className = "pz-band";
+      const src = document.querySelectorAll("body > header, body > main, body > footer");
+      const chans = ["r", "g", "b"].map((c) => {
+        const ch = document.createElement("div");
+        ch.className = "pz-ch pz-" + c;
+        const copy = document.createElement("div");
+        copy.className = "pz-copy";
+        copy.style.top = -scrollY + "px";
+        copy.style.width = W + "px";
+        for (const n of src) copy.append(n.cloneNode(true));
+        for (const img of copy.querySelectorAll("img")) img.loading = "eager";
+        // The copies are pictures only: no ids, nothing the page's own scripts look for (the stamp, the stones).
+        for (const n of copy.querySelectorAll("[id]")) n.removeAttribute("id");
+        for (const n of copy.querySelectorAll("svg.stamp, script")) n.remove();
+        for (const n of copy.querySelectorAll("[data-gem], [data-stamp-host], [data-count]")) { n.removeAttribute("data-gem"); n.removeAttribute("data-stamp-host"); n.removeAttribute("data-count"); }
+        ch.append(copy);
+        band.append(ch);
+        return ch;
+      });
+      const tint = document.createElement("div");
+      tint.className = "pz-tint";
+      band.append(tint);
+      const hi = document.createElement("div");
+      hi.className = "pz-hi";
+      const lo = document.createElement("div");
+      lo.className = "pz-lo";
+      pz.append(band, hi, lo);
+      // The spectrum lies on the page beside the glass: its own layer, multiplied onto whatever is under it.
+      const sp = document.createElement("div");
+      sp.className = "pz-spec " + (closing ? "pz-in" : "pz-out");
+      sp.setAttribute("aria-hidden", "true");
+      document.body.append(pz, sp);
+
+      // One set of frames for the disc, the rim and the colours, so they can't drift apart.
+      const T = closing ? CLOSE : OPEN, N = 30;
+      const disc = [], rim = [], scale = { r: [], g: [], b: [] };
+      for (let i = 0; i <= N; i++) {
+        const t = i / N;
+        const r = closing ? R * (1 - easeClose(t)) : R * easeOpen(t);
+        disc.push({ clipPath: `circle(${r.toFixed(2)}px at ${x}px ${y}px)` });
+        rim.push({ "--pz-r": r.toFixed(2) + "px" });
+        const m = Math.min(MAX, 1 + SHIFT / Math.max(r, 1));
+        const d = SPLIT / Math.max(r, 40);
+        scale.r.push({ transform: `scale(${(m + d).toFixed(5)})` });
+        scale.g.push({ transform: `scale(${m.toFixed(5)})` });
+        scale.b.push({ transform: `scale(${(m - d).toFixed(5)})` });
+      }
+      const timing = { duration: T, easing: "linear", fill: "both" };
+      vt.ready.then(() => {
+        root.animate(disc, { ...timing, pseudoElement: closing ? "::view-transition-old(root)" : "::view-transition-new(root)" });
+        pz.animate(rim, timing);
+        sp.animate(rim, timing);
+        chans.forEach((ch, i) => ch.animate(scale["rgb"[i]], timing));
+      }).catch(() => {});
+      vt.finished.finally(() => {
+        pz.remove(); sp.remove();
+        for (const p of ["--pz-x", "--pz-y", "--pz-r0", "--pz-a"]) root.style.removeProperty(p);
+      });
+    });
+  })();
+</script>
+
+<style is:global>
+  @media (prefers-reduced-motion: no-preference) {
+    @view-transition {
+      navigation: auto;
+    }
+  }
+  @property --pz-r {
+    syntax: "<length>";
+    inherits: true;
+    initial-value: 0px;
+  }
+
+  /* Without the heavy effects: the pages cross-fade, briefly. */
+  ::view-transition-group(root) {
+    animation-duration: 160ms;
+  }
+
+  /* The disc. Its frames come from the script; here only what holds before the first of them. */
+  :root:active-view-transition-type(pz-open, pz-close)::view-transition-group(root),
+  :root:active-view-transition-type(pz-open, pz-close)::view-transition-old(root),
+  :root:active-view-transition-type(pz-open, pz-close)::view-transition-new(root) {
+    animation: none;
+    mix-blend-mode: normal;
+  }
+  :root:active-view-transition-type(pz-open)::view-transition-new(root) {
+    clip-path: circle(0px at var(--pz-x) var(--pz-y));
+  }
+  :root:active-view-transition-type(pz-close)::view-transition-old(root) {
+    z-index: 1;
+  }
+
+  /* The rim and the spectrum are layers of their own over both pages, drawn live, not as snapshots. */
+  .pz,
+  .pz-spec {
+    position: fixed;
+    inset: 0;
+    z-index: 2147483000;
+    pointer-events: none;
+    --pz-r: var(--pz-r0);
+    /* The rim: 34px, narrower while the disc is still smaller than the brand's lens. */
+    --pz-w: min(34px, var(--pz-r) * 0.3);
+  }
+  .pz {
+    view-transition-name: pz-rim;
+  }
+  .pz-spec {
+    view-transition-name: pz-spec;
+  }
+  ::view-transition-group(pz-rim),
+  ::view-transition-group(pz-spec),
+  ::view-transition-new(pz-rim),
+  ::view-transition-new(pz-spec) {
+    animation: none;
+  }
+  ::view-transition-group(pz-spec) {
+    mix-blend-mode: multiply;
+  }
+
+  /* The band: opening, just inside the disc's edge (the new page through the glass); closing, just outside it (the
+     page coming back, seen through the glass as the old one shrinks away). Hard at the glass edge, soft inward. */
+  .pz-band {
+    position: absolute;
+    inset: 0;
+    overflow: clip;
+    isolation: isolate;
+  }
+  .pz-out .pz-band {
+    mask-image: radial-gradient(circle at var(--pz-x) var(--pz-y), transparent calc(var(--pz-r) - var(--pz-w)), #000 calc(var(--pz-r) - var(--pz-w) + 3px), #000 calc(var(--pz-r) - 0.5px), transparent var(--pz-r));
+  }
+  .pz-in .pz-band {
+    mask-image: radial-gradient(circle at var(--pz-x) var(--pz-y), transparent var(--pz-r), #000 calc(var(--pz-r) + 0.5px), #000 calc(var(--pz-r) + var(--pz-w) - 3px), transparent calc(var(--pz-r) + var(--pz-w)));
+  }
+  /* One colour channel of the page: the copy on its own, multiplied by its primary. The three are added together. */
+  .pz-ch {
+    position: absolute;
+    inset: 0;
+    isolation: isolate;
+    transform-origin: var(--pz-x) var(--pz-y);
+    background: var(--color-bg);
+    will-change: transform;
+  }
+  .pz-ch::after {
+    content: "";
+    position: absolute;
+    inset: -64px;
+    mix-blend-mode: multiply;
+  }
+  .pz-r::after {
+    background: #f00;
+  }
+  .pz-g::after {
+    background: #0f0;
+  }
+  .pz-b::after {
+    background: #00f;
+  }
+  .pz-g,
+  .pz-b {
+    mix-blend-mode: plus-lighter;
+  }
+  /* The copy of the page: laid out as the body is, shifted by the scroll. */
+  .pz-copy {
+    position: absolute;
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    padding: 16px 24px 24px;
+  }
+  .pz-copy > main {
+    flex: 1;
+    max-width: none;
+  }
+  /* The glass is one tone: emerald, deeper toward the edge, where you look through more of it. */
+  .pz-tint {
+    position: absolute;
+    inset: 0;
+    mix-blend-mode: multiply;
+  }
+  .pz-out .pz-tint {
+    background: radial-gradient(circle at var(--pz-x) var(--pz-y), transparent calc(var(--pz-r) - var(--pz-w) + 4px), color-mix(in srgb, var(--emerald) 16%, white) calc(var(--pz-r) - 2px));
+  }
+  .pz-in .pz-tint {
+    background: radial-gradient(circle at var(--pz-x) var(--pz-y), color-mix(in srgb, var(--emerald) 16%, white) calc(var(--pz-r) + 2px), transparent calc(var(--pz-r) + var(--pz-w) - 4px));
+  }
+  /* The edge of the glass, 0.5px: a dark line all round, as every raised thing on the site has, and a light one just
+     inside it where the edge faces the light, ahead of the passage. */
+  .pz-hi,
+  .pz-lo {
+    position: absolute;
+    inset: 0;
+  }
+  .pz-hi {
+    background: radial-gradient(circle at var(--pz-x) var(--pz-y), transparent calc(var(--pz-r) - 2px), rgb(255 255 255 / 0.95) calc(var(--pz-r) - 1px), transparent calc(var(--pz-r) - 0.25px));
+    mask-image: conic-gradient(from var(--pz-a) at var(--pz-x) var(--pz-y), #000, transparent 22%, transparent 78%, #000);
+  }
+  .pz-lo {
+    background: radial-gradient(circle at var(--pz-x) var(--pz-y), transparent calc(var(--pz-r) - 0.5px), rgb(0 0 0 / 0.2) var(--pz-r), transparent calc(var(--pz-r) + 0.75px));
+  }
+  .pz-in .pz-lo {
+    background: radial-gradient(circle at var(--pz-x) var(--pz-y), transparent calc(var(--pz-r) - 0.75px), rgb(0 0 0 / 0.2) var(--pz-r), transparent calc(var(--pz-r) + 0.5px));
+  }
+  /* The spectrum, on the page just past the glass, ahead of the passage: blue nearest the edge, red furthest, soft, an
+     arc of about a third of the way round, never a ring. */
+  .pz-spec {
+    mask-image: conic-gradient(from var(--pz-a) at var(--pz-x) var(--pz-y), #000, rgb(0 0 0 / 0.5) 8%, transparent 17%, transparent 83%, rgb(0 0 0 / 0.5) 92%, #000);
+  }
+  .pz-spec.pz-out {
+    background: radial-gradient(circle at var(--pz-x) var(--pz-y), transparent calc(var(--pz-r) + 2px), rgb(150 175 255 / 0.4) calc(var(--pz-r) + 7px), rgb(150 225 195 / 0.4) calc(var(--pz-r) + 13px), rgb(255 235 150 / 0.4) calc(var(--pz-r) + 19px), rgb(255 175 155 / 0.36) calc(var(--pz-r) + 25px), transparent calc(var(--pz-r) + 36px));
+  }
+  .pz-spec.pz-in {
+    background: radial-gradient(circle at var(--pz-x) var(--pz-y), transparent calc(var(--pz-r) - 36px), rgb(255 175 155 / 0.36) calc(var(--pz-r) - 25px), rgb(255 235 150 / 0.4) calc(var(--pz-r) - 19px), rgb(150 225 195 / 0.4) calc(var(--pz-r) - 13px), rgb(150 175 255 / 0.4) calc(var(--pz-r) - 7px), transparent calc(var(--pz-r) - 2px));
+  }
+
+  /* The stone on the pressed arrow and the cursor: held over the change, then they settle into the new page. */
+  ::view-transition-group(pz-gem),
+  ::view-transition-group(pz-cursor) {
+    z-index: 2;
+    animation: none;
+  }
+  ::view-transition-old(pz-gem) {
+    transform-origin: var(--pz-x) var(--pz-y);
+    animation: pz-settle 540ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+  ::view-transition-old(pz-cursor) {
+    animation: pz-fade 420ms linear both;
+  }
+  @keyframes pz-settle {
+    0%,
+    55% {
+      opacity: 1;
+      transform: none;
+    }
+    100% {
+      opacity: 0;
+      transform: scale(0.82);
+    }
+  }
+  @keyframes pz-fade {
+    0%,
+    80% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+</style>

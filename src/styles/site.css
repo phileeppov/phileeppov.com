@@ -101,6 +101,24 @@
   border-radius: 999px;
 }
 
+/* The glint (src/scripts/glint.js): a faint spectrum on the 0.5px edge of a raised thing, on the side facing the
+   emerald cursor. A ring 0.75px wide, only an arc of it lit: blue, green, yellow, red, as the stones throw it. */
+.glint {
+  position: relative;
+}
+.glint::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: 0.75px;
+  border-radius: inherit;
+  background: conic-gradient(from calc(var(--glint-a, 0deg) - 50deg), transparent, rgb(120 160 255) 6%, rgb(110 215 170) 12%, rgb(255 225 110) 18%, rgb(255 150 120) 24%, transparent 29%);
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  opacity: var(--glint, 0);
+  pointer-events: none;
+  transition: opacity 160ms ease-out;
+}
+
 /* A thin rule between parts of a long page. */
 .rule {
   height: 0;
