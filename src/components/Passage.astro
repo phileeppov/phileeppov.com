@@ -35,11 +35,11 @@
     // The steps, from the edge in: where each begins and ends (fractions of the rim), how far it moves the page at the
     // edge (px), how thick the glass is there (the stone's units). The outer step is the thickest and bends the most.
     const STEPS = [
-      { f: [0, 0.3], a: 30, d: 0.8, split: 1 },
-      { f: [0.3, 0.64], a: 18, d: 0.45 },
-      { f: [0.64, 1], a: 9, d: 0.22 },
+      { f: [0, 0.3], a: 24, d: 0.3, split: 1 },
+      { f: [0.3, 0.64], a: 14, d: 0.17 },
+      { f: [0.64, 1], a: 6, d: 0.08 },
     ];
-    const DEEP = 1.5; // the dark bands: where the facet sends back the stone's own depth
+    const DEEP = 0.7; // the dark streaks: where a facet sends back the stone's own depth
     // The stone's absorption per channel (emerald.js: red goes fast, blue a little faster than green).
     const SIG = [3.4, 0.62, 1.15];
     const srgb = (l) => Math.round(255 * (l <= 0.0031308 ? 12.92 * l : 1.055 * l ** (1 / 2.4) - 0.055));
@@ -271,8 +271,8 @@
     z-index: 2147483000;
     pointer-events: none;
     --pz-r: var(--pz-r0);
-    /* The rim: 44px, half the disc while it is still smaller than that. */
-    --pz-w: min(44px, var(--pz-r) * 0.5);
+    /* The rim: 28px, under a third of the disc while it is still smaller than that. */
+    --pz-w: min(28px, var(--pz-r) * 0.3);
   }
   .pz {
     view-transition-name: pz-rim;
@@ -349,8 +349,9 @@
     flex: 1;
     max-width: none;
   }
-  /* The glass: the stone's colour through each step's thickness. Over it, the room round the stone, carried by the
-     facets: two bright bands and two dark ones on each step, set at its own angle, so they break at the junctions. */
+  /* The glass: the stone's colour through each step's thickness, a tint on what is behind, never a fill. Over it, the
+     room round the stone, carried by the facets: thin bright and dark streaks on each step toward the one light, upper
+     left, as on the stones, each step at its own angle, so they break at the junctions. */
   .pz-tint {
     position: absolute;
     inset: -64px;
@@ -375,18 +376,18 @@
   }
   .pz-st::before {
     mix-blend-mode: multiply;
-    background: conic-gradient(from calc(var(--pz-a) + var(--pz-turn) + var(--o) + 120deg) at var(--pz-x) var(--pz-y), transparent, var(--pz-deep) 5%, var(--pz-deep) 8%, transparent 13%, transparent 50%, var(--pz-deep) 55%, var(--pz-deep) 57%, transparent 62%);
+    background: conic-gradient(from calc(var(--pz-turn) + var(--o) + 25deg) at var(--pz-x) var(--pz-y), transparent, var(--pz-deep) 2.4%, transparent 5.4%, transparent 50%, var(--pz-deep) 52%, transparent 54.5%);
   }
   .pz-st::after {
-    background: conic-gradient(from calc(var(--pz-a) + var(--pz-turn) + var(--o) + 40deg) at var(--pz-x) var(--pz-y), transparent, rgb(255 255 255 / 0.7) 2.5%, rgb(255 255 255 / 0.7) 4%, transparent 7%, transparent 50%, rgb(255 255 255 / 0.55) 52.5%, rgb(255 255 255 / 0.55) 53.5%, transparent 56%);
+    background: conic-gradient(from calc(var(--pz-turn) + var(--o) - 52deg) at var(--pz-x) var(--pz-y), transparent, rgb(255 255 255 / 0.75) 1.6%, transparent 3.8%, transparent 50%, rgb(255 255 255 / 0.4) 51.4%, transparent 53%);
   }
   .pz-s1::before,
   .pz-s1::after {
-    --o: 38deg;
+    --o: 21deg;
   }
   .pz-s2::before,
   .pz-s2::after {
-    --o: -27deg;
+    --o: -16deg;
   }
   /* The junctions between the steps, 0.5px: dark on the inner side, light on the outer, so the steps read at 1x. */
   .pz-seams,
@@ -397,21 +398,26 @@
   }
   .pz-out .pz-seams {
     background:
-      radial-gradient(circle at var(--pz-x) var(--pz-y), transparent calc(var(--pz-r) - var(--pz-w) * 0.3 - 1px), rgb(0 0 0 / 0.22) calc(var(--pz-r) - var(--pz-w) * 0.3 - 0.5px), rgb(255 255 255 / 0.7) calc(var(--pz-r) - var(--pz-w) * 0.3), transparent calc(var(--pz-r) - var(--pz-w) * 0.3 + 0.75px)),
-      radial-gradient(circle at var(--pz-x) var(--pz-y), transparent calc(var(--pz-r) - var(--pz-w) * 0.64 - 1px), rgb(0 0 0 / 0.2) calc(var(--pz-r) - var(--pz-w) * 0.64 - 0.5px), rgb(255 255 255 / 0.6) calc(var(--pz-r) - var(--pz-w) * 0.64), transparent calc(var(--pz-r) - var(--pz-w) * 0.64 + 0.75px)),
-      radial-gradient(circle at var(--pz-x) var(--pz-y), transparent calc(var(--pz-r) - var(--pz-w) - 1px), rgb(0 0 0 / 0.16) calc(var(--pz-r) - var(--pz-w) - 0.5px), rgb(255 255 255 / 0.5) calc(var(--pz-r) - var(--pz-w)), transparent calc(var(--pz-r) - var(--pz-w) + 0.75px));
+      radial-gradient(circle at var(--pz-x) var(--pz-y), transparent calc(var(--pz-r) - var(--pz-w) * 0.3 - 1px), rgb(0 0 0 / 0.14) calc(var(--pz-r) - var(--pz-w) * 0.3 - 0.5px), rgb(255 255 255 / 0.5) calc(var(--pz-r) - var(--pz-w) * 0.3), transparent calc(var(--pz-r) - var(--pz-w) * 0.3 + 0.75px)),
+      radial-gradient(circle at var(--pz-x) var(--pz-y), transparent calc(var(--pz-r) - var(--pz-w) * 0.64 - 1px), rgb(0 0 0 / 0.12) calc(var(--pz-r) - var(--pz-w) * 0.64 - 0.5px), rgb(255 255 255 / 0.6) calc(var(--pz-r) - var(--pz-w) * 0.64), transparent calc(var(--pz-r) - var(--pz-w) * 0.64 + 0.75px)),
+      radial-gradient(circle at var(--pz-x) var(--pz-y), transparent calc(var(--pz-r) - var(--pz-w) - 1px), rgb(0 0 0 / 0.2) calc(var(--pz-r) - var(--pz-w) - 0.5px), rgb(255 255 255 / 0.5) calc(var(--pz-r) - var(--pz-w)), transparent calc(var(--pz-r) - var(--pz-w) + 0.75px));
   }
   .pz-in .pz-seams {
     background:
-      radial-gradient(circle at var(--pz-x) var(--pz-y), transparent calc(var(--pz-r) + var(--pz-w) * 0.3 - 0.75px), rgb(255 255 255 / 0.7) calc(var(--pz-r) + var(--pz-w) * 0.3), rgb(0 0 0 / 0.22) calc(var(--pz-r) + var(--pz-w) * 0.3 + 0.5px), transparent calc(var(--pz-r) + var(--pz-w) * 0.3 + 1px)),
-      radial-gradient(circle at var(--pz-x) var(--pz-y), transparent calc(var(--pz-r) + var(--pz-w) * 0.64 - 0.75px), rgb(255 255 255 / 0.6) calc(var(--pz-r) + var(--pz-w) * 0.64), rgb(0 0 0 / 0.2) calc(var(--pz-r) + var(--pz-w) * 0.64 + 0.5px), transparent calc(var(--pz-r) + var(--pz-w) * 0.64 + 1px)),
-      radial-gradient(circle at var(--pz-x) var(--pz-y), transparent calc(var(--pz-r) + var(--pz-w) - 0.75px), rgb(255 255 255 / 0.5) calc(var(--pz-r) + var(--pz-w)), rgb(0 0 0 / 0.16) calc(var(--pz-r) + var(--pz-w) + 0.5px), transparent calc(var(--pz-r) + var(--pz-w) + 1px));
+      radial-gradient(circle at var(--pz-x) var(--pz-y), transparent calc(var(--pz-r) + var(--pz-w) * 0.3 - 0.75px), rgb(255 255 255 / 0.5) calc(var(--pz-r) + var(--pz-w) * 0.3), rgb(0 0 0 / 0.14) calc(var(--pz-r) + var(--pz-w) * 0.3 + 0.5px), transparent calc(var(--pz-r) + var(--pz-w) * 0.3 + 1px)),
+      radial-gradient(circle at var(--pz-x) var(--pz-y), transparent calc(var(--pz-r) + var(--pz-w) * 0.64 - 0.75px), rgb(255 255 255 / 0.6) calc(var(--pz-r) + var(--pz-w) * 0.64), rgb(0 0 0 / 0.12) calc(var(--pz-r) + var(--pz-w) * 0.64 + 0.5px), transparent calc(var(--pz-r) + var(--pz-w) * 0.64 + 1px)),
+      radial-gradient(circle at var(--pz-x) var(--pz-y), transparent calc(var(--pz-r) + var(--pz-w) - 0.75px), rgb(255 255 255 / 0.5) calc(var(--pz-r) + var(--pz-w)), rgb(0 0 0 / 0.2) calc(var(--pz-r) + var(--pz-w) + 0.5px), transparent calc(var(--pz-r) + var(--pz-w) + 1px));
   }
-  /* The edge of the glass, 0.5px: a dark line all round, as every raised thing on the site has, and a light one just
-     inside it where the edge faces the light, ahead of the passage. */
+  /* The edge of the glass, 0.5px: a dark line all round, as every raised thing on the site has, and a soft catch of
+     light just inside it on the upper left, where the one light is. */
   .pz-hi {
-    background: radial-gradient(circle at var(--pz-x) var(--pz-y), transparent calc(var(--pz-r) - 2px), rgb(255 255 255 / 0.95) calc(var(--pz-r) - 1px), transparent calc(var(--pz-r) - 0.25px));
-    mask-image: conic-gradient(from var(--pz-a) at var(--pz-x) var(--pz-y), #000, transparent 22%, transparent 78%, #000);
+    mask-image: conic-gradient(from -45deg at var(--pz-x) var(--pz-y), #000, rgb(0 0 0 / 0.4) 7%, transparent 15%, transparent 85%, rgb(0 0 0 / 0.4) 93%, #000);
+  }
+  .pz-out .pz-hi {
+    background: radial-gradient(circle at var(--pz-x) var(--pz-y), transparent calc(var(--pz-r) - 6px), rgb(255 255 255 / 0.9) calc(var(--pz-r) - 1.25px), transparent calc(var(--pz-r) - 0.25px));
+  }
+  .pz-in .pz-hi {
+    background: radial-gradient(circle at var(--pz-x) var(--pz-y), transparent calc(var(--pz-r) + var(--pz-w) - 6px), rgb(255 255 255 / 0.9) calc(var(--pz-r) + var(--pz-w) - 1.25px), transparent calc(var(--pz-r) + var(--pz-w) - 0.25px));
   }
   .pz-lo {
     background: radial-gradient(circle at var(--pz-x) var(--pz-y), transparent calc(var(--pz-r) - 0.5px), rgb(0 0 0 / 0.28) var(--pz-r), transparent calc(var(--pz-r) + 0.75px));
