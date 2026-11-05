@@ -5,34 +5,27 @@ import Site from "../layouts/Site.astro";
 ---
 
 <Site title="Not found" description="This page has no author.">
-  <main class="page lost">
-    <h1>This page has no author.</h1>
+  <main class="page flow lost">
+    <h1 class="page-title">This page has no author.</h1>
     <a class="link" href="/" data-gem>Back to the start</a>
   </main>
 </Site>
 
 <style>
-  .lost {
+  .page.lost {
     align-content: start;
     justify-items: start;
-    gap: 28px;
+    gap: 48px;
     padding-top: 40px;
   }
   h1 {
-    margin: 0;
     max-width: 12em;
-    font-size: clamp(40px, 5.6vw, 80px);
-    font-weight: 500;
-    line-height: 0.98;
-    letter-spacing: -0.058em;
     text-wrap: balance;
   }
   @media (max-width: 560px) {
-    .lost {
+    .page.lost {
+      gap: 28px;
       padding-top: 16px;
-    }
-    h1 {
-      font-size: 36px;
     }
   }
 </style>

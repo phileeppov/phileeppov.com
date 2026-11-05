@@ -1,7 +1,8 @@
 ---
-// About: site.md §4, copy verbatim. The /review style (Site.astro), one column of short paragraphs down the right.
-// Photo: one shot, an asymmetric crop, mid-size (design notes §4), in the left column beside the text and held there
-// while the text scrolls. It shows once a file is in src/assets/about/; until then the column stays empty.
+// About: site.md §4, copy verbatim. The /review style (Site.astro): the title at the left edge, as on every page, then
+// one column of short paragraphs. Photo: one shot, an asymmetric crop, mid-size (design notes §4), on the left edge
+// beside the text, looking into it, and held there while the text scrolls. It shows once a file is in
+// src/assets/about/; until then the text starts at the left edge.
 import { Image } from "astro:assets";
 import Site from "../layouts/Site.astro";
 
@@ -10,20 +11,18 @@ const photo = Object.values(photos)[0]?.default;
 ---
 
 <Site title="About" description="I design products. I've been doing it for five years." image="/review-og.png">
-  <main class="page about">
-    <section class="row intro">
+  <main class="page flow about">
+    <section class="part intro">
       <h1 class="label caps">ABOUT</h1>
-      <p class="title">I'm Nikita.</p>
+      <p class="page-title">I'm Nikita.</p>
     </section>
 
-    <section class="row">
+    <section class="story">
       {
-        photo ? (
+        photo && (
           <figure class="photo">
             <Image src={photo} alt="Nikita Filippov" widths={[400, 800]} sizes="(min-width: 900px) 330px, 70vw" />
           </figure>
-        ) : (
-          <span class="label" aria-hidden="true" />
         )
       }
       <div class="text">
@@ -50,36 +49,42 @@ const photo = Object.values(photos)[0]?.default;
 
 <style>
   .intro {
+    gap: 20px;
     padding-top: 40px;
-    align-items: baseline;
   }
-  .title {
-    margin: 0;
-    font-size: clamp(40px, 5.6vw, 80px);
-    font-weight: 500;
-    line-height: 0.98;
-    letter-spacing: -0.058em;
+  /* The title and the story are one part: closer than the parts of the home page. */
+  .page.about {
+    gap: 96px;
   }
 
-  /* The photo holds its place in the left column while the text scrolls past it. */
+  /* The photo on the left edge, the text beside it; the photo holds its place while the text scrolls past. */
+  .story {
+    display: grid;
+    grid-template-columns: minmax(0, 330px) minmax(0, var(--measure-body));
+    gap: 48px;
+    align-items: start;
+  }
+  .story > .text:only-child {
+    grid-column: 1 / -1;
+  }
   .photo {
     position: sticky;
     top: 24px;
-    width: min(330px, 100%);
     margin: 0;
   }
+  /* A print, not a button: a small radius, a 0.5px edge, no shadow under it. */
   .photo :global(img) {
     display: block;
     width: 100%;
     height: auto;
-    border-radius: 28px;
-    box-shadow: var(--float);
+    border-radius: 6px;
+    box-shadow: 0 0 0 0.5px color-mix(in srgb, var(--color-black) 16%, transparent);
   }
 
   .text {
     display: grid;
     gap: 22px;
-    max-width: 31em;
+    max-width: var(--measure-body);
   }
   .text p {
     margin: 0;
@@ -87,6 +92,7 @@ const photo = Object.values(photos)[0]?.default;
     text-wrap: pretty;
   }
   .text .lead {
+    margin-bottom: 6px;
     font-size: var(--text-lead);
     font-weight: 500;
     line-height: 1.1;
@@ -104,6 +110,13 @@ const photo = Object.values(photos)[0]?.default;
   }
 
   @media (max-width: 900px) {
+    .page.about {
+      gap: 64px;
+    }
+    .story {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 40px;
+    }
     .photo {
       position: static;
       width: min(300px, 78%);
@@ -111,10 +124,11 @@ const photo = Object.values(photos)[0]?.default;
   }
   @media (max-width: 560px) {
     .intro {
+      gap: 16px;
       padding-top: 16px;
     }
-    .title {
-      font-size: 36px;
+    .page.about {
+      gap: 48px;
     }
     .text .lead {
       font-size: 24px;
