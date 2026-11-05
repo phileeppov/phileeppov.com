@@ -22,7 +22,7 @@ const photo = Object.values(photos)[0]?.default;
       {
         photo && (
           <figure class="photo">
-            <Image src={photo} alt="Nikita Filippov" widths={[400, 800]} sizes="(min-width: 900px) 330px, 70vw" />
+            <Image src={photo} alt="Nikita Filippov" widths={[400, 800]} sizes="(min-width: 900px) 336px, 70vw" />
           </figure>
         )
       }
@@ -64,7 +64,8 @@ const photo = Object.values(photos)[0]?.default;
   /* The photo on the left edge, the text beside it; the photo holds its place while the text scrolls past. */
   .story {
     display: grid;
-    grid-template-columns: minmax(0, 330px) minmax(0, var(--measure-body));
+    /* 336px: on a full-width page the text starts on the manifesto's line (its 3:9 row), at x=408. */
+    grid-template-columns: minmax(0, 336px) minmax(0, var(--measure-body));
     gap: 48px;
     align-items: start;
   }
