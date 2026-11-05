@@ -3,7 +3,7 @@
 // (src/pages/*.astro); when a page's copy changes, change it here too and run: node scripts/og.mjs
 // Same family as public/review-og.png and public/glass-og.png: paper, a raised object on the left, the words on the
 // right, the address under them. The home card is the exception: the hero alone, too long to share the width.
-import { readFileSync, writeFileSync } from "node:fs";
+import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { extname, join } from "node:path";
 import sharp from "sharp";
 import { ROOT, launchBrowser } from "./lib/site.mjs";
@@ -12,7 +12,16 @@ const W = 1200;
 const H = 630;
 // The cards load the site's own files through a made-up origin, so tokens.css and onest.css work unchanged.
 const ORIGIN = "http://og.local";
-const TYPES = { ".css": "text/css", ".woff2": "font/woff2", ".jpg": "image/jpeg", ".png": "image/png" };
+const TYPES = {
+  ".css": "text/css",
+  ".woff2": "font/woff2",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png": "image/png",
+  ".webp": "image/webp",
+};
+// The About photo: the first image in src/assets/about, the one the page shows.
+const PHOTO = readdirSync(join(ROOT, "src/assets/about")).find((file) => /\.(jpe?g|png|webp)$/i.test(file));
 
 const STYLE = `
   html {
@@ -161,7 +170,7 @@ const CARDS = {
       }
     </style>
     <main class="card about">
-      <img class="photo" src="/src/assets/about/photo.jpg" alt="" />
+      <img class="photo" src="/src/assets/about/${PHOTO}" alt="" />
       <div class="words">
         <p class="title">I'm Nikita.</p>
         <p class="lead"><span>I design products.</span> <span>I've been doing it for five&nbsp;years.</span></p>
