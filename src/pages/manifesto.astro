@@ -8,6 +8,7 @@
 // data-italic="whose" | "typing" | "purpose": the italic switch (brand: one anomaly per composition) on one word of the
 // explanations; without it, no switch. Georgia stands in for the anomaly face until web fonts exist.
 import Site from "../layouts/Site.astro";
+import Stamp from "../components/Stamp.astro";
 ---
 
 <Site title="Manifesto" description="Five principles I work by." image="/review-og.png">
@@ -64,10 +65,12 @@ import Site from "../layouts/Site.astro";
 
     <section class="row">
       <span class="label" aria-hidden="true"></span>
-      <div class="end">
+      <!-- The stamp at the close: its rim crosses "build" (off until approved; ?stamp=on to review). -->
+      <div class="end" data-stamp-host>
+        <Stamp seed={1} prefer={0} />
         <hr class="rule" />
         <div class="closing">
-          <p>If this sounds like how you want to build —</p>
+          <p>If this sounds like how you want to <span data-stamp-at>build</span> —</p>
           <a class="btn" href="/review/" data-gem>Send a link, get a video review <span class="arw">→</span></a>
         </div>
       </div>
