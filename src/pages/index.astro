@@ -1,7 +1,7 @@
 ---
 // Home: site.md §1, the MVP in the /review style (Site.astro: Onest, monochrome, depth in the controls), laid out as
 // a wall (site.css): statements at Display, captions at body and meta, nothing between.
-// Hero: §1.1, the question at Display under a label that says who. Cases are left out while they're being redone;
+// Hero: §1.1, the line at Display under a label that says who. Cases are left out while they're being redone;
 // in their place, the tools, on a dark band. The form lives on /review: both buttons lead there instead of repeating it
 // here. The arrows turn into emeralds under a moving pointer (data-gem, Site.astro).
 import Site from "../layouts/Site.astro";
@@ -11,11 +11,11 @@ import Stamp from "../components/Stamp.astro";
 
 <Site passage description="Nikita Filippov, product designer. I redesigned game recording in Medal.tv, an app with 3M daily users." image="/home-og.png">
   <main class="wall home">
-    <!-- The hero is the first screen: the label says who, the question at Display, one meaning part to a line, and
-         the button under it in the caption half as its answer. -->
+    <!-- The hero is the first screen: the label says who, the line at Display, one meaning part to a line, and the
+         button under it in the caption half. -->
     <section class="hero grid">
       <h1 class="label">NIKITA FILIPPOV, PRODUCT DESIGNER</h1>
-      <p class="statement"><span>Which screen</span> <span>do you keep</span> <span>explaining?</span></p>
+      <p class="statement"><span>“Good design</span> <span>is invisible.”</span> <span>Bullshit.</span> <span>It stands out.</span></p>
       <div class="cap">
         <a class="btn" href="/review/" data-gem data-count="site:hero">Send a link, get a video review <span class="arw">→</span></a>
       </div>
@@ -85,8 +85,8 @@ import Stamp from "../components/Stamp.astro";
   .hero .statement {
     grid-column: 1 / -1;
     margin-top: 24px;
-    /* The question and its button share the first screen: on a short screen the Display steps down to fit both. */
-    font-size: max(min(var(--text-display), calc((100svh - 330px) / 3)), min(var(--text-display), 72px));
+    /* The line and its button share the first screen: on a short screen the Display steps down to fit both. */
+    font-size: max(min(var(--text-display), calc((100svh - 330px) / 4)), min(var(--text-display), 64px));
   }
   .hero .cap {
     margin-top: 48px;
@@ -186,9 +186,9 @@ import Stamp from "../components/Stamp.astro";
     .hero {
       padding-bottom: 72px;
     }
-    /* Three short lines: on a phone the question takes the measure's full width. */
+    /* Four short lines: on a phone the line takes the measure's full width. */
     .hero .statement {
-      font-size: 14vw;
+      font-size: 12vw;
     }
     .hero .cap {
       margin-top: 32px;
