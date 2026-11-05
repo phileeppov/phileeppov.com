@@ -35,9 +35,9 @@ import Stamp from "../components/Stamp.astro";
     <!-- About and the manifesto as one part: the about line at Lead, then two ways further at body size (the manifesto
          preview folded to one line, site.md §1.2). -->
     <!-- The stamp signs the about line: its rim crosses "sign" (off until approved; ?stamp=on to review). -->
-    <section class="part about" data-stamp-host>
+    <section class="part about">
       <Stamp seed={0} prefer={-60} />
-      <p><span>I'm Nikita. I can't ship work I&nbsp;<span class="nw">wouldn't <span data-stamp-at>sign</span>.</span></span> <span>So I design alone, async, and only with founders who feel the same.</span> <span>For code I team up with a developer I've shipped with, and I'm taking more of it on myself, this site included.</span></p>
+      <p data-stamp-host><span>I'm Nikita. I can't ship work I&nbsp;<span class="nw">wouldn't <span data-stamp-at>sign</span>.</span></span> <span>So I design alone, async, and only with founders who feel the same.</span> <span>For code I team up with a developer I've shipped with, and I'm taking more of it on myself, this site included.</span></p>
       <div class="further">
         <a class="link hang" href="/about/" data-gem data-count="site:about"><span class="arw">→</span> More about me</a>
         <div class="one">
