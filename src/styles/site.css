@@ -18,8 +18,8 @@ main.wall {
   --gutter: 24px;
   /* The body's own side padding (Site.astro): full-width rules and bands step out by it. */
   --bleed: 24px;
-  /* A caption's measure: at body size about 60 characters, never past 70. */
-  --cap: 30em;
+  /* A caption's measure: at body size in Onest about 68 characters at most (brand: 55–70). */
+  --cap: 27em;
   display: grid;
   align-content: start;
   max-width: none;
