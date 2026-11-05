@@ -39,13 +39,6 @@
   line-height: 0.98;
   letter-spacing: -0.045em;
 }
-/* A link that starts with its arrow: from 900px the arrow hangs in the margin, so the words keep the text edge. */
-@media (min-width: 900px) {
-  .hang {
-    margin-left: -1.15em;
-  }
-}
-
 /* A row: a label on the left, the content on the right. */
 .row {
   display: grid;

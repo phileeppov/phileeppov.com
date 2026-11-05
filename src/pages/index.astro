@@ -9,7 +9,10 @@ import glass from "../assets/tools/glass.png";
 ---
 
 <Site description="Nikita Filippov, product designer. I redesigned game recording in Medal.tv, an app with 3M daily users." image="/review-og.png">
-  <main class="page flow home">
+  <!-- data-layout: "grid" (How I work in two columns from 1200px, the rest on the left edge), "grid-about" (the same,
+       the about line in the second column), "grid-shift" (the about line and the closing call in the second column) or
+       "column" (one column throughout). -->
+  <main class="page flow home" data-layout="grid-about">
     <section class="hero">
       <h1 class="page-title"><span>Nikita Filippov, product designer.</span> <span>I&nbsp;redesigned game recording in&nbsp;Medal.tv, an&nbsp;app with 3M daily&nbsp;users.</span></h1>
       <a class="btn" href="/review/" data-gem data-count="site:hero">Send a link, get a video review <span class="arw">→</span></a>
@@ -333,6 +336,36 @@ import glass from "../assets/tools/glass.png";
   }
   .cta .btn {
     margin-top: 20px;
+  }
+
+  /* From 1200px How I work takes the width the tools take: the four moments in two columns on the tools' split, so
+     the second column starts where the Glass tile does. Body lines stay short, about 60 characters. */
+  @media (min-width: 1200px) {
+    .home[data-layout^="grid"] .moments {
+      justify-self: stretch;
+      grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+      gap: 72px 24px;
+      max-width: none;
+    }
+    /* A moment keeps its own height in a row: the rest sits under its first line, not spread down the row. */
+    .home[data-layout^="grid"] .moments p {
+      align-content: start;
+    }
+    .home[data-layout^="grid"] .moments span:not(:first-child) {
+      max-width: 24em;
+      text-wrap: balance;
+    }
+    /* The about line (and in grid-shift the closing call too) in the second column. There the arrow of "More about me"
+       has a real margin to hang in, so the words keep the text edge. */
+    .home[data-layout="grid-shift"] .about,
+    .home[data-layout="grid-shift"] .cta,
+    .home[data-layout="grid-about"] .about {
+      padding-left: calc((100% - 24px) * 7 / 12 + 24px);
+    }
+    .home[data-layout="grid-shift"] .hang,
+    .home[data-layout="grid-about"] .hang {
+      margin-left: -1.15em;
+    }
   }
 
   @media (max-width: 900px) {
