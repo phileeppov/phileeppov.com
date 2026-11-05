@@ -3,9 +3,8 @@
 // Hero: the "who" line from §8.1 in place of the temporary §1.1 hero. Cases are left out while they're being redone;
 // in their place, the tools. The form lives on /review: both buttons lead there instead of repeating it here.
 // The arrows turn into emeralds under a moving pointer (data-gem, Site.astro).
-import { Image } from "astro:assets";
 import Site from "../layouts/Site.astro";
-import glass from "../assets/tools/glass.png";
+import Tools from "../components/Tools.astro";
 ---
 
 <Site description="Nikita Filippov, product designer. I redesigned game recording in Medal.tv, an app with 3M daily users." image="/review-og.png">
@@ -15,29 +14,7 @@ import glass from "../assets/tools/glass.png";
       <a class="btn" href="/review/" data-gem data-count="site:hero">Send a link, get a video review <span class="arw">→</span></a>
     </section>
 
-    <section class="row tools" aria-labelledby="tools-label">
-      <h2 class="label caps" id="tools-label">TOOLS</h2>
-      <div class="tiles">
-        <a class="tile" href="https://github.com/phileeppov/chefkiss" data-count="site:chefkiss">
-          <!-- The end of an answer in Claude Code, and the mod's three buttons under it. Drawn, not a screenshot: no words. -->
-          <div class="art chat" aria-hidden="true">
-            <div class="answer"><i></i><i></i><i></i><i></i></div>
-            <div class="reacts"><b>🤌</b><b>🎯</b><b class="on">💩</b></div>
-          </div>
-          <p class="name">chefkiss</p>
-          <p class="line">A 💩 button for AI slop. Claude takes the&nbsp;hint.</p>
-          <p class="where">github.com/phileeppov/chefkiss</p>
-        </a>
-        <a class="tile" href="/glass/" data-count="site:glass">
-          <div class="art dark" aria-hidden="true">
-            <Image src={glass} alt="" widths={[260, 520]} sizes="260px" />
-          </div>
-          <p class="name">Glass</p>
-          <p class="line">Drop a logo, get it back in glass.</p>
-          <p class="where">phileeppov.com/glass</p>
-        </a>
-      </div>
-    </section>
+    <Tools />
 
     <section class="row how" aria-labelledby="how-label">
       <h2 class="label caps" id="how-label">HOW I WORK</h2>
@@ -103,148 +80,6 @@ import glass from "../assets/tools/glass.png";
   h1 span {
     display: block;
     text-wrap: pretty;
-  }
-
-  .tile:focus-visible {
-    outline: 2px solid var(--ink);
-    outline-offset: 4px;
-  }
-
-  /* Tools: two tiles, the newer one wider. Each picture is a raised surface; it lifts a little under the hand. */
-  .tiles {
-    display: grid;
-    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
-    gap: 24px;
-  }
-  .tile {
-    display: grid;
-    align-content: start;
-    gap: 4px;
-    color: inherit;
-    text-decoration: none;
-    border-radius: 28px;
-  }
-  .art {
-    position: relative;
-    display: grid;
-    place-items: center;
-    height: 300px;
-    margin-bottom: 14px;
-    border-radius: 28px;
-    background: var(--surface);
-    box-shadow: var(--float);
-    overflow: hidden;
-    transition: transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 260ms ease-out;
-  }
-  .art.dark {
-    background: var(--color-black);
-    box-shadow: 0 0 0 0.5px rgb(0 0 0 / 0.6), 0 16px 40px -16px color-mix(in srgb, var(--color-black) 40%, transparent);
-  }
-  .art.dark img {
-    width: 260px;
-    height: auto;
-  }
-  @media (hover: hover) {
-    .tile:hover .art {
-      transform: translateY(-3px);
-      box-shadow: inset 0 1px 0 #fff, 0 0 0 0.5px color-mix(in srgb, var(--color-black) 8%, transparent),
-        0 2px 4px color-mix(in srgb, var(--color-black) 5%, transparent),
-        0 24px 48px -18px color-mix(in srgb, var(--color-black) 28%, transparent);
-    }
-    .tile:hover .art.dark {
-      box-shadow: 0 0 0 0.5px rgb(0 0 0 / 0.6), 0 24px 48px -18px color-mix(in srgb, var(--color-black) 55%, transparent);
-    }
-  }
-  .name {
-    margin: 0;
-    font-weight: 500;
-  }
-  .line {
-    margin: 0;
-    text-wrap: pretty;
-  }
-  .where {
-    margin: 2px 0 0;
-    font-size: var(--text-meta);
-    opacity: 0.5;
-  }
-
-  /* chefkiss: the last lines of an answer, then the row of reactions under it, the 💩 already pressed: sunk into the
-     tray. Under the hand it comes up and goes down again, a press played once. */
-  .chat {
-    align-content: center;
-    justify-items: start;
-    gap: 22px;
-    padding: 0 12%;
-  }
-  .answer {
-    display: grid;
-    gap: 10px;
-    width: 100%;
-  }
-  .answer i {
-    display: block;
-    height: 9px;
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--color-black) 9%, transparent);
-  }
-  .answer i:nth-child(1) {
-    width: 92%;
-  }
-  .answer i:nth-child(2) {
-    width: 100%;
-  }
-  .answer i:nth-child(3) {
-    width: 84%;
-  }
-  .answer i:nth-child(4) {
-    width: 46%;
-  }
-  .reacts {
-    display: flex;
-    gap: 8px;
-  }
-  .reacts b {
-    display: grid;
-    place-items: center;
-    width: 52px;
-    height: 40px;
-    border-radius: 999px;
-    background: var(--surface);
-    box-shadow: var(--raise);
-    font-size: 20px;
-    font-weight: 400;
-    letter-spacing: 0;
-    transition: transform 160ms ease-out, box-shadow 160ms ease-out, background-color 160ms ease-out;
-  }
-  .reacts b.on {
-    background: var(--tray);
-    box-shadow: var(--recess);
-  }
-  @media (hover: hover) and (prefers-reduced-motion: no-preference) {
-    .tile:hover .reacts b.on {
-      animation: press 620ms cubic-bezier(0.3, 0.7, 0.2, 1);
-    }
-  }
-  @keyframes press {
-    0% {
-      transform: none;
-      background: var(--tray);
-      box-shadow: var(--recess);
-    }
-    35% {
-      transform: translateY(-2px);
-      background: #fff;
-      box-shadow: var(--raise);
-    }
-    60% {
-      transform: translateY(1px) scale(0.94);
-      background: var(--tray);
-      box-shadow: var(--recess);
-    }
-    100% {
-      transform: none;
-    }
   }
 
   /* How I work: four moments. The first line of each is the moment, the rest is quieter. */
@@ -337,10 +172,6 @@ import glass from "../assets/tools/glass.png";
     .principles + .about {
       margin-top: -40px;
     }
-    .tiles {
-      grid-template-columns: minmax(0, 1fr);
-      gap: 40px;
-    }
   }
   @media (max-width: 560px) {
     .hero {
@@ -362,12 +193,6 @@ import glass from "../assets/tools/glass.png";
     }
     .panel h2 span {
       display: inline;
-    }
-    .art {
-      height: 240px;
-    }
-    .art.dark img {
-      width: 210px;
     }
     .panel {
       padding: 28px 22px 24px;

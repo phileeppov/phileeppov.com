@@ -1,0 +1,391 @@
+---
+// Tools on the home page (site.md §1.8): chefkiss and Glass, two tiles of one material.
+// The chefkiss tile does what its line says: the 💩 under an answer goes down, the answer folds away and a shorter,
+// better-shaped one is written in its place. Desktop: under the hand or keyboard focus, and back on leaving. Touch:
+// once, when the tile is first in view or on the first touch. With reduced motion: the pressed state, still.
+// Material, one attribute on the section: "dark" (both tiles near-black, light raised pills) or "light" (a white
+// chefkiss tile with larger pills).
+import { Image } from "astro:assets";
+import glass from "../assets/tools/glass.png";
+
+interface Props {
+  material?: "dark" | "light";
+}
+const { material = "dark" } = Astro.props;
+---
+
+<section class="row tools" aria-labelledby="tools-label" data-material={material}>
+  <h2 class="label caps" id="tools-label">TOOLS</h2>
+  <div class="tiles">
+    <a class="tile ck" href="https://github.com/phileeppov/chefkiss" data-count="site:chefkiss">
+      <!-- The end of an answer in Claude Code and the mod's three buttons under it. Drawn, not a screenshot: no words.
+           Rows: --i counts from the top (writing order), --j from the bottom (folding order). -->
+      <div class="art chat" aria-hidden="true">
+        <div class="answer">
+          <!-- The first answer: long, its start scrolled away, bullets with a bold lead-in each. -->
+          <div class="slop">
+            <span class="r" style="--w:100%;--j:9"><i></i></span>
+            <span class="r" style="--w:93%;--j:8"><i></i></span>
+            <span class="r" style="--w:68%;--j:7"><i></i></span>
+            <span class="r li p" style="--w:90%;--j:6"><s></s><i class="b"></i><i style="--f:3"></i></span>
+            <span class="r li" style="--w:84%;--j:5"><s></s><i class="b" style="--f:1.3"></i><i style="--f:2.5"></i></span>
+            <span class="r li" style="--w:95%;--j:4"><s></s><i class="b" style="--f:0.9"></i><i style="--f:3.3"></i></span>
+            <span class="r li" style="--w:79%;--j:3"><s></s><i class="b" style="--f:1.1"></i><i style="--f:2.2"></i></span>
+            <span class="r p" style="--w:100%;--j:2"><i></i></span>
+            <span class="r" style="--w:97%;--j:1"><i></i></span>
+            <span class="r" style="--w:46%;--j:0"><i></i></span>
+          </div>
+          <!-- The second: whole on screen, its ⏺ visible; one line, one more, the command in a code block. -->
+          <div class="fix">
+            <span class="r lead" style="--w:54%;--i:0;--j:2"><s></s><i class="b"></i></span>
+            <span class="r" style="--w:71%;--i:1;--j:1"><i></i></span>
+            <span class="r code" style="--w:46%;--i:2;--j:0"
+              ><i class="b" style="--f:2"></i><i style="--f:5"></i><i style="--f:3"></i></span
+            >
+          </div>
+        </div>
+        <div class="reacts"><b>🤌</b><b>🎯</b><b class="hint">💩</b></div>
+      </div>
+      <p class="name">chefkiss</p>
+      <p class="line">A 💩 button for AI slop. Claude takes the&nbsp;hint.</p>
+      <p class="where">github.com/phileeppov/<wbr />chefkiss</p>
+    </a>
+    <a class="tile gl" href="/glass/" data-count="site:glass">
+      <div class="art dark" aria-hidden="true">
+        <Image src={glass} alt="" widths={[260, 520]} sizes="260px" />
+      </div>
+      <p class="name">Glass</p>
+      <p class="line">Drop a logo, get it back in glass.</p>
+      <p class="where">phileeppov.com/glass</p>
+    </a>
+  </div>
+</section>
+
+<script>
+  // A touch screen has no hover: the press plays once, when the chefkiss tile has been in view for a moment, or on the
+  // first touch, and stays. The class only switches states; the motion is in CSS (none with reduced motion).
+  const tile = document.querySelector<HTMLElement>(".tools .ck");
+  if (tile && !matchMedia("(hover: hover) and (pointer: fine)").matches) {
+    let timer = 0;
+    const play = () => {
+      tile.classList.add("fixed");
+      io.disconnect();
+    };
+    const io = new IntersectionObserver(
+      ([e]) => {
+        clearTimeout(timer);
+        if (e.isIntersecting) timer = window.setTimeout(play, 500);
+      },
+      { threshold: 0.8 },
+    );
+    io.observe(tile.querySelector(".chat")!);
+    tile.addEventListener("touchstart", play, { once: true, passive: true });
+  }
+</script>
+
+<style>
+  /* Two tiles, the newer one wider. Each picture is a raised surface. */
+  .tiles {
+    display: grid;
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    gap: 24px;
+  }
+  .tile {
+    display: grid;
+    align-content: start;
+    gap: 4px;
+    color: inherit;
+    text-decoration: none;
+    border-radius: 28px;
+  }
+  .tile:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 4px;
+  }
+  .art {
+    position: relative;
+    display: grid;
+    place-items: center;
+    height: 300px;
+    margin-bottom: 14px;
+    border-radius: 28px;
+    background: var(--surface);
+    box-shadow: var(--float);
+    overflow: hidden;
+    transition: transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 260ms ease-out;
+  }
+  .art.dark,
+  [data-material="dark"] .chat {
+    background: var(--color-black);
+    box-shadow: 0 0 0 0.5px color-mix(in srgb, var(--color-black) 60%, transparent),
+      0 16px 40px -16px color-mix(in srgb, var(--color-black) 40%, transparent);
+  }
+  .art.dark img {
+    width: min(260px, 93%);
+    height: auto;
+  }
+  /* Glass lifts a little under the hand; chefkiss answers with its press instead. */
+  @media (hover: hover) {
+    .gl:hover .art {
+      transform: translateY(-3px);
+      box-shadow: 0 0 0 0.5px color-mix(in srgb, var(--color-black) 60%, transparent),
+        0 24px 48px -18px color-mix(in srgb, var(--color-black) 55%, transparent);
+    }
+  }
+  .name {
+    margin: 0;
+    font-weight: 500;
+  }
+  .line {
+    margin: 0;
+    text-wrap: pretty;
+  }
+  .where {
+    margin: 2px 0 0;
+    font-size: var(--text-meta);
+    opacity: 0.5;
+  }
+
+  /* chefkiss. Sizes and colours per material and screen; the drawing below only reads them. */
+  .tools {
+    --bar: 9px; /* a line of prose */
+    --gap: 11px; /* between lines */
+    --para: 10px; /* extra space between paragraphs */
+    --indent: 20px; /* text after the ⏺ */
+    --fade: 56px; /* the top of a long answer scrolls away */
+    --pill-w: 52px;
+    --pill-h: 40px;
+    --emoji: 20px;
+    --pill-gap: 8px;
+    --react-gap: 24px;
+
+    --line: color-mix(in srgb, var(--color-black) 9%, transparent);
+    --strong: color-mix(in srgb, var(--color-black) 20%, transparent);
+    --mark: color-mix(in srgb, var(--color-black) 62%, transparent);
+    --code-bg: var(--tray);
+    --code-edge: var(--recess);
+    --pill: var(--surface);
+    --pill-edge: var(--raise);
+    --pressed: var(--tray);
+    --pressed-edge: var(--recess);
+  }
+  .tools[data-material="dark"] {
+    --line: color-mix(in srgb, var(--color-off-white) 10%, transparent);
+    --strong: color-mix(in srgb, var(--color-off-white) 22%, transparent);
+    --mark: color-mix(in srgb, var(--color-off-white) 72%, transparent);
+    --code-bg: color-mix(in srgb, var(--color-off-white) 5%, var(--color-black));
+    --code-edge: inset 0 0 0 0.5px color-mix(in srgb, var(--color-off-white) 9%, transparent);
+    --pill-edge: inset 0 1px 0 white, inset 0 -1px 0 color-mix(in srgb, var(--color-black) 10%, transparent),
+      0 0 0 0.5px color-mix(in srgb, var(--color-black) 70%, transparent),
+      0 2px 6px -1px color-mix(in srgb, var(--color-black) 80%, transparent);
+    --pressed: color-mix(in srgb, var(--color-off-white) 11%, var(--color-black));
+    --pressed-edge: inset 0 1px 3px color-mix(in srgb, var(--color-black) 85%, transparent),
+      inset 0 0 0 0.5px color-mix(in srgb, var(--color-off-white) 10%, transparent);
+  }
+  .tools[data-material="light"] {
+    --pill-w: 84px;
+    --pill-h: 64px;
+    --emoji: 32px;
+    --pill-gap: 12px;
+    --react-gap: 26px;
+  }
+
+  .chat {
+    grid-template-rows: minmax(0, 1fr) auto;
+    place-items: stretch;
+    gap: var(--react-gap);
+    padding: 28px 12% 32px;
+  }
+  /* Both answers in one cell, pinned to the bottom: a long one runs out of the top. */
+  .answer {
+    display: grid;
+    align-content: unsafe end;
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(transparent, black var(--fade));
+    mask-image: linear-gradient(transparent, black var(--fade));
+  }
+  .slop,
+  .fix {
+    grid-area: 1 / 1;
+    display: grid;
+    align-content: end;
+    gap: var(--gap);
+  }
+  /* A row: one line of the answer. It is drawn by its clip, right edge rounded, so it folds and writes from the left. */
+  .r {
+    --cr: 999px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: min(var(--w), 100% - var(--indent));
+    height: var(--bar);
+    margin-left: var(--indent);
+    clip-path: inset(0 0 0 0 round var(--cr));
+  }
+  .r.p {
+    margin-top: var(--para);
+  }
+  .r i {
+    flex: var(--f, 1) 1 0;
+    height: 100%;
+    border-radius: 999px;
+    background: var(--line);
+  }
+  .r .b {
+    background: var(--strong);
+  }
+  /* A list bullet, small; on the lead row it is the ⏺ that starts an answer, hanging left of the text. */
+  .r s {
+    flex: none;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--strong);
+  }
+  .lead {
+    gap: calc(var(--indent) - var(--bar));
+    width: min(var(--w), 100%);
+    margin-left: 0;
+  }
+  .lead s {
+    width: var(--bar);
+    height: var(--bar);
+    background: var(--mark);
+  }
+  /* The command: a recessed block, square-ended tokens like monospace. */
+  .code {
+    --cr: 6px;
+    height: auto;
+    gap: calc(var(--bar) * 0.8);
+    margin-top: 3px;
+    padding: calc(var(--bar) * 0.8) calc(var(--bar) * 1.1);
+    border-radius: 6px;
+    background: var(--code-bg);
+    box-shadow: var(--code-edge);
+  }
+  .code i {
+    height: calc(var(--bar) * 0.8);
+    border-radius: 2px;
+  }
+
+  .reacts {
+    display: flex;
+    gap: var(--pill-gap);
+    margin-left: var(--indent);
+  }
+  .reacts b {
+    display: grid;
+    place-items: center;
+    width: var(--pill-w);
+    height: var(--pill-h);
+    border-radius: 999px;
+    background: var(--pill);
+    box-shadow: var(--pill-edge);
+    font-size: var(--emoji);
+    font-weight: 400;
+    letter-spacing: 0;
+    line-height: 1;
+  }
+
+  /* Motion. At rest the first answer is up and the second folded. Pressed: the 💩 goes down and overshoots a hair,
+     the first answer folds from the bottom up (~180 ms, as if the press pushed it), then the second is written top
+     down (~420 ms). Leaving plays it back. */
+  .fix .r {
+    clip-path: inset(0 100% 0 0 round var(--cr));
+    transition: clip-path 140ms cubic-bezier(0.5, 0, 0.9, 0.5) calc(var(--j) * 16ms);
+  }
+  .slop .r {
+    transition: clip-path 340ms cubic-bezier(0.2, 0.8, 0.2, 1) calc(150ms + (9 - var(--j)) * 14ms);
+  }
+  .hint {
+    transition: transform 280ms cubic-bezier(0.3, 1.8, 0.5, 1);
+  }
+  .ck:is(:hover, :focus-visible, .fixed) .slop .r {
+    clip-path: inset(0 100% 0 0 round var(--cr));
+    transition: clip-path 110ms cubic-bezier(0.5, 0, 0.9, 0.5) calc(60ms + var(--j) * 7ms);
+  }
+  .ck:is(:hover, :focus-visible, .fixed) .fix .r {
+    clip-path: inset(0 0 0 0 round var(--cr));
+    transition: clip-path 340ms cubic-bezier(0.2, 0.8, 0.2, 1) calc(240ms + var(--i) * 40ms);
+  }
+  .ck:is(:hover, :focus-visible, .fixed) .hint {
+    transform: translateY(1px) scale(0.94);
+    background: var(--pressed);
+    box-shadow: var(--pressed-edge);
+  }
+
+  /* Reduced motion: one still picture, the pressed state, the way the line ends. */
+  @media (prefers-reduced-motion: reduce) {
+    .ck .r,
+    .hint {
+      transition: none !important;
+    }
+    .ck .slop {
+      display: none;
+    }
+    .ck .fix .r {
+      clip-path: inset(0 0 0 0 round var(--cr));
+    }
+    .ck .hint {
+      transform: translateY(1px) scale(0.94);
+      background: var(--pressed);
+      box-shadow: var(--pressed-edge);
+    }
+  }
+
+  /* Phone: two square tiles side by side, the drawing scaled to them. */
+  @media (max-width: 560px) {
+    .tiles {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 12px;
+    }
+    .tile,
+    .art {
+      border-radius: 22px;
+    }
+    .art {
+      height: auto;
+      aspect-ratio: 1;
+      margin-bottom: 10px;
+    }
+    .tools {
+      --bar: 5px;
+      --gap: 7px;
+      --para: 5px;
+      --indent: 11px;
+      --fade: 28px;
+      --pill-w: 32px;
+      --pill-h: 26px;
+      --emoji: 14px;
+      --pill-gap: 5px;
+      --react-gap: 12px;
+    }
+    .tools[data-material="light"] {
+      --pill-w: 38px;
+      --pill-h: 30px;
+      --emoji: 17px;
+      --pill-gap: 4px;
+    }
+    .art.dark img {
+      width: 80%;
+    }
+    .chat {
+      padding: 14px 14px 16px;
+    }
+    .r {
+      gap: 4px;
+    }
+    .r s {
+      width: 3px;
+      height: 3px;
+    }
+    .code {
+      --cr: 4px;
+      margin-top: 2px;
+      border-radius: 4px;
+    }
+    .code i {
+      border-radius: 1px;
+    }
+  }
+</style>
