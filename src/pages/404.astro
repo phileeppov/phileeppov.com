@@ -1,31 +1,43 @@
 ---
-// 404: site.md §6, in the /review style (Site.astro). The link has no arrow: under a moving pointer the emerald
-// comes out after its words (src/scripts/emerald.js).
+// 404: site.md §6, laid out as the wall (site.css): the line is the one statement, the link a caption on its last
+// baseline in the caption half. The link has no arrow: under a moving pointer the emerald comes out after its words
+// (src/scripts/emerald.js).
 import Site from "../layouts/Site.astro";
 ---
 
 <Site title="Not found" description="This page has no author.">
-  <main class="page flow lost">
-    <h1 class="page-title">This page has no author.</h1>
-    <a class="link" href="/" data-gem>Back to the start</a>
+  <main class="wall lost">
+    <section class="grid">
+      <h1 class="statement"><span>This page has</span> <span>no <em>author</em>.</span></h1>
+      <a class="link" href="/" data-gem>Back to the start</a>
+    </section>
   </main>
 </Site>
 
 <style>
-  .page.lost {
-    align-content: start;
-    justify-items: start;
-    gap: 48px;
-    padding-top: 40px;
+  .grid {
+    align-items: last baseline;
+    padding-top: 72px;
   }
   h1 {
-    max-width: 12em;
-    text-wrap: balance;
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+  .link {
+    grid-column: 7 / -1;
+    grid-row: 1;
+    justify-self: start;
+  }
+  @media (max-width: 767px) {
+    .link {
+      grid-column: 1 / -1;
+      grid-row: 2;
+      margin-top: 32px;
+    }
   }
   @media (max-width: 560px) {
-    .page.lost {
-      gap: 28px;
-      padding-top: 16px;
+    .grid {
+      padding-top: 48px;
     }
   }
 </style>

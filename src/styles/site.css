@@ -1,7 +1,7 @@
 /* Shared pieces of the Onest pages (home, manifesto, about, 404), loaded by Site.astro. Values only from tokens.css. */
 
-/* The page: rows down one edge, the same edge as the wordmark. On a very wide window it stops at 1440px and the space
-   stays on the right: asymmetric, not centred (brand: centring only in rare hero moments). */
+/* Not used by the wall pages any more; kept because the "No product yet" tab icon on /review (class "page") still
+   picks it up and is drawn with it. */
 .page {
   width: 100%;
   max-width: 1440px;
@@ -10,58 +10,103 @@
   padding-bottom: 32px;
 }
 
-/* Two speeds (home, about, 404): titles, labels and text start at one left edge, the page padding; text keeps to one
-   column, objects (the tools, the photo) may run the full width. Parts of the page stand far apart, the pieces of one
-   part close together: the space says what belongs to what. */
-.page.flow {
-  --part: 200px;
-  /* The right edge of text: Lead lines run to it. Body paragraphs stop sooner, at about 70 characters a line. */
-  --column: 684px;
-  --measure-body: 28em;
-  gap: var(--part);
-  padding-bottom: 96px;
-}
-/* A part: its label above it, on the same edge. */
-.part {
+/* The wall. Two sizes of type and nothing between: a statement at Display, read from across the room, and captions
+   at body and meta, read up close. Statements start at one left edge and break only where the meaning breaks;
+   captions hang from the middle of a twelve-column grid. Parts are divided by 0.5px hairlines that run the full width
+   of the window. No cards and no raised panels: depth only in what is pressed. One statement to a screen. */
+main.wall {
+  --gutter: 24px;
+  /* The body's own side padding (Site.astro): full-width rules and bands step out by it. */
+  --bleed: 24px;
+  /* A caption's measure: at body size in Onest about 68 characters at most (brand: 55–70). */
+  --cap: 27em;
   display: grid;
-  justify-items: start;
   align-content: start;
-  gap: 28px;
+  max-width: none;
 }
-.part > * {
-  max-width: 100%;
-}
-/* The page title, in one place on every page: Display size, at the left edge, under the header. */
-.page-title {
-  margin: 0;
-  font-size: clamp(40px, 5.6vw, 80px);
-  font-weight: 500;
-  line-height: 0.98;
-  letter-spacing: -0.045em;
-}
-/* A row: a label on the left, the content on the right. */
-.row {
+
+/* The grid: twelve columns, one gutter. On a very wide window it stops at 1392px and the space stays on the right
+   (as padding, so a part's hairline and the dark band still run the full width). */
+.grid {
   display: grid;
-  grid-template-columns: minmax(0, 3fr) minmax(0, 9fr);
-  gap: 24px 48px;
-  align-items: start;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  column-gap: var(--gutter);
+  padding-right: max(0px, 100% - 1392px);
 }
+
+/* A part of the wall: a full-width hairline on top, the label 24px under it. */
+.part {
+  margin-inline: calc(var(--bleed) * -1);
+  padding: 24px max(var(--bleed), 100% + var(--bleed) - 1392px) 0 var(--bleed);
+  border-top: 0.5px solid var(--hair);
+}
+
+/* The statement: Display, the only size above body. Each meaning part of the line on a line of its own. */
+.statement {
+  margin: 0;
+  font-size: var(--text-display);
+  font-weight: 500;
+  line-height: var(--leading-display);
+  letter-spacing: var(--tracking-display);
+}
+.statement > span,
+.statement .ph > span {
+  display: block;
+}
+/* A sentence set in phrases (class ph): on a phone, where a phrase no longer fits a line, the sentence flows as a
+   whole, balanced, instead of leaving one word on a line of its own. */
+@media (max-width: 560px) {
+  .statement .ph {
+    text-wrap: balance;
+  }
+  .statement .ph > span {
+    display: inline;
+  }
+}
+/* Line breaks that hold only on a phone, or only off it, where the measure changes which parts fit a line. */
+.on-phone {
+  display: none;
+}
+@media (max-width: 560px) {
+  .on-phone {
+    display: inline;
+  }
+  .off-phone {
+    display: none;
+  }
+}
+/* The anomaly: one word a page, in the second face (brand: italic only, for the anomaly only). */
+.statement em {
+  font-family: var(--font-anomaly);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+}
+
+/* A caption: body size, hung from column 7 (the middle of the wall). */
+.cap {
+  grid-column: 7 / span 6;
+  max-width: var(--cap);
+  margin: 0;
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+.cap p {
+  margin: 0;
+}
+
+/* A label: meta, capitals, a little air between the letters. */
 .label {
   margin: 0;
-  padding-top: 3px;
   font-size: var(--text-meta);
   font-weight: 500;
   line-height: 1.4;
-  letter-spacing: -0.02em;
-  opacity: 0.6;
-  text-wrap: balance;
-}
-/* A label in capitals needs air between the letters that lowercase doesn't. */
-.label.caps {
   letter-spacing: 0.04em;
+  opacity: 0.6;
 }
 
-/* Dark button, as SEND on /review: lighter than black, a thin highlight, 0.5px at the edge. */
+/* Dark button, as SEND on /review: lighter than black, a thin highlight, 0.5px at the edge. The only raised things on
+   the wall are the ones you press. */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -73,6 +118,7 @@
   color: var(--color-off-white);
   font-weight: 500;
   text-decoration: none;
+  white-space: nowrap;
   transition: transform 120ms ease-out, filter 120ms ease-out;
 }
 .btn:hover {
@@ -101,59 +147,19 @@
   border-radius: 999px;
 }
 
-/* A thin rule between parts of a long page. */
-.rule {
-  height: 0;
-  margin: 0;
-  border: 0;
-  border-top: 0.5px solid var(--hair);
-}
-
-/* The closing line before the button: manifesto, about. */
-.closing {
-  display: grid;
-  justify-items: start;
-  gap: 20px;
-}
-.closing p {
-  margin: 0;
-  font-size: var(--text-lead);
-  font-weight: 500;
-  line-height: 1.1;
-  letter-spacing: -0.05em;
-}
-
-@media (max-width: 900px) {
-  .page {
-    gap: 88px;
+/* Under 1024px the caption column moves left to keep its measure; under 768px the wall is one column. */
+@media (max-width: 1199px) {
+  .cap {
+    grid-column: 5 / -1;
   }
-  .row {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 20px;
-  }
-  .row > .label:empty {
-    display: none;
-  }
-  .page.flow {
-    --part: 128px;
-    padding-bottom: 64px;
+}
+@media (max-width: 767px) {
+  .cap {
+    grid-column: 1 / -1;
   }
 }
 @media (max-width: 560px) {
   .btn {
     padding: 14px 20px 14px 22px;
-  }
-  .closing p {
-    font-size: 24px;
-  }
-  .page.flow {
-    --part: 112px;
-    padding-bottom: 48px;
-  }
-  .part {
-    gap: 24px;
-  }
-  .page-title {
-    font-size: 35px;
   }
 }

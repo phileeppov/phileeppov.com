@@ -49,11 +49,11 @@ const aside = Astro.slots.has("aside");
   <slot />
   <Footer />
   <!-- No one-letter word (and no "an") left hanging at the end of a line: the space after it becomes non-breaking.
-       Inline, so it runs as the page is parsed, before the first paint. Only on the .page layouts: /review sets its
+       Inline, so it runs as the page is parsed, before the first paint. Only on the wall pages: /review sets its
        breaks by hand. -->
   <script is:inline>
     (() => {
-      const main = document.querySelector("body > main.page");
+      const main = document.querySelector("body > main.wall");
       if (!main) return;
       const walk = document.createTreeWalker(main, NodeFilter.SHOW_TEXT);
       for (let n = walk.nextNode(); n; n = walk.nextNode()) {
