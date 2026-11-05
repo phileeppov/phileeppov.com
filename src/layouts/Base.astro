@@ -6,10 +6,11 @@ interface Props {
   title?: string;
   description: string;
   image?: string; // absolute or root-relative image path for the link preview
+  imageSize?: [number, number]; // its width and height; the preview cards are 1200×630
   bare?: boolean; // no shared header and footer, the page draws its own (/glass, and Site.astro for the Onest pages)
 }
 
-const { title, description, image, bare = false } = Astro.props;
+const { title, description, image, imageSize = [1200, 630], bare = false } = Astro.props;
 
 // Cloudflare Web Analytics: no cookies, no banner. The token comes from the snippet
 // in the Cloudflare dashboard → Web Analytics (manual install mode since 22.10.2026: auto-injection into Workers static assets
@@ -34,9 +35,9 @@ const ogImage = image ? new URL(image, Astro.site) : undefined;
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
     {ogImage && <meta property="og:image" content={ogImage} />}
-    {/* Every preview image is 1200×630; saying so lets Facebook and LinkedIn show it on the very first share. */}
-    {ogImage && <meta property="og:image:width" content="1200" />}
-    {ogImage && <meta property="og:image:height" content="630" />}
+    {/* The image's size lets Facebook and LinkedIn show it on the very first share. */}
+    {ogImage && <meta property="og:image:width" content={String(imageSize[0])} />}
+    {ogImage && <meta property="og:image:height" content={String(imageSize[1])} />}
     <meta name="twitter:card" content={ogImage ? "summary_large_image" : "summary"} />
     {ogImage && <meta name="twitter:image" content={ogImage} />}
     <slot name="head" />

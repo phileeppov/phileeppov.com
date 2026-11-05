@@ -16,7 +16,7 @@ const { c, prev, next } = Astro.props;
 const og = await getImage({ src: shot(c.slug, c.hero[0].img), width: 1200, format: "jpg" });
 ---
 
-<Base title={c.name} description={c.description} image={og.src}>
+<Base title={c.name} description={c.description} image={og.src} imageSize={[Number(og.attributes.width), Number(og.attributes.height)]}>
   <main>
     <section>
       <p>Filed under<br />{c.principle}</p>

@@ -568,7 +568,10 @@ function away() { pressEl = null; ptr.inside = false; setHover(null); kick(); }
 document.addEventListener('pointerleave', away);
 addEventListener('pointercancel', away);
 addEventListener('dragstart', away);
-addEventListener('resize', away);
+// A zoom or a new window size makes the coordinates stale. On a phone the browser's bars sliding in and out resize the
+// page under a still finger: that keeps the press (same width).
+let lastW = innerWidth;
+addEventListener('resize', () => { if (TOUCH && innerWidth === lastW) return; lastW = innerWidth; away(); });
 if (TOUCH) {
   // The touch became a scroll, or a long press opened the link's menu: the stone goes at once, the arrow is back.
   const drop = () => {

@@ -76,7 +76,8 @@ const { material = "dark" } = Astro.props;
         clearTimeout(timer);
         if (e.isIntersecting) timer = window.setTimeout(play, 500);
       },
-      { threshold: 0.8 },
+      // Only once it reaches the middle of the screen: not on load while the hero is being read.
+      { threshold: 0.8, rootMargin: "-30% 0px -30% 0px" },
     );
     io.observe(tile.querySelector(".chat")!);
     tile.addEventListener("touchstart", play, { once: true, passive: true });
