@@ -39,8 +39,9 @@ const cards = cases.map((c, i) => {
          button under it in the caption half. -->
     <section class="hero grid">
       <h1 class="label">NIKITA FILIPPOV, PRODUCT DESIGNER</h1>
-      <p class="statement"><span>“Good design</span> <span>is invisible.”</span> <span>Bullshit.</span> <span>It stands out.</span></p>
+      <p class="statement"><span class="ph"><span>I fix the screens</span> <span>people write</span> <span>to support&nbsp;about.</span></span></p>
       <div class="cap">
+        <p class="proof">I redesigned game recording in Medal.tv, an app with 3M daily users.</p>
         <a class="btn" href="/review/" data-gem data-count="site:hero">Send a link, get a video review <span class="arw">→</span></a>
       </div>
     </section>
@@ -148,7 +149,13 @@ const cards = cases.map((c, i) => {
     grid-column: 1 / -1;
     margin-top: 24px;
     /* The line and its button share the first screen: on a short screen the Display steps down to fit both. */
-    font-size: max(min(var(--text-display), calc((100svh - 330px) / 4)), min(var(--text-display), 64px));
+    font-size: max(min(var(--text-display), calc((100svh - 380px) / 3)), min(var(--text-display), 64px));
+  }
+  /* The proof under the line: a caption, then the button. */
+  .hero .proof {
+    margin: 0 0 24px;
+    opacity: 0.6;
+    max-width: 24em;
   }
   .hero .cap {
     margin-top: 48px;
