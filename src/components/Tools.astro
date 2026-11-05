@@ -82,6 +82,40 @@ import glass from "../assets/tools/glass.png";
   if (tile && new URLSearchParams(location.search).get("from") === "chefkiss") {
     window.setTimeout(() => tile.classList.add("fixed"), 1200);
   }
+
+  // Glass comes alive under the hand with its own engine (see glass-tile.js). Desktop only, never with reduced motion.
+  // The engine loads when the hand first comes onto the band, so it is ready by the time it reaches the tile; if the
+  // tile is already under the hand when it is ready, it plays then. Until then, and on any failure, the picture stays.
+  const gl = document.querySelector<HTMLElement>(".tools .gl");
+  const band = document.querySelector<HTMLElement>(".tools");
+  if (
+    gl &&
+    band &&
+    matchMedia("(hover: hover) and (pointer: fine)").matches &&
+    !matchMedia("(prefers-reduced-motion: reduce)").matches
+  ) {
+    let pending: PointerEvent | null = null;
+    const note = (e: PointerEvent) => (pending = e.pointerType === "mouse" ? e : null);
+    const forget = () => (pending = null);
+    gl.addEventListener("pointerenter", note);
+    gl.addEventListener("pointermove", note);
+    gl.addEventListener("pointerleave", forget);
+    band.addEventListener(
+      "pointerenter",
+      () => {
+        import("../scripts/glass-tile.js")
+          .then(({ glassTile }) => glassTile(gl))
+          .then((live) => {
+            gl.removeEventListener("pointerenter", note);
+            gl.removeEventListener("pointermove", note);
+            gl.removeEventListener("pointerleave", forget);
+            if (live && pending) live.enter(pending);
+          })
+          .catch(() => {});
+      },
+      { once: true },
+    );
+  }
 </script>
 
 <style>
@@ -138,9 +172,34 @@ import glass from "../assets/tools/glass.png";
     mix-blend-mode: lighten;
     transition: transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
   }
+  /* The live glass (glass-tile.js) over the picture, the same size: the picture is a crop of the square the glass is
+     drawn in, its top 10 of 520 px off. Hidden until its first frame is drawn, which is the picture's own; while it
+     plays the picture steps out, and when it has settled back the picture returns under it and it fades. */
+  .art.dark :global(canvas) {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 260px;
+    height: 260px;
+    translate: 0 calc(100% * 10 / 520);
+    mix-blend-mode: lighten;
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      opacity 160ms ease-out,
+      transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .gl.is-live .art :global(canvas) {
+    opacity: 1;
+    transition: transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .gl.is-live .art img {
+    opacity: 0;
+  }
   /* Glass lifts a little under the hand; chefkiss answers with its press instead. */
   @media (hover: hover) {
-    .gl:hover .art img {
+    .gl:hover .art img,
+    .gl:hover .art :global(canvas) {
       transform: translateY(-4px);
     }
   }
@@ -369,6 +428,11 @@ import glass from "../assets/tools/glass.png";
     }
     .art.dark img {
       width: 100%;
+    }
+    .art.dark :global(canvas) {
+      width: 100%;
+      height: auto;
+      aspect-ratio: 1;
     }
     .chat {
       padding: 0;
