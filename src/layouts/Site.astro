@@ -8,6 +8,7 @@
 // start here for every page that marks its links data-gem; on touch screens only the first, for the press.
 import Base from "./Base.astro";
 import Footer from "../components/Footer.astro";
+import Passage from "../components/Passage.astro";
 import "../styles/onest.css";
 import "../styles/site.css";
 
@@ -15,9 +16,10 @@ interface Props {
   title?: string;
   description: string;
   image?: string;
+  passage?: boolean; // the page opens and closes as a disc of glass from the pressed arrow (Passage.astro)
 }
 
-const { title, description, image } = Astro.props;
+const { title, description, image, passage = false } = Astro.props;
 const aside = Astro.slots.has("aside");
 ---
 
@@ -30,6 +32,7 @@ const aside = Astro.slots.has("aside");
       <Fragment slot="head">
         <link rel="icon" type="image/png" sizes="64x64" href="/review-favicon.png" />
         <link rel="apple-touch-icon" href="/review-touch-icon.png" />
+        {passage && <Passage />}
       </Fragment>
     )
   }
@@ -87,6 +90,7 @@ const aside = Astro.slots.has("aside");
       if (isWide) {
         import("../scripts/emerald.js").then((m) => m.startEmerald());
         import("../scripts/emerald-cursor.js").then((m) => m.startCursor());
+        import("../scripts/glint.js").then((m) => m.startGlint());
       } else import("../scripts/emerald.js").then((m) => m.startEmerald({ touch: true }));
     };
     if ("requestIdleCallback" in window) requestIdleCallback(go, { timeout: 1500 });

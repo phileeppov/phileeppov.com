@@ -11,6 +11,7 @@
 export async function startEmerald({ touch: TOUCH = false } = {}) {
 const cv = document.createElement('canvas');
 cv.setAttribute('aria-hidden', 'true');
+cv.dataset.layer = 'gem';
 cv.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:50' + (TOUCH ? ';visibility:hidden' : '');
 // On a phone only a real GPU: WebGL drawn on the CPU would heat the phone and still miss the finger.
 // It never tests depth: a phone skips that buffer, a screenful of GPU memory.

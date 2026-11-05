@@ -10,7 +10,7 @@ const photos = import.meta.glob<{ default: ImageMetadata }>("../assets/about/*.{
 const photo = Object.values(photos)[0]?.default;
 ---
 
-<Site title="About" description="I design products. I've been doing it for five years." image="/about-og.jpg">
+<Site passage title="About" description="I design products. I've been doing it for five years." image="/about-og.jpg">
   <main class="wall about">
     <section class="intro grid">
       <h1 class="label">ABOUT</h1>

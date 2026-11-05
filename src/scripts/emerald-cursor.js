@@ -11,6 +11,7 @@ export async function startCursor() {
 const root = document.documentElement;
 const cv = document.createElement('canvas');
 cv.setAttribute('aria-hidden', 'true');
+cv.dataset.layer = 'cursor';
 cv.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:2147483000';
 const gl = cv.getContext('webgl2', { alpha: true, premultipliedAlpha: true, antialias: false, depth: false, stencil: false });
 if (!gl) return;
@@ -549,4 +550,16 @@ function render(dtF) {
   if (ptr.inside) show();
 }
 resize();
+// After a passage from another page of the site the hand is usually still where it pressed (src/components/Passage.astro
+// keeps that point for a few seconds). If the page agrees the pointer is over what lies at that point, the emerald
+// starts there instead of waiting for the hand to move; the next real move takes over either way.
+try {
+  const s = JSON.parse(sessionStorage.getItem('passage:ptr') || 'null');
+  sessionStorage.removeItem('passage:ptr');
+  const over = [...document.querySelectorAll(':hover')].pop();
+  const at = s && document.elementFromPoint(s.x, s.y);
+  if (s && Date.now() - s.t < 4000 && ptr.x === -100 && over && at && over !== document.body && over !== root && (over === at || over.contains(at))) {
+    ptr.x = s.x; ptr.y = s.y; ptr.inside = true; st.reenter = true; st.alpha = 1; kick();
+  }
+} catch {}
 }
