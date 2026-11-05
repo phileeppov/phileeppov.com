@@ -3,18 +3,12 @@
 // The chefkiss tile does what its line says: the 💩 under an answer goes down, the answer folds away and a shorter,
 // better-shaped one is written in its place. Desktop: under the hand or keyboard focus, and back on leaving. Touch:
 // once, when the tile is first in view or on the first touch. With reduced motion: the pressed state, still.
-// Material, one attribute on the section: "dark" (both tiles near-black, light raised pills) or "light" (a white
-// chefkiss tile with larger pills).
+// Material: both tiles near-black, the chefkiss pills raised and light.
 import { Image } from "astro:assets";
 import glass from "../assets/tools/glass.png";
-
-interface Props {
-  material?: "dark" | "light";
-}
-const { material = "dark" } = Astro.props;
 ---
 
-<section class="part tools" aria-labelledby="tools-label" data-material={material}>
+<section class="part tools" aria-labelledby="tools-label">
   <h2 class="label caps" id="tools-label">TOOLS</h2>
   <div class="tiles">
     <a class="tile ck" href="https://github.com/phileeppov/chefkiss" data-count="site:chefkiss">
@@ -128,7 +122,7 @@ const { material = "dark" } = Astro.props;
     transition: transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 260ms ease-out;
   }
   .art.dark,
-  [data-material="dark"] .chat {
+  .art.chat {
     background: var(--color-black);
     box-shadow: 0 0 0 0.5px color-mix(in srgb, var(--color-black) 60%, transparent),
       0 16px 40px -16px color-mix(in srgb, var(--color-black) 40%, transparent);
@@ -159,7 +153,7 @@ const { material = "dark" } = Astro.props;
     opacity: 0.5;
   }
 
-  /* chefkiss. Sizes and colours per material and screen; the drawing below only reads them. */
+  /* chefkiss. Sizes and colours per screen; the drawing below only reads them. */
   .tools {
     --bar: 9px; /* a line of prose */
     --gap: 11px; /* between lines */
@@ -172,36 +166,19 @@ const { material = "dark" } = Astro.props;
     --pill-gap: 8px;
     --react-gap: 24px;
 
-    --line: color-mix(in srgb, var(--color-black) 9%, transparent);
-    --strong: color-mix(in srgb, var(--color-black) 20%, transparent);
-    --mark: color-mix(in srgb, var(--color-black) 62%, transparent);
-    --code-bg: var(--tray);
-    --code-edge: var(--recess);
     --pill: var(--surface);
-    --pill-edge: var(--raise);
-    --pressed: var(--tray);
-    --pressed-edge: var(--recess);
-  }
-  .tools[data-material="dark"] {
     --line: color-mix(in srgb, var(--color-off-white) 20%, transparent);
     --strong: color-mix(in srgb, var(--color-off-white) 36%, transparent);
     --mark: color-mix(in srgb, var(--color-off-white) 90%, transparent);
     --code-bg: color-mix(in srgb, var(--color-off-white) 8%, var(--color-black));
     --code-edge: inset 0 0 0 0.5px color-mix(in srgb, var(--color-off-white) 14%, transparent);
-    --pill-edge: inset 0 1px 0 white, inset 0 -1px 0 color-mix(in srgb, var(--color-black) 10%, transparent),
+    --pill-edge: inset 0 -1px 0 color-mix(in srgb, var(--color-black) 10%, transparent),
       0 0 0 0.5px color-mix(in srgb, var(--color-black) 70%, transparent),
       0 2px 6px -1px color-mix(in srgb, var(--color-black) 80%, transparent);
     /* Pressed: a tray tone, lighter than the tile and darker than the raised pills, so the emoji keeps its strength. */
     --pressed: color-mix(in srgb, var(--color-off-white) 30%, var(--color-black));
     --pressed-edge: inset 0 1.5px 3px color-mix(in srgb, var(--color-black) 55%, transparent),
       inset 0 0 0 0.5px color-mix(in srgb, var(--color-off-white) 16%, transparent);
-  }
-  .tools[data-material="light"] {
-    --pill-w: 84px;
-    --pill-h: 64px;
-    --emoji: 32px;
-    --pill-gap: 12px;
-    --react-gap: 26px;
   }
 
   .chat {
@@ -373,12 +350,6 @@ const { material = "dark" } = Astro.props;
       --emoji: 14px;
       --pill-gap: 5px;
       --react-gap: 12px;
-    }
-    .tools[data-material="light"] {
-      --pill-w: 38px;
-      --pill-h: 30px;
-      --emoji: 17px;
-      --pill-gap: 4px;
     }
     .art.dark img {
       width: 80%;

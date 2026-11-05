@@ -2,19 +2,14 @@
 // Manifesto: site.md §2, copy verbatim. The title stands where every page has it (label above, left edge); below it
 // the principles run down the right. Each principle's number stands in the left column in Lead at a third of the ink
 // and stays in view while its principle is read (sticky), so the column carries the structure, not just the page label.
-// Two pacings, set on <main> (both kept for review until one is chosen):
-//   data-pace="length": the pause after a principle grows with its length (data-len on the article); the number is a
-//     running head in the page's corner, held through the pause until the next one pushes it out;
-//   data-pace="screen": one principle, one screen (from 900px wide; the phone keeps even gaps); the number leaves with
-//     its text's last line.
-// data-italic="whose" | "typing" | "purpose": the italic switch (brand: one anomaly per composition) on one word of the
-// explanations; without it, no switch. Georgia stands in for the anomaly face until web fonts exist.
+// The pause after a principle grows with its length (data-len on the article); the number is a running head in the
+// page's corner, held through the pause until the next one pushes it out.
 import Site from "../layouts/Site.astro";
 import Stamp from "../components/Stamp.astro";
 ---
 
 <Site title="Manifesto" description="Five principles I work by." image="/manifesto-og.png">
-  <main class="page manifesto" data-pace="length">
+  <main class="page manifesto">
     <!-- The title in the one place every page has it: the label over it, both at the left edge (site.css .page-title). -->
     <section class="part intro">
       <h1 class="label caps">MANIFESTO</h1>
@@ -27,7 +22,7 @@ import Stamp from "../components/Stamp.astro";
         <div class="side"><span class="num">01.</span></div>
         <div class="text">
           <h2>Every decision has an&nbsp;author.</h2>
-          <p>If no one will defend it, it shouldn't ship. Every product is built on a few thousand small decisions: what the cancel button says, where the password strength meter sits, whether the empty state is funny or quiet. Most of those get made by accident. I make them on&nbsp;<span class="sw" data-w="purpose">purpose</span>.</p>
+          <p>If no one will defend it, it shouldn't ship. Every product is built on a few thousand small decisions: what the cancel button says, where the password strength meter sits, whether the empty state is funny or quiet. Most of those get made by accident. I make them on&nbsp;purpose.</p>
           <p>Settings are unfinished decisions. So is sending people to support for something the screen could have told them. "Make it customizable" is what designers say when they can't&nbsp;decide.</p>
         </div>
       </article>
@@ -36,7 +31,7 @@ import Stamp from "../components/Stamp.astro";
         <div class="side"><span class="num">02.</span></div>
         <div class="text">
           <h2>The brief is wrong until proven&nbsp;right.</h2>
-          <p>A brief is the founder's first guess at the problem. The work starts with checking that guess. If you hand me a brief and I do exactly what it says, I'm not designing. I'm&nbsp;<span class="sw" data-w="typing">typing</span>.</p>
+          <p>A brief is the founder's first guess at the problem. The work starts with checking that guess. If you hand me a brief and I do exactly what it says, I'm not designing. I'm&nbsp;typing.</p>
         </div>
       </article>
 
@@ -60,14 +55,14 @@ import Stamp from "../components/Stamp.astro";
         <div class="side"><span class="num">05.</span></div>
         <div class="text">
           <h2>The safe version is already&nbsp;taken.</h2>
-          <p>Every category has its safe version, and it's already taken. The banking app in navy blue. The pharmacy site that opens with a sale. Building another one puts you at the back of a line someone else started. You should be able to tell <span class="sw" data-w="whose">whose</span> product it is without seeing the&nbsp;logo.</p>
+          <p>Every category has its safe version, and it's already taken. The banking app in navy blue. The pharmacy site that opens with a sale. Building another one puts you at the back of a line someone else started. You should be able to tell whose product it is without seeing the&nbsp;logo.</p>
         </div>
       </article>
     </section>
 
     <section class="row">
       <span class="label" aria-hidden="true"></span>
-      <!-- The stamp at the close: its rim crosses "build" (off until approved; ?stamp=on to review). -->
+      <!-- The stamp at the close: its rim crosses "build". -->
       <div class="end">
         <Stamp seed={1} prefer={0} />
         <hr class="rule" />
@@ -79,18 +74,6 @@ import Stamp from "../components/Stamp.astro";
     </section>
   </main>
 </Site>
-
-<!-- Review toggles for the variants: /manifesto/?pace=screen, ?italic=whose (or typing, purpose). Remove together with
-     the variants that aren't chosen. -->
-<script is:inline>
-  (() => {
-    const q = new URLSearchParams(location.search);
-    const main = document.querySelector("main.manifesto");
-    if (!main) return;
-    if (q.get("pace")) main.dataset.pace = q.get("pace");
-    if (q.get("italic")) main.dataset.italic = q.get("italic");
-  })();
-</script>
 
 <style>
   .intro {
@@ -166,47 +149,13 @@ import Stamp from "../components/Stamp.astro";
     text-wrap: pretty;
   }
 
-  /* One principle, one screen: each takes most of a screen, so the next title only shows at the bottom. A long
-     principle still keeps a pause after it. The pause is outside the row here, so the number holds only beside its
-     text, 96px from the top, and leaves with the last line: held through the pause it would hang alone on an empty
-     screen. */
-  .manifesto[data-pace="screen"] .text {
-    padding-bottom: 0;
-  }
-  .manifesto[data-pace="screen"] .num {
-    top: 96px;
-  }
-  @media (min-width: 901px) {
-    .manifesto[data-pace="screen"] article {
-      box-sizing: border-box;
-      min-height: 72vh;
-      padding-bottom: 96px;
-    }
-    .manifesto[data-pace="screen"] article:last-child {
-      min-height: 0;
-      padding-bottom: 0;
-    }
-  }
-
-  /* The italic switch: one word, in the anomaly face, at zero tracking. */
-  .manifesto[data-italic="whose"] .sw[data-w="whose"],
-  .manifesto[data-italic="typing"] .sw[data-w="typing"],
-  .manifesto[data-italic="purpose"] .sw[data-w="purpose"] {
-    font-family: var(--font-anomaly);
-    font-style: italic;
-    font-weight: 400;
-    font-size: 1.06em;
-    line-height: 1;
-    letter-spacing: 0;
-  }
-
   .end {
     display: grid;
     gap: 64px;
   }
 
   /* One column: the number sits above its title, as the label sits above the page title; the text takes the full
-     width. The pauses keep their order at about half the size; one screen each makes no sense here, so even gaps. */
+     width. The pauses keep their order at about half the size. */
   @media (max-width: 900px) {
     article {
       row-gap: 6px;
@@ -217,11 +166,7 @@ import Stamp from "../components/Stamp.astro";
     .text {
       padding-bottom: calc(24px + var(--rest) * 0.4);
     }
-    .manifesto[data-pace="screen"] article {
-      padding-bottom: 88px;
-    }
-    article:last-child .text,
-    .manifesto[data-pace="screen"] article:last-child {
+    article:last-child .text {
       padding-bottom: 0;
     }
   }

@@ -1,4 +1,4 @@
-// The stamp's own code, loaded by src/components/Stamp.astro only when a stamp on the page is on.
+// The stamp's own code, loaded by src/components/Stamp.astro only on a page that has a stamp.
 // The impression in units of its radius R, y up, as if the glass were still on the page: a slow dome of glass whose
 // rim wanders a little and was pressed unevenly; light from the upper left.
 const REACH = 1.7; // the caustic falls a little past the rim; the square holds it all

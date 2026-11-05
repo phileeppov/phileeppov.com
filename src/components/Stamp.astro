@@ -8,18 +8,16 @@
 // afterwards, so reduced motion needs nothing of its own.
 // Placement: the rim crosses the word marked data-stamp-at, and the mark lands on the clearest paper beside it
 // (prefer: the direction to try first, in degrees, 0 = right, -90 = up). One stamp per page.
-// Off unless on={true}; ?stamp=on in the address shows it for review, ?stamp=off hides it.
 interface Props {
-  on?: boolean;
   seed?: number;
   prefer?: number;
 }
 
-const { on = false, seed = 0, prefer = 0 } = Astro.props;
+const { seed = 0, prefer = 0 } = Astro.props;
 const id = `stamp-${seed}`;
 ---
 
-<svg class="stamp" data-stamp={on ? "on" : "off"} data-seed={seed} data-prefer={prefer} aria-hidden="true" focusable="false" width="0" height="0">
+<svg class="stamp" data-seed={seed} data-prefer={prefer} aria-hidden="true" focusable="false" width="0" height="0">
   <filter id={id} filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse" color-interpolation-filters="sRGB" x="0" y="0" width="0" height="0">
     <!-- Inside the stamp's square only (class sq): the paragraph on white, so the colours can be pulled apart. The host
          multiplies onto the page, so white is the page itself and nothing beside the paragraph is painted over. -->
@@ -53,11 +51,9 @@ const id = `stamp-${seed}`;
 </svg>
 
 <script>
-  // The stamp's code (src/scripts/stamp.ts) loads only when a stamp is on: ?stamp=on or off in the address wins over
-  // the page's own setting.
-  const ask = new URLSearchParams(location.search).get("stamp");
-  const on = [...document.querySelectorAll<SVGSVGElement>("svg.stamp")].filter((svg) => (ask ?? svg.dataset.stamp) === "on");
-  if (on.length) import("../scripts/stamp").then(({ stamp }) => on.forEach(stamp));
+  // The stamp's code (src/scripts/stamp.ts) loads only on a page that has a stamp.
+  const stamps = [...document.querySelectorAll<SVGSVGElement>("svg.stamp")];
+  if (stamps.length) import("../scripts/stamp").then(({ stamp }) => stamps.forEach(stamp));
 </script>
 
 <style>
