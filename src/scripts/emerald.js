@@ -1,10 +1,11 @@
-// "An emerald instead of the arrow": while the pointer moves over a link or a dark button, its arrow turns into a cut
-// emerald; when the hand stops, the stone goes back into the arrow. At rest the page draws nothing (no frames).
+// "An emerald instead of the arrow": while the pointer is over a link or a dark button, its arrow turns into a cut
+// emerald; when the pointer leaves, the stone goes back into the arrow. Nothing is drawn frame by frame at rest: once
+// the stone settles, the loop stops and the last frame stays on the canvas.
 // One WebGL2 canvas over the page that only ever draws a few small quads. Elements opt in with data-gem; the glyph the
 // stone grows from is .arw inside them (without one, the stone sits after the label). Dark buttons (.btn) get the stone
-// in a closed collet, so it stays light on the dark. Emerald exists only in motion: this runs on wide screens with a
-// fine pointer and no reduced-motion preference (see the caller); elsewhere the arrows stay arrows.
-export function startEmerald() {
+// in a closed collet, so it stays light on the dark. This runs only on wide screens with a fine pointer and no
+// reduced-motion preference (see the caller); elsewhere the arrows stay arrows.
+export async function startEmerald() {
 const cv = document.createElement('canvas');
 cv.setAttribute('aria-hidden', 'true');
 cv.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:50';
@@ -35,7 +36,7 @@ const p2z = -z0 - 0.2 * Math.tan(deg(52));
 const NP = planes.length;
 
 // ---------- GL ----------
-const dpr = Math.min(devicePixelRatio || 1, 2);
+let dpr = Math.min(devicePixelRatio || 1, 2);
 const VS = `#version 300 es
 in vec2 aP; uniform vec4 uRect; uniform vec2 uRes;
 void main(){ vec2 px = uRect.xy + aP * uRect.zw; gl_Position = vec4(px / uRes * 2.0 - 1.0, 0.0, 1.0); }`;
@@ -43,6 +44,8 @@ void main(){ vec2 px = uRect.xy + aP * uRect.zw; gl_Position = vec4(px / uRes * 
 const STONE = `#version 300 es
 precision highp float;
 uniform vec4 uP[${NP}];
+uniform int uNP;            // the plane count again, as a uniform: loops bounded by it aren't unrolled, so the shader
+                            // builds in a fraction of the time on D3D
 uniform mat3 uRot, uRotT;   // world->local, local->world
 uniform vec2 uC;            // centre, device px
 uniform float uS;           // device px per stone unit
@@ -56,6 +59,8 @@ uniform float uCup;         // a closed back: the collet's polished cup under th
 uniform float uBz;          // the setting: a collet round the girdle, its thickness in stone units (0: none)
 out vec4 o;
 const float BIG = 1e9;
+// smoothstep written out: many calls here run from the high edge to the low one, which the spec leaves undefined.
+float sstep(float a, float b, float x) { float t = clamp((x - a) / (b - a), 0.0, 1.0); return t * t * (3.0 - 2.0 * t); }
 vec2 gPos;                  // this sample's place on the page, device px
 float sdBox(vec2 p, vec2 b, float r) { vec2 q = abs(p) - b + r; return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r; }
 // Where a ray leaving the back meets the page: a little past the stone, along its way out. So the button's edge
@@ -66,7 +71,7 @@ vec3 behind(vec3 d) {
   // a little away from the light, and the window sees that patch instead of a black hole.
   vec2 g = (at - uC) / uS + uL.xy * 0.3;
   vec3 back2 = uBack2 * (1.0 + uGlow * vec3(0.25, 1.0, 0.7) * exp(-dot(g, g) * 2.5));
-  vec3 b = mix(back2, uBack, smoothstep(-1.0, 1.0, sdBox(at - uBox.xy, uBox.zw, uBoxR)));
+  vec3 b = mix(back2, uBack, sstep(-1.0, 1.0, sdBox(at - uBox.xy, uBox.zw, uBoxR)));
   // A closed collet: under the pavilion a polished cup of the same metal, as jewellers back a stone set on dark.
   // Every ray that leaves through the back meets it (no edge, so no coloured fringe): the window sees light coming
   // back off the metal, brighter where the cup faces the light, not a glow from inside.
@@ -80,25 +85,25 @@ vec3 env(vec3 d) {
   // A darker room: the steps alternate dark and bright, the hall of mirrors. On a dark button a little lighter,
   // so the light the pavilion sends back has something to return.
   vec3 room = vec3(uRim > 0.0 ? 0.26 : 0.16) + vec3(0.14) * d.y;
-  room *= mix(1.0, 0.25, smoothstep(0.78, 0.97, d.z)) * (1.0 + 2.8 * uFlash);
+  room *= mix(1.0, 0.25, sstep(0.78, 0.97, d.z)) * (1.0 + 2.8 * uFlash);
   float k = dot(d, uL);
-  room += vec3(1.0, 0.99, 0.97) * (7.0 + 14.0 * uFlash) * smoothstep(0.962, 0.988, k);
-  room += vec3(0.25 + 0.9 * uFlash) * smoothstep(0.55, 0.95, k);
+  room += vec3(1.0, 0.99, 0.97) * (7.0 + 14.0 * uFlash) * sstep(0.962, 0.988, k);
+  room += vec3(0.25 + 0.9 * uFlash) * sstep(0.55, 0.95, k);
   // Two tall soft panels left and right: the step facets carry them as bright bands, the hall of mirrors.
-  float front = smoothstep(0.0, 0.35, d.z);
-  room += vec3(1.5) * smoothstep(0.12, 0.0, abs(d.x + 0.62)) * front * smoothstep(-0.4, 0.3, d.y);
-  room += vec3(1.2) * smoothstep(0.1, 0.0, abs(d.x - 0.7)) * front * smoothstep(-0.4, 0.3, d.y);
-  room += vec3(0.9) * smoothstep(0.7, 0.92, dot(d, normalize(vec3(-0.5, 0.7, 0.5))));
+  float front = sstep(0.0, 0.35, d.z);
+  room += vec3(1.5) * sstep(0.12, 0.0, abs(d.x + 0.62)) * front * sstep(-0.4, 0.3, d.y);
+  room += vec3(1.2) * sstep(0.1, 0.0, abs(d.x - 0.7)) * front * sstep(-0.4, 0.3, d.y);
+  room += vec3(0.9) * sstep(0.7, 0.92, dot(d, normalize(vec3(-0.5, 0.7, 0.5))));
   if (d.z > 0.02) return room;
-  return mix(room, behind(d), smoothstep(0.02, -0.18, d.z));
+  return mix(room, behind(d), sstep(0.02, -0.18, d.z));
 }
 // The crown's own surface: a photographer's black card keeps the studio's sheen off it, only the hot light glints.
 vec3 sheen(vec3 d) {
-  return 0.3 * env(d) +vec3(1.0, 0.99, 0.97) * (5.0 + 18.0 * uFlash) * smoothstep(0.962, 0.988, dot(d, uL));
+  return 0.3 * env(d) +vec3(1.0, 0.99, 0.97) * (5.0 + 18.0 * uFlash) * sstep(0.962, 0.988, dot(d, uL));
 }
 bool enter(vec3 ro, vec3 rd, out float t, out vec3 n) {
   float tn = -BIG, tf = BIG;
-  for (int i = 0; i < ${NP}; i++) {
+  for (int i = 0; i < uNP; i++) {
     vec3 N = uP[i].xyz; float dn = dot(N, rd); float s = uP[i].w - dot(N, ro);
     if (abs(dn) < 1e-6) { if (s < 0.0) return false; continue; }
     float ti = s / dn;
@@ -109,7 +114,7 @@ bool enter(vec3 ro, vec3 rd, out float t, out vec3 n) {
 }
 float leave(vec3 ro, vec3 rd, out vec3 n) {
   float tf = BIG;
-  for (int i = 0; i < ${NP}; i++) {
+  for (int i = 0; i < uNP; i++) {
     vec3 N = uP[i].xyz; float dn = dot(N, rd);
     if (dn > 1e-6) { float ti = (uP[i].w - dot(N, ro)) / dn; if (ti < tf) { tf = ti; n = N; } }
   }
@@ -127,10 +132,10 @@ float vnoise(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 *
   return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x), mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y); }
 vec3 jardin(vec3 p) {   // x: the fingerprint, y: the cavities, z: their bubbles
   vec2 q = vec2(dot(p, VU), dot(p, cross(VN, VU))) - vec2(0.1, -0.05);
-  float reach = smoothstep(0.62, 0.15, length(q * vec2(0.8, 1.5)));
+  float reach = sstep(0.62, 0.15, length(q * vec2(0.8, 1.5)));
   // Rows ~0.14 of the half-length apart: 4 px at 2x, a faint veil at 1x. Broken into dashes, bent by a slow warp.
-  float rows = smoothstep(0.3, 0.95, 0.5 + 0.5 * sin(dot(q, vec2(0.6, 0.8)) * 46.0 + 5.0 * vnoise(q * 2.5 + 1.7)));
-  float lace = rows * smoothstep(0.32, 0.62, vnoise(q * 7.0 + 4.0)) * reach;
+  float rows = sstep(0.3, 0.95, 0.5 + 0.5 * sin(dot(q, vec2(0.6, 0.8)) * 46.0 + 5.0 * vnoise(q * 2.5 + 1.7)));
+  float lace = rows * sstep(0.32, 0.62, vnoise(q * 7.0 + 4.0)) * reach;
   float cav = 0.0, bub = 0.0;
   for (int i = 0; i < 2; i++) {
     vec2 c = i == 0 ? vec2(-0.27, 0.07) : vec2(0.2, -0.1);
@@ -139,10 +144,10 @@ vec3 jardin(vec3 p) {   // x: the fingerprint, y: the cavities, z: their bubbles
     float a = e.x / len;
     // A toothed outline: the width saws up and down along the length.
     float wid = 0.046 * (0.72 + 0.56 * abs(fract(a * 1.6 + 0.3 * float(i)) - 0.5) * 2.0) * sqrt(max(0.0, 1.0 - a * a * 0.6));
-    cav = max(cav, smoothstep(1.0, 0.7, length(vec2(a, e.y / wid))));
-    bub = max(bub, smoothstep(0.03, 0.018, length(e - vec2(len * 0.5, 0.004))));
+    cav = max(cav, sstep(1.0, 0.7, length(vec2(a, e.y / wid))));
+    bub = max(bub, sstep(0.03, 0.018, length(e - vec2(len * 0.5, 0.004))));
   }
-  float k = smoothstep(0.0, 0.3, reach);
+  float k = sstep(0.0, 0.3, reach);
   return vec3(lace, cav * k, bub * k);
 }
 // One colour channel from the entry point on: its own index, its own absorption, four bounces inside.
@@ -217,7 +222,7 @@ vec3 metal(vec3 bp, vec3 nb, bool cup) {
   // Satin white metal, lighter where it faces up and towards you; the glint only on the cursor's side.
   float base = 0.2 + 0.08 * nw.y + 0.1 * max(nw.z, 0.0);
   float side = clamp(dot(nw.xy, normalize(uL.xy + 1e-4)) * 2.0, 0.0, 1.0);
-  float hi = (1.8 + 5.0 * uFlash) * smoothstep(0.8, 0.98, k) + 0.5 * side * smoothstep(0.3, 0.9, k);
+  float hi = (1.8 + 5.0 * uFlash) * sstep(0.8, 0.98, k) + 0.5 * side * sstep(0.3, 0.9, k);
   return vec3(1.0, 0.965, 0.91) * (base + hi) * (cup ? 0.35 : 1.0);
 }
 vec3 toSRGB(vec3 c) { return mix(c * 12.92, 1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055, step(0.0031308, c)); }
@@ -254,16 +259,16 @@ void main() {
         // Facet junctions, hinted: where the second-nearest plane is within a pixel, a hairline.
         if (uEdge > 0.0) {
           float e1 = BIG, e2 = BIG;
-          for (int g = 0; g < ${NP}; g++) { float e = uP[g].w - dot(uP[g].xyz, hp); if (e < e1) { e2 = e1; e1 = e; } else if (e < e2) e2 = e; }
-          edge += smoothstep(1.0 / uS, 0.3 / uS, e2);
+          for (int g = 0; g < uNP; g++) { float e = uP[g].w - dot(uP[g].xyz, hp); if (e < e1) { e2 = e1; e1 = e; } else if (e < e2) e2 = e; }
+          edge += sstep(1.0 / uS, 0.3 / uS, e2);
         }
         // The girdle's edge on the side of the light: a hairline bevel, the thickness of the wall catching light.
         if (uRim > 0.0) {
           float dg = BIG; vec2 ng = vec2(0.0);
           for (int g = 0; g < 8; g++) { float e = uP[g].w - dot(uP[g].xy, hp.xy); if (e < dg) { dg = e; ng = uP[g].xy; } }
           vec2 nw = (uRotT * vec3(ng, 0.0)).xy;
-          float face = smoothstep(-0.1, 0.8, dot(normalize(nw), normalize(uL.xy + vec2(1e-4))));
-          col += vec3(0.62, 0.72, 0.66) * uRim * face * smoothstep(1.3 / uS, 0.35 / uS, dg);
+          float face = sstep(-0.1, 0.8, dot(normalize(nw), normalize(uL.xy + vec2(1e-4))));
+          col += vec3(0.62, 0.72, 0.66) * uRim * face * sstep(1.3 / uS, 0.35 / uS, dg);
         }
         cov += 1.0;
       }
@@ -306,29 +311,43 @@ void main() {
   o = vec4(sp * k * 0.48, k * 0.12);
 }`;
 
-function prog(fs) {
+function build(fs) {
   const p = gl.createProgram();
   for (const [t, src] of [[gl.VERTEX_SHADER, VS], [gl.FRAGMENT_SHADER, fs]]) {
     const s = gl.createShader(t); gl.shaderSource(s, src); gl.compileShader(s);
     gl.attachShader(p, s);
   }
   gl.bindAttribLocation(p, 0, 'aP'); gl.linkProgram(p);
+  return p;
+}
+// The driver builds the shaders off the main thread where it can (KHR_parallel_shader_compile): wait for that
+// without asking, since asking for the result blocks the page until the build is done (a second or more, cold).
+function built(progs) {
+  const ext = gl.getExtension('KHR_parallel_shader_compile');
+  return new Promise((done) => {
+    const check = () => !ext || gl.isContextLost() || progs.every((p) => gl.getProgramParameter(p, ext.COMPLETION_STATUS_KHR)) ? done() : setTimeout(check, 50);
+    check();
+  });
+}
+function prog(p) {
   // A shader this GPU won't build: no stone at all, the arrows stay arrows.
-  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) return null;
+  if (gl.isContextLost() || !gl.getProgramParameter(p, gl.LINK_STATUS)) return null;
   const u = {};
   const n = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS);
   for (let i = 0; i < n; i++) { const nm = gl.getActiveUniform(p, i).name.replace('[0]', ''); u[nm] = gl.getUniformLocation(p, nm); }
   return { p, u };
 }
-const PS = prog(STONE), PX = prog(SPEC);
+const pS = build(STONE), pX = build(SPEC);
+await built([pS, pX]);
+const PS = prog(pS), PX = prog(pX);
 if (!PS || !PX) { cv.remove(); return; }
-gl.useProgram(PS.p); gl.uniform4fv(PS.u.uP, new Float32Array(planes.flat()));
+gl.useProgram(PS.p); gl.uniform4fv(PS.u.uP, new Float32Array(planes.flat())); gl.uniform1i(PS.u.uNP, NP);
 const vb = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, vb);
 gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([0, 0, 1, 0, 0, 1, 1, 1]), gl.STATIC_DRAW);
 gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
 gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 let W = 0, H = 0;
-function resize() { W = innerWidth; H = innerHeight; cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+function resize() { dpr = Math.min(devicePixelRatio || 1, 2); W = innerWidth; H = innerHeight; cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
 resize(); addEventListener('resize', () => { resize(); kick(); });
 
 // ---------- small math ----------
@@ -356,12 +375,14 @@ const PAPER = [lin(242), lin(242), lin(240)], DARK = [lin(50), lin(50), lin(50)]
 function spring(x, v, to, w, z, dt) { const a = w * w * (to - x) - 2 * z * w * v; v += a * dt; return [x + v * dt, v]; }
 
 // ---------- state ----------
+// The stone's length per font size: on dark buttons and on links.
+const GEM_BTN = 1.35, GEM_LINK = 1.2;
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
 // The setting: a closed collet on dark buttons only.
 const BZ = 'dark';
 // Table turned more to you than in v4, so the window and its steps show; still tilted enough for the crown's side.
 const REST = qn(qmul(qax(0, 0, 1, 0.1), qmul(qax(0, 1, 0, 0.24), qax(1, 0, 0, -0.34))));
-const ptr = { x: -999, y: -999, t: -1e9, el: null, lastEl: null, leftT: -1e9, enterT: -1e9, dist: 0, real: false };
+const ptr = { x: -999, y: -999, t: -1e9, el: null, lastEl: null, leftT: -1e9, enterT: -1e9, real: false, inside: false };
 let pressEl = null, pressT = -1e9, focusEl = null, focusT = -1e9, lastInput = 'pointer';
 const stones = [], specs = [];
 let cur = null;
@@ -385,10 +406,10 @@ function anchor(el) {
   const fs = parseFloat(getComputedStyle(el).fontSize);
   const arw = glyphOf(el), lbl = el.querySelector('.lbl');
   const foot = !!el.closest('footer');
-  // Large enough for a step to get ~3px at 1x. L is the stone's length; its width is 0.72 L.
-  // In the footer the line is too small for that: there the stone rises out of the dot and stands above the line.
-  let L = fs * (isBtn(el) ? 1.9 : 1.7);
-  if (foot) L = 20;
+  // L is the stone's length; its width is 0.72 L. About the size of the arrow it stands in for, a little longer on a
+  // dark button; on a Lead-size line no longer than 28px. In the footer it rises out of the dot above the line.
+  let L = isBtn(el) ? fs * GEM_BTN : Math.min(28, fs * GEM_LINK);
+  if (foot) L = 18;
   let x, y, gx, gy;
   if (arw && arw.classList.contains('sep')) {
     const a = box(arw); x = gx = a.left + a.width / 2;
@@ -400,7 +421,7 @@ function anchor(el) {
     gx = a.left + a.width / 2; gy = y = a.top + a.height * 0.54;
     // Before a label it may take the space before the first letter, and hangs into the margin like hanging
     // punctuation, but never closer than 8px to the screen edge (phones: the column starts 24px in).
-    x = first ? Math.max(8 + L / 2, Math.min(gx, a.right + 2 - L / 2)) : Math.max(gx, a.left - 5 + L / 2);
+    x = first ? Math.max(8 + L / 2, Math.min(gx, a.right + 2 - L / 2)) : Math.max(gx, a.left - 1 + L / 2);
   } else if (lbl) { const a = lbl.getBoundingClientRect(); x = gx = a.right + 10 + L / 2; y = gy = a.top + a.height * 0.52; }
   else { x = gx = r.right + 4 + L / 2; gy = r.top + r.height * 0.54; y = foot ? r.top - L * 0.16 : gy; }
   return { x, y, L, back: isBtn(el) ? DARK : PAPER, r, ox: gx - x, oy: gy - y };
@@ -437,7 +458,7 @@ function hit(x, y) { const e = document.elementFromPoint(x, y); return e && e.cl
 function setHover(el) {
   if (ptr.el === el) return;
   if (ptr.el) { ptr.el.classList.remove('hov'); ptr.lastEl = ptr.el; ptr.leftT = performance.now(); }
-  ptr.el = el; ptr.dist = 0; ptr.enterT = performance.now();
+  ptr.el = el; ptr.enterT = performance.now();
   if (el) el.classList.add('hov');
 }
 function move(x, y) {
@@ -447,7 +468,7 @@ function move(x, y) {
   const was = ptr.el;
   setHover(hit(x, y));
   if (d > 0.5 && d < 400) {
-    ptr.t = now; ptr.dist += d;
+    ptr.t = now;
     // A brush of the pointer nudges the stone, as a fingertip would.
     if (cur && cur.el === ptr.el && !RM) { cur.w[1] += dx * 0.03; cur.w[0] += dy * 0.03; }
   }
@@ -469,7 +490,7 @@ function press(el, x, y) {
 }
 addEventListener('pointermove', (e) => {
   if (e.pointerType === 'touch') return;
-  ptr.real = true;
+  ptr.real = true; ptr.inside = true;
   lastInput = 'pointer';
   move(e.clientX, e.clientY);
 }, { passive: true });
@@ -482,15 +503,33 @@ addEventListener('pointerdown', (e) => {
   press(el, e.clientX, e.clientY);
 });
 addEventListener('pointerup', (e) => { pressEl = null; if (e.pointerType === 'touch') setHover(null); kick(); });
-document.addEventListener('pointerleave', () => setHover(null));
+// The pointer is gone from the page, or its coordinates no longer mean anything: no hover until it moves again.
+// A press ends here too: a link dragged away, a zoom, a page put into the back-forward cache never see a pointerup.
+function away() { pressEl = null; ptr.inside = false; setHover(null); kick(); }
+document.addEventListener('pointerleave', away);
+addEventListener('pointercancel', away);
+addEventListener('dragstart', away);
+addEventListener('resize', away);
+addEventListener('pagehide', () => {
+  away(); focusEl = null; ptr.lastEl = null;
+  for (const s of stones) if (s.arw) s.arw.style.cssText = '';
+  stones.length = 0; specs.length = 0; cur = null;
+  gl.clear(gl.COLOR_BUFFER_BIT);
+});
+// The page scrolls under a still pointer: the stones ride with their elements; one whose element has left the
+// pointer goes. A new one comes out only when the hand moves: links passing under a still pointer stay arrows.
+addEventListener('scroll', () => { if (ptr.el && hit(ptr.x, ptr.y) !== ptr.el) setHover(null); kick(); }, { passive: true });
+let sx0 = scrollX, sy0 = scrollY;
 addEventListener('keydown', (e) => {
   lastInput = 'key';
-  if ((e.key === 'Enter' || e.key === ' ') && document.activeElement && document.activeElement.matches('[data-gem]')) press(document.activeElement);
+  // A key press has no key-up for the stone to wait for: it flashes and stays on for focus, not for the press.
+  if ((e.key === 'Enter' || e.key === ' ') && document.activeElement && document.activeElement.matches('[data-gem]')) { press(document.activeElement); pressEl = null; }
 });
 document.addEventListener('focusin', (e) => {
   const el = e.target.closest && e.target.closest('[data-gem]');
   if (el && lastInput === 'key') { focusEl = el; focusT = performance.now(); kick(); }
 });
+document.addEventListener('focusout', () => { focusEl = null; kick(); });
 
 // ---------- the loop: it runs only while a stone is out or something moves ----------
 let running = false, last = 0, dead = false;
@@ -502,18 +541,32 @@ cv.addEventListener('webglcontextlost', () => {
   stones.length = 0; specs.length = 0; cur = null;
   cv.remove();
 });
-// HOLD: how long it stays after the pointer stops. DWELL: a pointer only passing over doesn't bring one out.
-const HOLD = 380, GRACE = 140, FAR = 140, FAR_KEY = 320, DWELL = 70;
+// DWELL: a pointer only passing over doesn't bring one out. GRACE: leaving for a moment doesn't put it away.
+const GRACE = 140, FAR = 140, FAR_KEY = 320, DWELL = 70;
+// A stone that has stopped: grown, in place, turned to where it leans, no flash or glint left. Then no more frames.
+function settled(s) {
+  if (s.want !== 1 || s.hop) return false;
+  return Math.abs(s.p - 1) < 0.002 && Math.abs(s.vp) < 0.01 && Math.abs(s.tx - s.x) + Math.abs(s.ty - s.y) < 0.05 &&
+    Math.abs(s.vx) + Math.abs(s.vy) < 0.3 && Math.hypot(...s.w) < 0.01 && Math.hypot(...qerr(s.qt, s.q)) < 0.002 &&
+    s.flash < 0.003 && s.glint < 0.01;
+}
 function frame(now) {
   if (dead) { running = false; return; }
   const dt = Math.min(0.05, Math.max(0, (now - last) / 1000)); last = now;
+  // Scrolled since the last frame: everything drawn moves with the page, so a stone stays on its arrow.
+  const dsx = scrollX - sx0, dsy = scrollY - sy0; sx0 = scrollX; sy0 = scrollY;
+  if (dsx || dsy) {
+    for (const s of stones) { s.x -= dsx; s.tx -= dsx; s.y -= dsy; s.ty -= dsy; if (s.hop) s.hop.x0 -= dsx; }
+    for (const sp of specs) { sp.x -= dsx; sp.y -= dsy; }
+  }
   {
-    // Who gets the stone: a press, then a keyboard focus, then a moving pointer.
+    // Who gets the stone: a press, then a keyboard focus, then the pointer. It stays for as long as the element is
+    // hovered or focused, still hand or not.
     let el = null, travel = false;
     const hovEl = ptr.el || (now - ptr.leftT < GRACE ? ptr.lastEl : null);
     if (pressEl || now - pressT < 650) el = pressEl || (cur && cur.el) || hovEl;
-    else if (focusEl && now - focusT < 1100 && lastInput === 'key') { el = focusEl; travel = true; }
-    else if (hovEl && now - ptr.t < HOLD && ptr.dist > 3 && ((cur && cur.want === 1) || (ptr.el && now - ptr.enterT > DWELL))) el = hovEl;
+    else if (focusEl && lastInput === 'key') { el = focusEl; travel = true; }
+    else if (hovEl && ((cur && cur.want === 1) || (ptr.el && now - ptr.enterT > DWELL))) el = hovEl;
     if (el) {
       const a = anchor(el);
       if (!cur) cur = newStone(el, a);
@@ -567,9 +620,12 @@ function frame(now) {
   }
   for (let i = specs.length - 1; i >= 0; i--) if (now - specs[i].t0 > 1500) specs.splice(i, 1);
   draw(now);
-  const busy = stones.length || specs.length || (ptr.el && now - ptr.t < HOLD + 50) || now - pressT < 700 || (focusEl && now - focusT < 1200);
+  // Keep going while anything still moves or a hovered element is still waiting out the dwell. A stone that has
+  // settled stays on the canvas as the last frame drew it.
+  const waiting = (ptr.el && !(cur && cur.el === ptr.el) && now - ptr.enterT < DWELL + 50) || (!ptr.el && ptr.lastEl && now - ptr.leftT < GRACE + 30);
+  const busy = stones.some((s) => !settled(s)) || specs.length || waiting || now - pressT < 700 || (focusEl && now - focusT < 1200);
   if (busy) requestAnimationFrame(frame);
-  else { running = false; gl.clear(gl.COLOR_BUFFER_BIT); }
+  else { running = false; if (!stones.length) gl.clear(gl.COLOR_BUFFER_BIT); }
 }
 function drawSpec(x, y, ang, R, I) {
   const Rd = R * dpr, Wd = 6 * dpr, len = 16 * dpr, half = Rd + Math.max(Wd * 3, len * 1.5);

@@ -4,7 +4,8 @@
 // "phileeppov" isn't repeated up top. The right side of the header is the "aside" slot (on /review, whether this week
 // is open); pages that don't fill it get the X handle and the "Work with me" pill to /review, as on /glass.
 // Footer: site.md §1.7. Links marked data-count are counted when followed (src/scripts/review-count.ts).
-// The emerald on links and dark buttons (src/scripts/emerald.js) starts here for every page that marks them data-gem.
+// The emerald on links and dark buttons (src/scripts/emerald.js) and the emerald cursor (src/scripts/emerald-cursor.js)
+// start here for every page that marks its links data-gem.
 import Base from "./Base.astro";
 import Footer from "../components/Footer.astro";
 import "../styles/onest.css";
@@ -72,10 +73,17 @@ const aside = Astro.slots.has("aside");
     if (link?.dataset.count) count(link.dataset.count);
   });
 
-  // Emerald only in motion, and only where a hand moves a fine pointer over a wide screen; it loads after the page.
-  const wide = matchMedia("(min-width: 1024px) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)");
+  // The emeralds, on the arrows and as the cursor, only where a hand moves a fine pointer over a wide screen; they
+  // load after the page. Pages without data-gem (/review, with its own pointer play) keep the system cursor, and so
+  // does anyone who asked the system for more contrast or forced colours (a large system cursor often comes with it).
+  const wide = matchMedia(
+    "(min-width: 1024px) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) and (forced-colors: none) and (prefers-contrast: no-preference)",
+  );
   if (wide.matches && document.querySelector("[data-gem]")) {
-    const go = () => import("../scripts/emerald.js").then((m) => m.startEmerald());
+    const go = () => {
+      import("../scripts/emerald.js").then((m) => m.startEmerald());
+      import("../scripts/emerald-cursor.js").then((m) => m.startCursor());
+    };
     if ("requestIdleCallback" in window) requestIdleCallback(go, { timeout: 1500 });
     else setTimeout(go, 300);
   }
