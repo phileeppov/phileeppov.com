@@ -1,5 +1,1 @@
 /portfolio  /portfolio.pdf  302
-
-# The case pages are being redone: until they're back, they redirect to the PDF. To open them, delete the line below
-# and put /work/ pages back in src/pages/sitemap.xml.ts.
-/work/*     /portfolio.pdf  302
