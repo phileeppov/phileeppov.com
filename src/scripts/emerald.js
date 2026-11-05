@@ -1,9 +1,12 @@
 // "An emerald instead of the arrow": while the pointer is over a link or a dark button, its arrow turns into a cut
 // emerald; when the pointer leaves, the stone goes back into the arrow. Nothing is drawn frame by frame at rest: once
 // the stone settles, the loop stops and the last frame stays on the canvas.
-// One WebGL2 canvas over the page that only ever draws a few small quads. Elements opt in with data-gem; the glyph the
-// stone grows from is .arw inside them (without one, the stone sits after the label). Dark buttons (.btn) get the stone
-// in a closed collet, so it stays light on the dark. This runs only with no reduced-motion preference (see the
+// One WebGL2 canvas over the page that only ever draws a few small quads. Every link and button in the page's header,
+// main and footer gets a stone (data-gem-off on it or around it opts out); they are marked data-gem here, so the cursor
+// and the passage see them as stones too. The glyph the stone grows from is .arw inside them, or the dot after a link
+// in a row; a link without either keeps its stone where the layout leaves room (see anchor). Dark buttons (.btn) and
+// links on the dark band get the stone in a closed collet, so it stays light on the dark. This runs only with no
+// reduced-motion preference (see the
 // caller): on wide screens with a fine pointer, for hover, focus and press; on touch screens ({ touch: true }) for
 // the press alone. There the stone comes out under the finger as it lands, stays while it is down and while the
 // page it opens loads, and goes at once if the touch turns into a scroll or a long press. On a phone the canvas is
@@ -409,15 +412,16 @@ function mats(q) {
   return [new Float32Array(R), new Float32Array([R[0], R[3], R[6], R[1], R[4], R[7], R[2], R[5], R[8]])];
 }
 const lin = (c) => { c /= 255; return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
-const PAPER = [lin(242), lin(242), lin(240)], DARK = [lin(50), lin(50), lin(50)];
+const PAPER = [lin(242), lin(242), lin(240)], DARK = [lin(50), lin(50), lin(50)], BAND = [lin(10), lin(10), lin(10)];
 // A spring toward a target: weight comes from omega, overshoot from zeta.
 function spring(x, v, to, w, z, dt) { const a = w * w * (to - x) - 2 * z * w * v; v += a * dt; return [x + v * dt, v]; }
 
 // ---------- state ----------
-// The stone's length per font size: on dark buttons and on links.
-const GEM_BTN = 1.35, GEM_LINK = 1.2;
+// The stone's length per font size: on dark buttons (inside the pill, a size under the label's cap height plus a
+// little) and on links.
+const GEM_BTN = 1.15, GEM_LINK = 1.2;
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
-// The setting: a closed collet on dark buttons only.
+// The setting: a closed collet on the dark only (dark buttons, the black band).
 const BZ = 'dark';
 // Table turned more to you than in v4, so the window and its steps show; still tilted enough for the crown's side.
 const REST = qn(qmul(qax(0, 0, 1, 0.1), qmul(qax(0, 1, 0, 0.24), qax(1, 0, 0, -0.34))));
@@ -428,12 +432,42 @@ let held = null;
 const stones = [], specs = [];
 let cur = null;
 
+// Every link and button gets one, so a new link has its stone without being marked.
+for (const el of document.querySelectorAll(['header', 'main', 'footer'].map((p) => `body > ${p} :is(a[href], button)`).join()))
+  if (!el.closest('[data-gem-off]')) el.setAttribute('data-gem', '');
 const ELS = [...document.querySelectorAll('[data-gem]')];
 const isBtn = (el) => el.classList.contains('btn');
-// The glyph the stone stands in for: the arrow, or in the footer row the dot after the link.
+// The dark under a stone: a dark button, or the black band its link stands on.
+const darkOf = (el) => (isBtn(el) ? el : el.closest('.tools'));
+// The glyph the stone stands in for: the arrow, or in a row of links the dot after the link.
 function glyphOf(el) {
   const n = el.nextElementSibling;
   return el.querySelector('.arw') || (n && n.classList.contains('sep') ? n : null);
+}
+// A link set in a row of small links (the footer, the header's nav) or inside running text: its stone rises above
+// the line, so on its way along the row it never crosses the words.
+const rows = new Map();
+function inRow(el) {
+  let k = rows.get(el);
+  if (k === undefined) {
+    const p = el.parentElement;
+    k = !!el.closest('footer, header nav') ||
+      (getComputedStyle(el).display === 'inline' && !!p && p.textContent.trim() !== el.textContent.trim());
+    rows.set(el, k);
+  }
+  return k;
+}
+// The link's text, first and last line: the boxes of its first and last words' lines, and the size they are set in.
+function lines(el) {
+  const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+  let a = null, b = null;
+  for (let n = w.nextNode(); n; n = w.nextNode()) if (n.nodeValue.trim() && n.parentElement.getClientRects().length) { a = a || n; b = n; }
+  if (!b) return null;
+  const rg = document.createRange();
+  rg.selectNodeContents(a); const ra = rg.getClientRects();
+  rg.selectNodeContents(b); const rb = rg.getClientRects();
+  if (!ra.length || !rb.length) return null;
+  return { first: ra[0], last: rb[rb.length - 1], fs: parseFloat(getComputedStyle(b.parentElement).fontSize) };
 }
 // The glyph's own box. Its rect would include the shrink we put on it while the stone is out (a scale about its
 // centre), and the stone would then slide onto the label: so the size comes from layout, the centre from the rect.
@@ -446,13 +480,12 @@ function anchor(el) {
   const r = el.getBoundingClientRect();
   const fs = parseFloat(getComputedStyle(el).fontSize);
   const arw = glyphOf(el), lbl = el.querySelector('.lbl');
-  const foot = !!el.closest('footer');
   // L is the stone's length; its width is 0.72 L. About the size of the arrow it stands in for, a little longer on a
-  // dark button; on a Lead-size line no longer than 28px. In the footer it rises out of the dot above the line.
+  // dark button; on a Lead-size line no longer than 28px. Over a row of small links 18px, risen above the line.
   let L = isBtn(el) ? fs * GEM_BTN : Math.min(28, fs * GEM_LINK);
-  if (foot) L = 18;
-  let x, y, gx, gy;
+  let x, y, gx, gy, raised = false;
   if (arw && arw.classList.contains('sep')) {
+    L = Math.min(18, fs * 1.4); raised = true;
     const a = box(arw); x = gx = a.left + a.width / 2;
     gy = r.top + r.height * 0.56; y = r.top - L * 0.16;
   } else if (arw) {
@@ -464,12 +497,36 @@ function anchor(el) {
     // punctuation, but never closer than 8px to the screen edge (phones: the column starts 24px in).
     x = first ? Math.max(8 + L / 2, Math.min(gx, a.right + 2 - L / 2)) : Math.max(gx, a.left - 1 + L / 2);
   } else if (lbl) { const a = lbl.getBoundingClientRect(); x = gx = a.right + 10 + L / 2; y = gy = a.top + a.height * 0.52; }
-  else { x = gx = r.right + 4 + L / 2; gy = r.top + r.height * 0.54; y = foot ? r.top - L * 0.16 : gy; }
-  return { x, y, L, back: isBtn(el) ? DARK : PAPER, r, ox: gx - x, oy: gy - y };
+  else {
+    // No glyph: the stone's place comes from the text. Sized by the line it ends, not by the link's box.
+    const t = lines(el) || { first: r, last: r, fs };
+    const e = t.last;
+    const cs = getComputedStyle(el);
+    // A light pill (round ends and a surface of its own; a focus ring rounds plain links too, so the fill decides):
+    // the stone is set into its round end, where a button's arrow would be.
+    if (!isBtn(el) && parseFloat(cs.borderTopRightRadius) >= r.height / 2 - 1 && (cs.backgroundImage !== 'none' || !/^(transparent|rgba\(.*,\s*0\))$/.test(cs.backgroundColor))) {
+      L = Math.min(18, t.fs * 1.3);
+      x = gx = Math.min(r.right - L * 0.1, innerWidth - 8 - L / 2); y = gy = r.top + r.height / 2;
+    } else if (!isBtn(el) && inRow(el)) {
+      // In a row: over the gap to the next link when that is close, else just past the last letter, risen above the
+      // line; never nearer than 8px to the screen's edge.
+      L = Math.min(18, t.fs * 1.4); raised = true;
+      const n = el.nextElementSibling, nr = n && n.getBoundingClientRect();
+      const gap = nr && Math.abs(nr.top + nr.height / 2 - (r.top + r.height / 2)) < r.height ? nr.left - e.right : Infinity;
+      x = gx = Math.min(gap < L + 8 ? e.right + gap / 2 : e.right + 4 + L / 2, innerWidth - 8 - L / 2);
+      gy = e.top + e.height * 0.54; y = Math.max(8 + L * 0.36, e.top - L * 0.16);
+    } else {
+      // Alone on its line: after its last word, as a full stop.
+      L = isBtn(el) ? L : Math.min(28, t.fs * GEM_LINK);
+      x = gx = e.right + Math.max(4, t.fs * 0.3) + L / 2; y = gy = e.top + e.height * 0.54;
+    }
+  }
+  const dark = darkOf(el);
+  return { x, y, L, back: dark ? (isBtn(el) ? DARK : BAND) : PAPER, dark, raised, r, ox: gx - x, oy: gy - y };
 }
 function newStone(el, a) {
   const s = { el, x: a.x, y: a.y, tx: a.x, ty: a.y, ox: a.ox, oy: a.oy, vx: 0, vy: 0, L: a.L, p: 0, vp: 0, want: 1, q: REST, qt: REST, w: [0, 0, 0],
-    flash: 0, glint: 0, back: a.back, arw: glyphOf(el) };
+    flash: 0, glint: 0, back: a.back, dark: a.dark, raised: a.raised, arw: glyphOf(el) };
   // It comes out of the arrow edge-on and turns its table to you as it grows.
   if (!RM) s.q = qn(qmul(qax(0, 1, 0, -1.25), REST));
   stones.push(s); return s;
@@ -592,6 +649,8 @@ if (TOUCH) {
     const el = e.target.closest && e.target.closest('a[data-gem][href]');
     if (!el || e.defaultPrevented || el.target === '_blank' || el.hasAttribute('download')) return;
     const u = new URL(el.href, location.href);
+    // mailto: and the like open another app: the page stays, so the stone goes as after any press.
+    if (!/^https?:$/.test(u.protocol)) return;
     if (u.hash && u.origin === location.origin && u.pathname === location.pathname && u.search === location.search) return;
     held = el; kick();
     // A load that never comes (offline, stopped): let the stone go after a while, counted from the last tap.
@@ -675,11 +734,11 @@ function frame(now) {
           if (cur.arw) cur.arw.style.cssText = ''; cur.el = el; cur.arw = glyphOf(el);
           // A hop along a row goes under the labels, not across them: down, along, up into the next glyph.
           // Raised above the line (footer) it already clears the words: no dip.
-          if (!RM && !el.closest('footer') &&Math.abs(a.y - cur.y) < 6 && Math.abs(a.x - cur.x) > 4) cur.hop = { x0: cur.x, dx: a.x - cur.x, D: a.r.bottom - a.y + a.L * 0.5 + 1 };
+          if (!RM && !a.raised && Math.abs(a.y - cur.y) < 6 && Math.abs(a.x - cur.x) > 4) cur.hop = { x0: cur.x, dx: a.x - cur.x, D: a.r.bottom - a.y + a.L * 0.5 + 1 };
         }
       }
       if (cur.want === 0 && !RM) cur.w[1] -= 3;
-      Object.assign(cur, { tx: a.x, ty: a.y, ox: a.ox, oy: a.oy, L: a.L, back: a.back, want: 1 });
+      Object.assign(cur, { tx: a.x, ty: a.y, ox: a.ox, oy: a.oy, L: a.L, back: a.back, dark: a.dark, raised: a.raised, want: 1 });
       // It leans with the pointer's place on the element.
       cur.qt = REST;
       if (ptr.el === el && lastInput !== 'key') {
@@ -753,8 +812,8 @@ function draw(now) {
   gl.uniform1i(PS.u.uSS, TOUCH ? SS_TOUCH : dpr >= 2 ? 3 : 4);
   for (const s of stones) {
     // On the way between neighbours it tucks in a little, so it slides past the next label instead of over it.
-    // Raised above the footer row it clears the words, so there it keeps its size along the way.
-    const tuck = RM || s.el.closest("footer") ? 0 : Math.min(1, Math.hypot(s.vx, s.vy) / 500);
+    // Raised above a row of links it clears the words, so there it keeps its size along the way.
+    const tuck = RM || s.raised ? 0 : Math.min(1, Math.hypot(s.vx, s.vy) / 500);
     const S = (s.L / 2) * dpr * (RM ? 1 : Math.max(0, s.p)) * (1 - 0.4 * tuck * tuck * (3 - 2 * tuck));
     if (S < 0.3) continue;
     let dip = 0;
@@ -773,24 +832,26 @@ function draw(now) {
     gl.uniform3fv(PS.u.uL, lightFor(s));
     gl.uniform3fv(PS.u.uBack, PAPER);
     gl.uniform3fv(PS.u.uBack2, s.back);
-    if (s.back === DARK) {
-      const r = s.el.getBoundingClientRect();
+    const dk = !!s.dark;
+    if (dk) {
+      const r = s.dark.getBoundingClientRect();
       gl.uniform4f(PS.u.uBox, (r.left + r.width / 2) * dpr, (H - r.top - r.height / 2) * dpr, r.width / 2 * dpr, r.height / 2 * dpr);
-      gl.uniform1f(PS.u.uBoxR, Math.min(r.width, r.height) / 2 * dpr);
+      // A pill's ends are round; the band is square.
+      gl.uniform1f(PS.u.uBoxR, isBtn(s.dark) ? Math.min(r.width, r.height) / 2 * dpr : 0);
     } else { gl.uniform4f(PS.u.uBox, -1e4, -1e4, 0, 0); gl.uniform1f(PS.u.uBoxR, 0); }
     gl.uniform1f(PS.u.uJar, 1);
     gl.uniform1f(PS.u.uEdge, 1);
     gl.uniform1f(PS.u.uFlash, s.flash);
     // On a dark button: how much the stone's own green lights the button under it (seen through the window).
-    gl.uniform1f(PS.u.uGlow, s.back === DARK ? 3 : 0);
+    gl.uniform1f(PS.u.uGlow, dk ? 3 : 0);
     // On a dark button the window shows the dark behind it: the lit girdle edge gives the stone its outline there.
     // The collet: ~0.65px of metal plus its lip, ~1px in all; it grows with the stone. Under it the lit edge is quieter.
-    const bz = BZ === 'off' ? 0 : s.back === DARK ? 0.65 : BZ === 'all' ? 0.45 : 0;
+    const bz = BZ === 'off' ? 0 : dk ? 0.65 : BZ === 'all' ? 0.45 : 0;
     gl.uniform1f(PS.u.uBz, bz / (s.L / 2));
-    gl.uniform1f(PS.u.uCup, bz > 0 && s.back === DARK ? 0.45 : 0);
-    gl.uniform1f(PS.u.uRim, s.back === DARK ? (bz > 0 ? 0.3 : 0.7) : 0);
+    gl.uniform1f(PS.u.uCup, bz > 0 && dk ? 0.45 : 0);
+    gl.uniform1f(PS.u.uRim, dk ? (bz > 0 ? 0.3 : 0.7) : 0);
     gl.uniform1f(PS.u.uA, RM ? Math.min(1, Math.max(0, s.p)) : Math.min(1, Math.max(0, s.p) / 0.3));
-    gl.uniform1f(PS.u.uShadow, s.back === DARK ? 0.3 : 1);
+    gl.uniform1f(PS.u.uShadow, dk ? 0.3 : 1);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }
 }
