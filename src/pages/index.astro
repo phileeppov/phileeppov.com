@@ -1,7 +1,7 @@
 ---
 // Home: site.md §1, the MVP in the /review style (Site.astro: Onest, monochrome, depth in the controls), laid out as
 // a wall (site.css): statements at Display, captions at body and meta, nothing between.
-// Hero: the "who" line from §8.1 in place of the temporary §1.1 hero. Cases are left out while they're being redone;
+// Hero: §1.1, the question at Display under a label that says who. Cases are left out while they're being redone;
 // in their place, the tools, on a dark band. The form lives on /review: both buttons lead there instead of repeating it
 // here. The arrows turn into emeralds under a moving pointer (data-gem, Site.astro).
 import Site from "../layouts/Site.astro";
@@ -11,11 +11,11 @@ import Stamp from "../components/Stamp.astro";
 
 <Site passage description="Nikita Filippov, product designer. I redesigned game recording in Medal.tv, an app with 3M daily users." image="/home-og.png">
   <main class="wall home">
-    <!-- The hero is the first screen: the line at Display, one meaning part to a line, six lines on a wide screen and
-         seven on a phone (the last part breaks where its measure ends). The button is its caption, under it in the
-         caption half, as every statement on the wall has its caption. -->
+    <!-- The hero is the first screen: the label says who, the question at Display, one meaning part to a line, and
+         the button under it in the caption half as its answer. -->
     <section class="hero grid">
-      <h1 class="statement"><span>Nikita Filippov,</span> <span>product designer.</span> <span>I&nbsp;redesigned</span> <span>game recording</span> <span>in&nbsp;Medal.tv,<br class="on-phone" /> an&nbsp;app<br class="off-phone" /> with<br class="on-phone" /> 3M daily&nbsp;users.</span></h1>
+      <h1 class="label">NIKITA FILIPPOV, PRODUCT DESIGNER</h1>
+      <p class="statement"><span>Which screen</span> <span>do you keep</span> <span>explaining?</span></p>
       <div class="cap">
         <a class="btn" href="/review/" data-gem data-count="site:hero">Send a link, get a video review <span class="arw">→</span></a>
       </div>
@@ -79,10 +79,14 @@ import Stamp from "../components/Stamp.astro";
   .hero {
     padding-bottom: 120px;
   }
-  .hero h1 {
+  .hero .label {
     grid-column: 1 / -1;
-    /* The line and its button share the first screen: on a short screen the Display steps down to fit both. */
-    font-size: max(min(var(--text-display), calc((100svh - 250px) / 6)), min(var(--text-display), 72px));
+  }
+  .hero .statement {
+    grid-column: 1 / -1;
+    margin-top: 24px;
+    /* The question and its button share the first screen: on a short screen the Display steps down to fit both. */
+    font-size: max(min(var(--text-display), calc((100svh - 330px) / 3)), min(var(--text-display), 72px));
   }
   .hero .cap {
     margin-top: 48px;
@@ -181,6 +185,10 @@ import Stamp from "../components/Stamp.astro";
   @media (max-width: 560px) {
     .hero {
       padding-bottom: 72px;
+    }
+    /* Three short lines: on a phone the question takes the measure's full width. */
+    .hero .statement {
+      font-size: 14vw;
     }
     .hero .cap {
       margin-top: 32px;
