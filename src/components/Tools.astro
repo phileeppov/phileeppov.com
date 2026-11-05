@@ -82,6 +82,11 @@ const { material = "dark" } = Astro.props;
     io.observe(tile.querySelector(".chat")!);
     tile.addEventListener("touchstart", play, { once: true, passive: true });
   }
+  // Guests from the chefkiss repository (its Website link carries ?from=chefkiss) see their tool answer them: the press
+  // plays once by itself, a moment after the page opens, and stays.
+  if (tile && new URLSearchParams(location.search).get("from") === "chefkiss") {
+    window.setTimeout(() => tile.classList.add("fixed"), 1200);
+  }
 </script>
 
 <style>
