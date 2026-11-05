@@ -1,9 +1,8 @@
-// The emerald cursor: the pointer itself is a cut stone, a kite whose tip is the hotspot (night workshop 2026.11.01,
-// polish-02-emerald-cursor, variant 1 "Pointer", taken further). The material is the one the stones on the buttons
+// The emerald cursor: the pointer itself is a cut stone, a kite whose tip is the hotspot. The material is the one the stones on the buttons
 // have (src/scripts/emerald.js): beryl's three indices, its absorption, a dark room with two tall panels so the steps
 // alternate light and dark, facet junctions hinted at 1x. Over text it turns into a baguette, the I-beam; over a link
-// or a button it fills out into a rounder drop and bows (the drop, chosen 05.11.2026 over a kite that swings round to
-// point like the site's arrows and one that shrinks to a seed). Moving, it is emerald; still, the colour drains to
+// or a button it fills out into a rounder drop and bows (chosen over a kite that swings round to point like the site's
+// arrows and one that shrinks to a seed). Moving, it is emerald; still, the colour drains to
 // smoke. Over a link it stays green, unless the link grows its own stone: then the green is the stone's.
 // Nothing is drawn frame by frame at rest: the last frame stays on the canvas. The system cursor goes only once this
 // one has drawn, and comes back whenever it steps aside or WebGL fails. The caller runs this only on wide screens with
