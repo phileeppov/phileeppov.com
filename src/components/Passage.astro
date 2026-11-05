@@ -4,12 +4,15 @@
 // Cross-document View Transitions (Chromium, Safari 18.2+; elsewhere the page simply changes).
 //
 // The disc: the new page is the old snapshot's replacement inside a growing circle (clip-path on the transition's own
-// pseudo-elements). The rim is a lens: a band of glass where the page under it is pushed out and its colours part,
-// built the way the brand describes the lens: copies of the page, one per colour channel, each scaled a little
-// differently about the origin, added back together and masked to the band. The glass is one tone, a little emerald
-// where you look through its thickness; the spectrum falls on the surface beside it, a soft arc on the side away from
-// the light, never a ring. The stone on the pressed arrow (src/scripts/emerald.js) is lifted out of the old page and
-// held over the change, then settles.
+// pseudo-elements). It comes out of the arrow at the size of the brand's lens, stays there a moment, so the glass is
+// seen as a thing, then opens. Its rim is cut like the stone on the arrow (src/scripts/emerald.js): a clear table in the
+// middle and three steps round it, each a band of glass that pushes the page under it out by its own amount, the outer
+// step the most, so the letters break at every junction. Each step is a copy of the page, scaled about the origin and
+// masked to its ring. The glass is the stone's own colour (the same absorption, Beer-Lambert through the thickness of
+// each step), the steps carry the bright and dark bands of the room round the stone, the hall of mirrors, and only the
+// outer step parts the colours, by as little as beryl does: a warm and a cool copy a pixel apart, softened, never red
+// and blue. The spectrum falls on the surface beside it, a soft arc on the side away from the light, never a ring. The
+// stone on the pressed arrow is lifted out of the old page and held over the change, then settles.
 //
 // Only where heavy effects run (wide screen, fine pointer, hover, no reduced motion). Anywhere else that has the
 // transitions: a 160ms cross-fade. Reduced motion: no transition at all.
@@ -24,12 +27,23 @@
   (() => {
     const HEAVY = "(min-width: 1024px) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)";
     const KEY = "passage:";
-    const OPEN = 420; // ms, the disc opening
-    const CLOSE = 380; // ms, going back: the page closing into the arrow it came from
-    const BAND = 34; // px, the rim of the glass
-    const SHIFT = 12; // px the rim moves the page under it: 1.12 at 100px, the radius of the brand's lens
-    const SPLIT = 1.5; // px red and blue part at the rim
-    const MAX = 1.15; // the most the rim magnifies, while the disc is still small
+    // Opening: out of the arrow to the lens, held there, then open. Going back: in from the far corner to the lens,
+    // held, then folded into the arrow. In ms.
+    const GROW = 150, HOLD = 90, SWEEP = 380;
+    const SHUT = 300, REST = 90, FOLD = 150;
+    const LENS = [96, 110]; // px, the radius the disc holds as a lens (the brand's lens is 100), drifting a little
+    // The steps, from the edge in: where each begins and ends (fractions of the rim), how far it moves the page at the
+    // edge (px), how thick the glass is there (the stone's units). The outer step is the thickest and bends the most.
+    const STEPS = [
+      { f: [0, 0.3], a: 24, d: 0.3, split: 1 },
+      { f: [0.3, 0.64], a: 14, d: 0.17 },
+      { f: [0.64, 1], a: 6, d: 0.08 },
+    ];
+    const DEEP = 0.7; // the dark streaks: where a facet sends back the stone's own depth
+    // The stone's absorption per channel (emerald.js: red goes fast, blue a little faster than green).
+    const SIG = [3.4, 0.62, 1.15];
+    const srgb = (l) => Math.round(255 * (l <= 0.0031308 ? 12.92 * l : 1.055 * l ** (1 / 2.4) - 0.055));
+    const body = (d) => "rgb(" + SIG.map((s) => srgb(Math.exp(-s * d))).join(" ") + ")";
 
     // A cubic-bezier easing as a function of time, for sampling the frames the disc and its rim share.
     const bezier = (x1, y1, x2, y2) => {
@@ -40,10 +54,10 @@
         return c(y1, y2, t);
       };
     };
-    // Opening: fast out of the arrow, then slow while the rim crosses the last of the screen. Closing: the rim comes
-    // in from the far corner at once, and slows as the page folds into the arrow it came from, so you see it land.
-    const easeOpen = bezier(0.3, 0.6, 0.25, 1);
-    const easeClose = bezier(0.3, 0.1, 0.2, 1);
+    const out3 = (t) => 1 - (1 - t) ** 3;
+    const easeSweep = bezier(0.55, 0, 0.25, 1); // the lens lets go, then slows while the rim crosses the last of the screen
+    const easeShut = bezier(0.3, 0.1, 0.2, 1); // in from the far corner at once, slowing into the lens
+    const easeFold = bezier(0.45, 0, 0.3, 1); // folded into the arrow, so you see it land
 
     // ---------- the page being left: where the link was pressed ----------
     let origin = null;
@@ -109,28 +123,26 @@
       const far = Math.max(Math.hypot(x, y), Math.hypot(W - x, y), Math.hypot(x, H - y), Math.hypot(W - x, H - y));
       // The disc stops as soon as the rim and the spectrum are past the farthest corner. The light travels with it:
       // the edge catches it and the spectrum falls ahead of the rim, toward that corner, where the rim stays longest.
-      const R = closing ? far + 2 : far + BAND + 2;
+      const R = closing ? far + 2 : far + 50;
       const corner = [[0, 0], [W, 0], [0, H], [W, H]].sort((a, b) => Math.hypot(b[0] - x, b[1] - y) - Math.hypot(a[0] - x, a[1] - y))[0];
       const ang = (Math.atan2(corner[0] - x, -(corner[1] - y)) * 180) / Math.PI;
       vt.types.add(closing ? "pz-close" : "pz-open");
       const root = document.documentElement;
-      root.style.setProperty("--pz-x", x + "px");
-      root.style.setProperty("--pz-y", y + "px");
-      root.style.setProperty("--pz-r0", closing ? R + "px" : "0px");
-      root.style.setProperty("--pz-a", ang.toFixed(1) + "deg");
+      const props = {
+        "--pz-x": x + "px", "--pz-y": y + "px", "--pz-r0": closing ? R + "px" : "0px", "--pz-a": ang.toFixed(1) + "deg",
+        "--pz-deep": body(DEEP),
+      };
+      STEPS.forEach((s, i) => { props["--pz-t" + i] = body(s.d); });
+      for (const p in props) root.style.setProperty(p, props[p]);
 
-      // The rim: three copies of this page, red, green and blue, each pushed out from the origin by its own amount,
-      // added back together into the page, tinted where the glass is thick, masked to the band.
+      // The rim: one copy of this page per step (two for the outer one, warm and cool), each pushed out from the
+      // origin by its own amount, tinted by the glass, masked to its ring.
       const pz = document.createElement("div");
       pz.className = "pz " + (closing ? "pz-in" : "pz-out");
       pz.setAttribute("aria-hidden", "true");
       pz.inert = true;
-      const band = document.createElement("div");
-      band.className = "pz-band";
       const src = document.querySelectorAll("body > header, body > main, body > footer");
-      const chans = ["r", "g", "b"].map((c) => {
-        const ch = document.createElement("div");
-        ch.className = "pz-ch pz-" + c;
+      const copyOf = () => {
         const copy = document.createElement("div");
         copy.className = "pz-copy";
         copy.style.top = -scrollY + "px";
@@ -141,48 +153,75 @@
         for (const n of copy.querySelectorAll("[id]")) n.removeAttribute("id");
         for (const n of copy.querySelectorAll("svg.stamp, script")) n.remove();
         for (const n of copy.querySelectorAll("[data-gem], [data-stamp-host], [data-count]")) { n.removeAttribute("data-gem"); n.removeAttribute("data-stamp-host"); n.removeAttribute("data-count"); }
-        ch.append(copy);
-        band.append(ch);
-        return ch;
+        return copy;
+      };
+      const moving = []; // [element, step, part of the colour split]
+      STEPS.forEach((s, i) => {
+        const st = document.createElement("div");
+        st.className = "pz-st pz-s" + i;
+        st.style.setProperty("--f0", s.f[0]);
+        st.style.setProperty("--f1", s.f[1]);
+        for (const part of s.split ? [-1, 1] : [0]) {
+          const ch = document.createElement("div");
+          ch.className = "pz-ch" + (part < 0 ? " pz-warm" : part > 0 ? " pz-cool" : "");
+          ch.append(copyOf());
+          st.append(ch);
+          moving.push([ch, s, part]);
+        }
+        const tint = document.createElement("div");
+        tint.className = "pz-tint";
+        st.append(tint);
+        pz.append(st);
       });
-      const tint = document.createElement("div");
-      tint.className = "pz-tint";
-      band.append(tint);
-      const hi = document.createElement("div");
-      hi.className = "pz-hi";
-      const lo = document.createElement("div");
-      lo.className = "pz-lo";
-      pz.append(band, hi, lo);
+      for (const c of ["pz-seams", "pz-hi", "pz-lo"]) {
+        const d = document.createElement("div");
+        d.className = c;
+        pz.append(d);
+      }
       // The spectrum lies on the page beside the glass: its own layer, multiplied onto whatever is under it.
       const sp = document.createElement("div");
       sp.className = "pz-spec " + (closing ? "pz-in" : "pz-out");
       sp.setAttribute("aria-hidden", "true");
       document.body.append(pz, sp);
 
-      // One set of frames for the disc, the rim and the colours, so they can't drift apart.
-      const T = closing ? CLOSE : OPEN, N = 30;
-      const disc = [], rim = [], scale = { r: [], g: [], b: [] };
+      // The radius at each moment, and from it one set of frames for the disc, the rim, the steps and the colours,
+      // so they can't drift apart.
+      const T = closing ? SHUT + REST + FOLD : GROW + HOLD + SWEEP;
+      const radius = (ms) => {
+        if (closing) {
+          if (ms < SHUT) return R - (R - LENS[1]) * easeShut(ms / SHUT);
+          if (ms < SHUT + REST) return LENS[1] - (LENS[1] - LENS[0]) * ((ms - SHUT) / REST);
+          return LENS[0] * (1 - easeFold(Math.min(1, (ms - SHUT - REST) / FOLD)));
+        }
+        if (ms < GROW) return LENS[0] * out3(ms / GROW);
+        if (ms < GROW + HOLD) return LENS[0] + (LENS[1] - LENS[0]) * ((ms - GROW) / HOLD);
+        return LENS[1] + (R - LENS[1]) * easeSweep(Math.min(1, (ms - GROW - HOLD) / SWEEP));
+      };
+      const N = Math.round(T / 8);
+      const disc = [], rim = [], frames = moving.map(() => []);
       for (let i = 0; i <= N; i++) {
-        const t = i / N;
-        const r = closing ? R * (1 - easeClose(t)) : R * easeOpen(t);
+        const t = i / N, r = radius(t * T);
         disc.push({ clipPath: `circle(${r.toFixed(2)}px at ${x}px ${y}px)` });
-        rim.push({ "--pz-r": r.toFixed(2) + "px" });
-        const m = Math.min(MAX, 1 + SHIFT / Math.max(r, 1));
-        const d = SPLIT / Math.max(r, 40);
-        scale.r.push({ transform: `scale(${(m + d).toFixed(5)})` });
-        scale.g.push({ transform: `scale(${m.toFixed(5)})` });
-        scale.b.push({ transform: `scale(${(m - d).toFixed(5)})` });
+        // The bands of light turn a little as the stone passes, so the facets read as cut, not painted.
+        const turn = (closing ? 1 - t : t) * 26 - 12;
+        rim.push({ "--pz-r": r.toFixed(2) + "px", "--pz-turn": turn.toFixed(2) + "deg" });
+        const k = Math.max(r, 36);
+        moving.forEach(([, s, part], j) => {
+          // Beryl's dispersion: the warm copy bends a little less than the cool one.
+          const m = Math.min(1.5, 1 + s.a / k) + (part * (s.split || 0)) / k;
+          frames[j].push({ transform: `scale(${m.toFixed(5)})` });
+        });
       }
       const timing = { duration: T, easing: "linear", fill: "both" };
       vt.ready.then(() => {
         root.animate(disc, { ...timing, pseudoElement: closing ? "::view-transition-old(root)" : "::view-transition-new(root)" });
         pz.animate(rim, timing);
         sp.animate(rim, timing);
-        chans.forEach((ch, i) => ch.animate(scale["rgb"[i]], timing));
+        moving.forEach(([el], j) => el.animate(frames[j], timing));
       }).catch(() => {});
       vt.finished.finally(() => {
         pz.remove(); sp.remove();
-        for (const p of ["--pz-x", "--pz-y", "--pz-r0", "--pz-a"]) root.style.removeProperty(p);
+        for (const p in props) root.style.removeProperty(p);
       });
     });
   })();
@@ -198,6 +237,11 @@
     syntax: "<length>";
     inherits: true;
     initial-value: 0px;
+  }
+  @property --pz-turn {
+    syntax: "<angle>";
+    inherits: true;
+    initial-value: 0deg;
   }
 
   /* Without the heavy effects: the pages cross-fade, briefly. */
@@ -227,8 +271,8 @@
     z-index: 2147483000;
     pointer-events: none;
     --pz-r: var(--pz-r0);
-    /* The rim: 34px, narrower while the disc is still smaller than the brand's lens. */
-    --pz-w: min(34px, var(--pz-r) * 0.3);
+    /* The rim: 28px, under a third of the disc while it is still smaller than that. */
+    --pz-w: min(28px, var(--pz-r) * 0.3);
   }
   .pz {
     view-transition-name: pz-rim;
@@ -246,21 +290,28 @@
     mix-blend-mode: multiply;
   }
 
-  /* The band: opening, just inside the disc's edge (the new page through the glass); closing, just outside it (the
-     page coming back, seen through the glass as the old one shrinks away). Hard at the glass edge, soft inward. */
-  .pz-band {
+  /* A step: opening, a ring just inside the disc's edge (the new page through the glass); closing, just outside it
+     (the page coming back, seen through the glass as the old one shrinks away). Hard at both edges: cut, not blown. */
+  .pz-st {
     position: absolute;
     inset: 0;
     overflow: clip;
     isolation: isolate;
+    --e0: calc(var(--pz-w) * var(--f0));
+    --e1: calc(var(--pz-w) * var(--f1));
   }
-  .pz-out .pz-band {
-    mask-image: radial-gradient(circle at var(--pz-x) var(--pz-y), transparent calc(var(--pz-r) - var(--pz-w)), #000 calc(var(--pz-r) - var(--pz-w) + 3px), #000 calc(var(--pz-r) - 0.5px), transparent var(--pz-r));
+  .pz-out .pz-st {
+    mask-image: radial-gradient(circle at var(--pz-x) var(--pz-y), transparent calc(var(--pz-r) - var(--e1)), #000 calc(var(--pz-r) - var(--e1)), #000 calc(var(--pz-r) - var(--e0) - 0.5px), transparent calc(var(--pz-r) - var(--e0)));
   }
-  .pz-in .pz-band {
-    mask-image: radial-gradient(circle at var(--pz-x) var(--pz-y), transparent var(--pz-r), #000 calc(var(--pz-r) + 0.5px), #000 calc(var(--pz-r) + var(--pz-w) - 3px), transparent calc(var(--pz-r) + var(--pz-w)));
+  .pz-in .pz-st {
+    mask-image: radial-gradient(circle at var(--pz-x) var(--pz-y), transparent calc(var(--pz-r) + var(--e0)), #000 calc(var(--pz-r) + var(--e0) + 0.5px), #000 calc(var(--pz-r) + var(--e1)), transparent calc(var(--pz-r) + var(--e1)));
   }
-  /* One colour channel of the page: the copy on its own, multiplied by its primary. The three are added together. */
+  /* The outer step is the thickest: what is seen through it is a touch soft. */
+  .pz-s0 {
+    filter: blur(0.35px);
+  }
+  /* One copy of the page in a step. In the outer one, a warm and a cool copy, multiplied by complementary colours
+     and added back together: where they sit on each other, the page; where they part, a soft warm or cool edge. */
   .pz-ch {
     position: absolute;
     inset: 0;
@@ -269,23 +320,20 @@
     background: var(--color-bg);
     will-change: transform;
   }
-  .pz-ch::after {
+  .pz-warm::after,
+  .pz-cool::after {
     content: "";
     position: absolute;
     inset: -64px;
     mix-blend-mode: multiply;
   }
-  .pz-r::after {
-    background: #f00;
+  .pz-warm::after {
+    background: rgb(255 184 110);
   }
-  .pz-g::after {
-    background: #0f0;
+  .pz-cool::after {
+    background: rgb(0 71 145);
   }
-  .pz-b::after {
-    background: #00f;
-  }
-  .pz-g,
-  .pz-b {
+  .pz-cool {
     mix-blend-mode: plus-lighter;
   }
   /* The copy of the page: laid out as the body is, shifted by the scroll. */
@@ -301,45 +349,92 @@
     flex: 1;
     max-width: none;
   }
-  /* The glass is one tone: emerald, deeper toward the edge, where you look through more of it. */
+  /* The glass: the stone's colour through each step's thickness, a tint on what is behind, never a fill. Over it, the
+     room round the stone, carried by the facets: thin bright and dark streaks on each step toward the one light, upper
+     left, as on the stones, each step at its own angle, so they break at the junctions. */
   .pz-tint {
     position: absolute;
-    inset: 0;
+    inset: -64px;
     mix-blend-mode: multiply;
   }
-  .pz-out .pz-tint {
-    background: radial-gradient(circle at var(--pz-x) var(--pz-y), transparent calc(var(--pz-r) - var(--pz-w) + 4px), color-mix(in srgb, var(--emerald) 16%, white) calc(var(--pz-r) - 2px));
+  .pz-s0 .pz-tint {
+    background: var(--pz-t0);
   }
-  .pz-in .pz-tint {
-    background: radial-gradient(circle at var(--pz-x) var(--pz-y), color-mix(in srgb, var(--emerald) 16%, white) calc(var(--pz-r) + 2px), transparent calc(var(--pz-r) + var(--pz-w) - 4px));
+  .pz-s1 .pz-tint {
+    background: var(--pz-t1);
   }
-  /* The edge of the glass, 0.5px: a dark line all round, as every raised thing on the site has, and a light one just
-     inside it where the edge faces the light, ahead of the passage. */
+  .pz-s2 .pz-tint {
+    background: var(--pz-t2);
+  }
+  .pz-st::before,
+  .pz-st::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    --o: 0deg;
+  }
+  .pz-st::before {
+    mix-blend-mode: multiply;
+    background: conic-gradient(from calc(var(--pz-turn) + var(--o) + 25deg) at var(--pz-x) var(--pz-y), transparent, var(--pz-deep) 2.4%, transparent 5.4%, transparent 50%, var(--pz-deep) 52%, transparent 54.5%);
+  }
+  .pz-st::after {
+    background: conic-gradient(from calc(var(--pz-turn) + var(--o) - 52deg) at var(--pz-x) var(--pz-y), transparent, rgb(255 255 255 / 0.75) 1.6%, transparent 3.8%, transparent 50%, rgb(255 255 255 / 0.4) 51.4%, transparent 53%);
+  }
+  .pz-s1::before,
+  .pz-s1::after {
+    --o: 21deg;
+  }
+  .pz-s2::before,
+  .pz-s2::after {
+    --o: -16deg;
+  }
+  /* The junctions between the steps, 0.5px: dark on the inner side, light on the outer, so the steps read at 1x. */
+  .pz-seams,
   .pz-hi,
   .pz-lo {
     position: absolute;
     inset: 0;
   }
+  .pz-out .pz-seams {
+    background:
+      radial-gradient(circle at var(--pz-x) var(--pz-y), transparent calc(var(--pz-r) - var(--pz-w) * 0.3 - 1px), rgb(0 0 0 / 0.14) calc(var(--pz-r) - var(--pz-w) * 0.3 - 0.5px), rgb(255 255 255 / 0.5) calc(var(--pz-r) - var(--pz-w) * 0.3), transparent calc(var(--pz-r) - var(--pz-w) * 0.3 + 0.75px)),
+      radial-gradient(circle at var(--pz-x) var(--pz-y), transparent calc(var(--pz-r) - var(--pz-w) * 0.64 - 1px), rgb(0 0 0 / 0.12) calc(var(--pz-r) - var(--pz-w) * 0.64 - 0.5px), rgb(255 255 255 / 0.6) calc(var(--pz-r) - var(--pz-w) * 0.64), transparent calc(var(--pz-r) - var(--pz-w) * 0.64 + 0.75px)),
+      radial-gradient(circle at var(--pz-x) var(--pz-y), transparent calc(var(--pz-r) - var(--pz-w) - 1px), rgb(0 0 0 / 0.2) calc(var(--pz-r) - var(--pz-w) - 0.5px), rgb(255 255 255 / 0.5) calc(var(--pz-r) - var(--pz-w)), transparent calc(var(--pz-r) - var(--pz-w) + 0.75px));
+  }
+  .pz-in .pz-seams {
+    background:
+      radial-gradient(circle at var(--pz-x) var(--pz-y), transparent calc(var(--pz-r) + var(--pz-w) * 0.3 - 0.75px), rgb(255 255 255 / 0.5) calc(var(--pz-r) + var(--pz-w) * 0.3), rgb(0 0 0 / 0.14) calc(var(--pz-r) + var(--pz-w) * 0.3 + 0.5px), transparent calc(var(--pz-r) + var(--pz-w) * 0.3 + 1px)),
+      radial-gradient(circle at var(--pz-x) var(--pz-y), transparent calc(var(--pz-r) + var(--pz-w) * 0.64 - 0.75px), rgb(255 255 255 / 0.6) calc(var(--pz-r) + var(--pz-w) * 0.64), rgb(0 0 0 / 0.12) calc(var(--pz-r) + var(--pz-w) * 0.64 + 0.5px), transparent calc(var(--pz-r) + var(--pz-w) * 0.64 + 1px)),
+      radial-gradient(circle at var(--pz-x) var(--pz-y), transparent calc(var(--pz-r) + var(--pz-w) - 0.75px), rgb(255 255 255 / 0.5) calc(var(--pz-r) + var(--pz-w)), rgb(0 0 0 / 0.2) calc(var(--pz-r) + var(--pz-w) + 0.5px), transparent calc(var(--pz-r) + var(--pz-w) + 1px));
+  }
+  /* The edge of the glass, 0.5px: a dark line all round, as every raised thing on the site has, and a soft catch of
+     light just inside it on the upper left, where the one light is. */
   .pz-hi {
-    background: radial-gradient(circle at var(--pz-x) var(--pz-y), transparent calc(var(--pz-r) - 2px), rgb(255 255 255 / 0.95) calc(var(--pz-r) - 1px), transparent calc(var(--pz-r) - 0.25px));
-    mask-image: conic-gradient(from var(--pz-a) at var(--pz-x) var(--pz-y), #000, transparent 22%, transparent 78%, #000);
+    mask-image: conic-gradient(from -45deg at var(--pz-x) var(--pz-y), #000, rgb(0 0 0 / 0.4) 7%, transparent 15%, transparent 85%, rgb(0 0 0 / 0.4) 93%, #000);
+  }
+  .pz-out .pz-hi {
+    background: radial-gradient(circle at var(--pz-x) var(--pz-y), transparent calc(var(--pz-r) - 6px), rgb(255 255 255 / 0.9) calc(var(--pz-r) - 1.25px), transparent calc(var(--pz-r) - 0.25px));
+  }
+  .pz-in .pz-hi {
+    background: radial-gradient(circle at var(--pz-x) var(--pz-y), transparent calc(var(--pz-r) + var(--pz-w) - 6px), rgb(255 255 255 / 0.9) calc(var(--pz-r) + var(--pz-w) - 1.25px), transparent calc(var(--pz-r) + var(--pz-w) - 0.25px));
   }
   .pz-lo {
-    background: radial-gradient(circle at var(--pz-x) var(--pz-y), transparent calc(var(--pz-r) - 0.5px), rgb(0 0 0 / 0.2) var(--pz-r), transparent calc(var(--pz-r) + 0.75px));
+    background: radial-gradient(circle at var(--pz-x) var(--pz-y), transparent calc(var(--pz-r) - 0.5px), rgb(0 0 0 / 0.28) var(--pz-r), transparent calc(var(--pz-r) + 0.75px));
   }
   .pz-in .pz-lo {
-    background: radial-gradient(circle at var(--pz-x) var(--pz-y), transparent calc(var(--pz-r) - 0.75px), rgb(0 0 0 / 0.2) var(--pz-r), transparent calc(var(--pz-r) + 0.5px));
+    background: radial-gradient(circle at var(--pz-x) var(--pz-y), transparent calc(var(--pz-r) - 0.75px), rgb(0 0 0 / 0.28) var(--pz-r), transparent calc(var(--pz-r) + 0.5px));
   }
-  /* The spectrum, on the page just past the glass, ahead of the passage: blue nearest the edge, red furthest, soft, an
-     arc of about a third of the way round, never a ring. */
+  /* The spectrum, on the page just past the glass, ahead of the passage: cool nearest the edge, warm furthest, soft,
+     an arc of about a third of the way round, never a ring. */
   .pz-spec {
     mask-image: conic-gradient(from var(--pz-a) at var(--pz-x) var(--pz-y), #000, rgb(0 0 0 / 0.5) 8%, transparent 17%, transparent 83%, rgb(0 0 0 / 0.5) 92%, #000);
   }
   .pz-spec.pz-out {
-    background: radial-gradient(circle at var(--pz-x) var(--pz-y), transparent calc(var(--pz-r) + 2px), rgb(150 175 255 / 0.4) calc(var(--pz-r) + 7px), rgb(150 225 195 / 0.4) calc(var(--pz-r) + 13px), rgb(255 235 150 / 0.4) calc(var(--pz-r) + 19px), rgb(255 175 155 / 0.36) calc(var(--pz-r) + 25px), transparent calc(var(--pz-r) + 36px));
+    background: radial-gradient(circle at var(--pz-x) var(--pz-y), transparent calc(var(--pz-r) + 2px), rgb(160 200 235 / 0.26) calc(var(--pz-r) + 7px), rgb(150 225 195 / 0.26) calc(var(--pz-r) + 13px), rgb(250 235 160 / 0.24) calc(var(--pz-r) + 19px), rgb(250 190 160 / 0.22) calc(var(--pz-r) + 25px), transparent calc(var(--pz-r) + 34px));
   }
   .pz-spec.pz-in {
-    background: radial-gradient(circle at var(--pz-x) var(--pz-y), transparent calc(var(--pz-r) - 36px), rgb(255 175 155 / 0.36) calc(var(--pz-r) - 25px), rgb(255 235 150 / 0.4) calc(var(--pz-r) - 19px), rgb(150 225 195 / 0.4) calc(var(--pz-r) - 13px), rgb(150 175 255 / 0.4) calc(var(--pz-r) - 7px), transparent calc(var(--pz-r) - 2px));
+    background: radial-gradient(circle at var(--pz-x) var(--pz-y), transparent calc(var(--pz-r) - 34px), rgb(250 190 160 / 0.22) calc(var(--pz-r) - 25px), rgb(250 235 160 / 0.24) calc(var(--pz-r) - 19px), rgb(150 225 195 / 0.26) calc(var(--pz-r) - 13px), rgb(160 200 235 / 0.26) calc(var(--pz-r) - 7px), transparent calc(var(--pz-r) - 2px));
   }
 
   /* The stone on the pressed arrow and the cursor: held over the change, then they settle into the new page. */
@@ -350,7 +445,7 @@
   }
   ::view-transition-old(pz-gem) {
     transform-origin: var(--pz-x) var(--pz-y);
-    animation: pz-settle 540ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    animation: pz-settle 560ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
   }
   ::view-transition-old(pz-cursor) {
     animation: pz-fade 420ms linear both;
