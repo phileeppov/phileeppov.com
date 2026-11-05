@@ -1,6 +1,6 @@
 ---
-// Manifesto: site.md §2, copy verbatim. The /review style (Site.astro): the label on the left, the principles down the
-// right. Each principle's number stands in the left column in Lead at a third of the ink and stays in view while its
+// Manifesto: site.md §2, copy verbatim. The title stands where every page has it (label above, left edge); below it
+// the principles run down the right. Each principle's number stands in the left column in Lead at a third of the ink and stays in view while its
 // principle is read (sticky), so the column carries the structure, not just the page label.
 // Two pacings, set on <main> (both kept for review until one is chosen):
 //   data-pace="length": the pause after a principle grows with its length (data-len on the article);
@@ -12,9 +12,10 @@ import Site from "../layouts/Site.astro";
 
 <Site title="Manifesto" description="Five principles I work by." image="/review-og.png">
   <main class="page manifesto" data-pace="length">
-    <section class="row intro">
+    <!-- The title in the one place every page has it: the label over it, both at the left edge (site.css .page-title). -->
+    <section class="part intro">
       <h1 class="label caps">MANIFESTO</h1>
-      <p class="title">Five principles I work&nbsp;by.</p>
+      <p class="page-title">Five principles I work&nbsp;by.</p>
     </section>
 
     <!-- The articles take the row's own columns (subgrid), so the numbers line up with the label above them. -->
@@ -88,15 +89,8 @@ import Site from "../layouts/Site.astro";
 
 <style>
   .intro {
+    gap: 20px;
     padding-top: 40px;
-    align-items: baseline;
-  }
-  .title {
-    margin: 0;
-    font-size: clamp(40px, 5.6vw, 80px);
-    font-weight: 500;
-    line-height: 0.98;
-    letter-spacing: -0.058em;
   }
 
   /* The pause after a principle, by its length: two paragraphs, one long paragraph, one short. After the last one the
@@ -218,9 +212,6 @@ import Site from "../layouts/Site.astro";
   @media (max-width: 560px) {
     .intro {
       padding-top: 16px;
-    }
-    .title {
-      font-size: 36px;
     }
     .num,
     h2 {
