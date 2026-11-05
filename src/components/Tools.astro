@@ -170,17 +170,18 @@ const { material = "dark" } = Astro.props;
     --pressed-edge: var(--recess);
   }
   .tools[data-material="dark"] {
-    --line: color-mix(in srgb, var(--color-off-white) 10%, transparent);
-    --strong: color-mix(in srgb, var(--color-off-white) 22%, transparent);
-    --mark: color-mix(in srgb, var(--color-off-white) 72%, transparent);
-    --code-bg: color-mix(in srgb, var(--color-off-white) 5%, var(--color-black));
-    --code-edge: inset 0 0 0 0.5px color-mix(in srgb, var(--color-off-white) 9%, transparent);
+    --line: color-mix(in srgb, var(--color-off-white) 20%, transparent);
+    --strong: color-mix(in srgb, var(--color-off-white) 36%, transparent);
+    --mark: color-mix(in srgb, var(--color-off-white) 90%, transparent);
+    --code-bg: color-mix(in srgb, var(--color-off-white) 8%, var(--color-black));
+    --code-edge: inset 0 0 0 0.5px color-mix(in srgb, var(--color-off-white) 14%, transparent);
     --pill-edge: inset 0 1px 0 white, inset 0 -1px 0 color-mix(in srgb, var(--color-black) 10%, transparent),
       0 0 0 0.5px color-mix(in srgb, var(--color-black) 70%, transparent),
       0 2px 6px -1px color-mix(in srgb, var(--color-black) 80%, transparent);
-    --pressed: color-mix(in srgb, var(--color-off-white) 11%, var(--color-black));
-    --pressed-edge: inset 0 1px 3px color-mix(in srgb, var(--color-black) 85%, transparent),
-      inset 0 0 0 0.5px color-mix(in srgb, var(--color-off-white) 10%, transparent);
+    /* Pressed: a tray tone, lighter than the tile and darker than the raised pills, so the emoji keeps its strength. */
+    --pressed: color-mix(in srgb, var(--color-off-white) 30%, var(--color-black));
+    --pressed-edge: inset 0 1.5px 3px color-mix(in srgb, var(--color-black) 55%, transparent),
+      inset 0 0 0 0.5px color-mix(in srgb, var(--color-off-white) 16%, transparent);
   }
   .tools[data-material="light"] {
     --pill-w: 84px;
