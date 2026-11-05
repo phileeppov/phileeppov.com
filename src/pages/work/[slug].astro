@@ -1,7 +1,11 @@
 ---
-// Case template: site.md §3. Copy and shots: src/data/cases.ts. No design yet: block and shot order follows the shot maps.
+// Case page: site.md §3, copy and shots from src/data/cases.ts, laid out as the wall (site.css). The name at Display
+// under the label that files it, the description as its caption, then the hero visual. Each block of the template is a
+// part: its label at the hairline, its words in the caption half, its shots by size (Shots.astro). The thesis and each
+// decision's title are the statements, one to a screen; the decision's number is a label over its title. The close is
+// the template's line at Display, the button as its caption.
 import { getImage } from "astro:assets";
-import Base from "../../layouts/Base.astro";
+import Site from "../../layouts/Site.astro";
 import Shots from "../../components/Shots.astro";
 import { cases, shot } from "../../data/cases";
 
@@ -14,70 +18,274 @@ export function getStaticPaths() {
 
 const { c, prev, next } = Astro.props;
 const og = await getImage({ src: shot(c.slug, c.hero[0].img), width: 1200, format: "jpg" });
+
+// The thesis breaks where its sentences do.
+const thesis = c.thesis.split(/(?<=\.)\s+/);
+// "01. Recording gets its own place": the number as a label, the rest as the statement.
+const titled = c.decisions.map((d) => {
+  const [, num = "", title = d.title] = d.title.match(/^(\d+\.)\s+(.*)$/) ?? [];
+  return { ...d, num, title };
+});
 ---
 
-<Base title={c.name} description={c.description} image={og.src} imageSize={[Number(og.attributes.width), Number(og.attributes.height)]}>
-  <main>
-    <section>
-      <p>Filed under<br />{c.principle}</p>
-      <h1>{c.name}</h1>
-      <p>{c.description}</p>
-      <p>{c.mark}</p>
-      <Shots slug={c.slug} shots={c.hero} eager />
+<Site
+  passage
+  title={c.name}
+  description={c.description}
+  image={og.src}
+  imageSize={[Number(og.attributes.width), Number(og.attributes.height)]}
+>
+  <main class="wall case">
+    <section class="intro grid">
+      <p class="label">Filed under<br />{c.principle}</p>
+      <h1 class="statement">{c.name}</h1>
+      <div class="cap">
+        <p>{c.description}</p>
+        <p class="label mark">{c.mark}</p>
+      </div>
+      <Shots slug={c.slug} shots={c.hero} eager hero />
     </section>
 
-    <section>
-      <h2>What was broken before</h2>
-      {c.tension.map((b) => (typeof b === "string" ? <p>{b}</p> : <Shots slug={c.slug} shots={b} />))}
+    <section class="part flow grid">
+      <h2 class="label side">What was broken before</h2>
+      {c.tension.map((b) => (typeof b === "string" ? <p class="cap">{b}</p> : <Shots slug={c.slug} shots={b} />))}
     </section>
 
-    <section>
-      <h2>What I decided</h2>
-      <p>{c.thesis}</p>
+    <section class="part grid">
+      <h2 class="label">What I decided</h2>
+      <p class="statement">
+        <span class="ph">{thesis.map((t, i) => <><span>{t}</span>{i < thesis.length - 1 && " "}</>)}</span>
+      </p>
+      <p class="cap role">{c.role}</p>
     </section>
 
-    <section>
-      <p>{c.role}</p>
+    {
+      titled.map((d, i) => (
+        <article class="part flow decision grid">
+          {i === 0 && <h2 class="label">What I decided, and why</h2>}
+          <h3 class="statement">
+            <span class="label num">{d.num}</span> <span>{d.title}</span>
+          </h3>
+          {d.blocks.map((b) => (typeof b === "string" ? <p class="cap">{b}</p> : <Shots slug={c.slug} shots={b} />))}
+        </article>
+      ))
+    }
+
+    <section class="part flow grid">
+      {c.happened.map((b) => (typeof b === "string" ? <p class="cap">{b}</p> : <Shots slug={c.slug} shots={b} />))}
     </section>
 
-    <section>
-      <h2>What I decided, and why</h2>
+    <section class="part flow grid">
+      <h2 class="label">The final screens</h2>
+      <Shots slug={c.slug} shots={c.artifacts.shots} caption={c.artifacts.caption} />
+      {c.notes && <p class="cap notes">{c.notes.map((n) => <span class="label">{n}</span>)}</p>}
+    </section>
+
+    <nav class="part steps grid" aria-label="Cases">
       {
-        c.decisions.map((d) => (
-          <article>
-            <h3>{d.title}</h3>
-            {d.blocks.map((b) => (typeof b === "string" ? <p>{b}</p> : <Shots slug={c.slug} shots={b} />))}
-          </article>
-        ))
+        prev && (
+          <a class="link prev" href={`/work/${prev.slug}/`}>
+            <span class="arw">←</span> Previous: {prev.name}
+          </a>
+        )
       }
-    </section>
-
-    <section>
-      {c.happened.map((b) => (typeof b === "string" ? <p>{b}</p> : <Shots slug={c.slug} shots={b} />))}
-    </section>
-
-    <section>
-      <h2>The final screens</h2>
-      {c.artifacts.caption && <p>{c.artifacts.caption}</p>}
-      <Shots slug={c.slug} shots={c.artifacts.shots} />
-      {c.notes?.map((n) => <p><small>{n}</small></p>)}
-    </section>
-
-    <nav>
-      {prev && <a href={`/work/${prev.slug}/`}>← Previous: {prev.name}</a>}
-      <a href="/#work">Back to all work</a>
-      {next && <a href={`/work/${next.slug}/`}>Next: {next.name} →</a>}
+      <a class="link back" href="/#work">Back to all work</a>
+      {
+        next && (
+          <a class="link next" href={`/work/${next.slug}/`}>
+            Next: {next.name} <span class="arw">→</span>
+          </a>
+        )
+      }
     </nav>
 
-    <section>
-      <p>If this is the kind of decision-making your product needs —</p>
-      <a href="/#review">Send a link, get a video review →</a>
+    <section class="part end grid">
+      <p class="statement"><span class="ph"><span>If this is the kind</span> <span>of decision-making</span> <span>your product needs&nbsp;—</span></span></p>
+      <div class="cap">
+        <a class="btn" href="/review/" data-gem>Send a link, get a video review <span class="arw">→</span></a>
+      </div>
     </section>
   </main>
-</Base>
+</Site>
 
 <style>
-  nav a {
+  /* The first screen: the label that files the case, the name at Display, the description as its caption with the
+     mark under it, then the hero visual from the left edge. */
+  .intro {
+    padding-bottom: 120px;
+  }
+  .intro > .label,
+  .intro > .statement {
+    grid-column: 1 / -1;
+  }
+  .intro > .statement {
+    margin-top: 24px;
+  }
+  .intro > .cap {
+    display: grid;
+    gap: 16px;
+    margin-top: 48px;
+  }
+  .intro :global(.shots) {
+    margin-top: 72px;
+  }
+
+  /* Parts: the statement 72px under the hairline (or under the label), its caption 48px under it. Words run in the
+     caption half, a paragraph to a step; shots stand 56px off the words around them. */
+  .part {
+    padding-bottom: 160px;
+  }
+  .part > .label {
+    grid-column: 1 / -1;
+  }
+  .part > .statement {
+    grid-column: 1 / -1;
+    margin-top: 72px;
+    text-wrap: balance;
+  }
+  .part > .statement + .cap {
+    margin-top: 48px;
+  }
+  .flow > .cap + .cap {
+    margin-top: 20px;
+  }
+  .flow > :global(.shots) {
+    margin-top: 56px;
+  }
+  .flow > :global(.shots) + .cap {
+    margin-top: 56px;
+  }
+  .flow > .label + :global(.shots) {
+    margin-top: 48px;
+  }
+
+  /* What was broken before: the label on the left at the hairline, the first paragraph level with it, as in How I work
+     on the home page. */
+  .side {
+    grid-row: 1;
+  }
+  .flow > .label.side {
+    grid-column: 1 / span 4;
+  }
+  .side + .cap {
+    grid-row: 1;
+  }
+
+  /* A decision: the number a label over the title, the title the statement. */
+  .num {
     display: block;
+    margin-bottom: 20px;
+  }
+  .decision > .label + .statement {
+    margin-top: 72px;
+  }
+  .decision:not(:has(> h2)) > .statement {
+    margin-top: 0;
+  }
+  .decision > .statement + .cap {
+    margin-top: 48px;
+  }
+
+  /* What happened has no label: its first paragraph stands at the hairline's label line. */
+  .flow > .cap:first-child {
+    margin-top: 0;
+  }
+
+  .notes {
+    display: grid;
+    gap: 4px;
+    margin-top: 40px;
+  }
+
+  /* Previous, back, next: one row, the way back in the caption column, next at the right edge. */
+  .steps {
+    align-items: baseline;
+    padding-bottom: 120px;
+  }
+  .steps a {
+    grid-row: 1;
+  }
+  .prev {
+    grid-column: 1 / span 4;
+    justify-self: start;
+  }
+  .back {
+    grid-column: 7 / span 3;
+    justify-self: start;
+  }
+  .next {
+    grid-column: 10 / span 3;
+    justify-self: end;
+  }
+
+  .end {
+    padding-bottom: 96px;
+    justify-items: start;
+  }
+  .end > .statement {
+    margin-top: 72px;
+  }
+
+  @media (max-width: 1199px) {
+    .back {
+      grid-column: 5 / span 4;
+    }
+    .next {
+      grid-column: 9 / span 4;
+    }
+  }
+  @media (max-width: 767px) {
+    .flow > .label.side {
+      grid-column: 1 / -1;
+    }
+    .side + .cap {
+      grid-row: auto;
+      margin-top: 40px;
+    }
+    .steps {
+      display: grid;
+      gap: 14px;
+    }
+    .steps a {
+      grid-row: auto;
+      grid-column: 1 / -1;
+      justify-self: start;
+    }
+  }
+  @media (max-width: 560px) {
+    .intro {
+      padding-bottom: 72px;
+    }
+    .intro > .cap {
+      margin-top: 32px;
+    }
+    .intro :global(.shots) {
+      margin-top: 48px;
+    }
+    .part {
+      padding-bottom: 104px;
+    }
+    .part > .statement,
+    .decision > .label + .statement,
+    .end > .statement {
+      margin-top: 48px;
+    }
+    .part > .statement + .cap,
+    .decision > .statement + .cap {
+      margin-top: 32px;
+    }
+    .flow > :global(.shots),
+    .flow > :global(.shots) + .cap {
+      margin-top: 40px;
+    }
+    .num {
+      margin-bottom: 12px;
+    }
+    .steps {
+      padding-bottom: 88px;
+    }
+    .end {
+      padding-bottom: 64px;
+    }
   }
 </style>

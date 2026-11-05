@@ -205,6 +205,21 @@ export const cases: Case[] = [
   },
 ];
 
+// Shot sizes from the shot maps, as a share of a shot's design size (half its pixel width: the exports are @2x).
+// Shots not listed here are shown at their design size, or the full measure when that is narrower.
+export const shotScale: Record<string, number> = {
+  "medal/IMG-00b": 0.5, // the red tile at half the green one, along its bottom edge
+  "medal/IMG-01b": 0.3, // the notes, small
+  "sports-club/IMG-04": 0.6, // the packs, smaller than the lineup above
+  "sports-club/IMG-07": 0.4, // the dollar signs, smaller still
+  "sports-club/IMG-08": 0.7, // the purchase, medium
+  "sports-club/IMG-10": 0.6, // the landing page, a narrow column (exported @1x)
+  "ailekmed/IMG-05": 0.5, // the card on the phone, small, paired with the reservation
+  "ailekmed/IMG-09": 0.6, // the empty search, a narrow column
+  "ailekmed/IMG-10": 0.5, // all reservations, small
+  "mavatars/IMG-05": 0.5, // the inventory, small under the feed
+};
+
 // Shots: src/assets/cases/<slug>/<ID>.png.
 const files = import.meta.glob<{ default: ImageMetadata }>("../assets/cases/*/*.png", { eager: true });
 

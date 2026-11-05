@@ -16,14 +16,15 @@ interface Props {
   title?: string;
   description: string;
   image?: string;
+  imageSize?: [number, number]; // the preview image's size when it isn't 1200×630 (the case pages)
   passage?: boolean; // the page opens and closes as a disc of glass from the pressed arrow (Passage.astro)
 }
 
-const { title, description, image, passage = false } = Astro.props;
+const { title, description, image, imageSize, passage = false } = Astro.props;
 const aside = Astro.slots.has("aside");
 ---
 
-<Base title={title} description={description} image={image} bare>
+<Base title={title} description={description} image={image} imageSize={imageSize} bare>
   {
     /* Until the stamp gives the site its own icon (site.md, before launch), pages without one use the smile from /review. */
     Astro.slots.has("head") ? (

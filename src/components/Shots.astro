@@ -1,36 +1,108 @@
 ---
-// A group of case shots. Layout (large, small, offset) comes in the design phase, by the shot maps.
+// A group of case shots, laid out by size. A shot is never shown larger than its design size (half its pixel width:
+// the exports are @2x) times its scale from the shot map (shotScale in cases.ts), so it stays sharp on a dense screen.
+// Shots in a row keep their sizes against each other, large next to small: a row too wide for the measure shrinks as a
+// whole, bottom edges level. A first shot that fills the measure on its own leads, and the rest follow in a row under
+// it. A row that fits the caption half hangs from the caption column, next to the words it shows; a wider one takes
+// the full measure. On a phone the rows wrap: a shot that doesn't fit beside the one before takes a line of its own.
+// Prints, like the photo on /about: a small radius and a 0.5px edge, no shadow.
 import { Image } from "astro:assets";
-import { shot, type Shot } from "../data/cases";
+import { shot, shotScale, type Shot } from "../data/cases";
 
 interface Props {
   slug: string;
   shots: Shot[];
   eager?: boolean;
+  hero?: boolean; // the hero visual: always from the left edge
+  caption?: string; // one line under the whole group
 }
 
-const { slug, shots, eager = false } = Astro.props;
+const { slug, shots, eager = false, hero = false, caption } = Astro.props;
+
+const MEASURE = 1392; // the wall's widest measure (site.css, .grid)
+const HALF = 684; // its caption half, columns 7–12
+const GAP = 24;
+
+const items = shots.map((h) => {
+  const src = shot(slug, h.img);
+  const w = Math.round((src.width / 2) * (shotScale[`${slug}/${h.img}`] ?? 1));
+  const top = Math.min(src.width, w * 2);
+  const widths = [...new Set([480, 800, 1200, 1600, 2400].filter((x) => x < top).concat(top))];
+  return { ...h, src, w, widths };
+});
+type Item = (typeof items)[number];
+const span = (row: Item[]) => row.reduce((sum, i) => sum + i.w, 0) + GAP * (row.length - 1);
+const lead = items.length > 1 && items[0].w >= 1000 && span(items) > MEASURE;
+const rows = lead ? [items.slice(0, 1), items.slice(1)] : [items];
 ---
 
-<div class="shots">
+<div class:list={["shots", { hero }]}>
   {
-    shots.map((h) => (
-      <figure>
-        <Image
-          src={shot(slug, h.img)}
-          alt=""
-          widths={[640, 1280, 2000]}
-          sizes="100vw"
-          loading={eager ? "eager" : "lazy"}
-        />
-        {h.caption && <figcaption>{h.caption}</figcaption>}
-      </figure>
+    rows.map((row) => (
+      <div class:list={["row", { hang: !hero && span(row) <= HALF }]}>
+        {row.map((h, i) => (
+          <figure style={`--w: ${h.w}px`}>
+            <Image
+              src={h.src}
+              alt=""
+              widths={h.widths}
+              sizes={`(max-width: ${h.w + 48}px) calc(100vw - 48px), ${h.w}px`}
+              loading={eager ? "eager" : "lazy"}
+              fetchpriority={eager && i === 0 ? "high" : undefined}
+            />
+            {h.caption && <figcaption class="label">{h.caption}</figcaption>}
+          </figure>
+        ))}
+      </div>
     ))
   }
+  {caption && <p class="label note">{caption}</p>}
 </div>
 
 <style>
+  .shots {
+    grid-column: 1 / -1;
+    display: grid;
+    gap: var(--gutter);
+  }
+  .row {
+    display: flex;
+    align-items: flex-end;
+    gap: var(--gutter);
+  }
+  .row.hang {
+    margin-left: calc(50% + var(--gutter) / 2);
+  }
   figure {
+    flex: 0 1 var(--w);
+    min-width: 0;
     margin: 0;
+  }
+  figure :global(img) {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 4px;
+    box-shadow: 0 0 0 0.5px color-mix(in srgb, var(--color-black) 16%, transparent);
+  }
+  figcaption {
+    margin-top: 10px;
+  }
+  .note {
+    margin-top: -8px;
+  }
+
+  @media (max-width: 1199px) {
+    .row.hang {
+      margin-left: calc(100% / 3 + var(--gutter) / 3);
+    }
+  }
+  @media (max-width: 767px) {
+    .row {
+      flex-wrap: wrap;
+    }
+    .row.hang {
+      margin-left: 0;
+    }
   }
 </style>
