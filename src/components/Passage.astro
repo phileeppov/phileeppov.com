@@ -5,7 +5,7 @@
 //
 // The disc: the new page is the old snapshot's replacement inside a growing circle (clip-path on the transition's own
 // pseudo-elements). It comes out of the arrow at the size of the brand's lens, stays there a moment, so the glass is
-// seen as a thing, then opens. Its rim is cut like the stone on the arrow (src/scripts/emerald.js): a flat table in the
+// seen as a thing, then opens. Its rim is cut like the stone on the arrow (src/scripts/emerald.js): a clear table in the
 // middle and three steps round it, each a band of glass that pushes the page under it out by its own amount, the outer
 // step the most, so the letters break at every junction. Each step is a copy of the page, scaled about the origin and
 // masked to its ring. The glass is the stone's own colour (the same absorption, Beer-Lambert through the thickness of
@@ -39,7 +39,6 @@
       { f: [0.3, 0.64], a: 18, d: 0.45 },
       { f: [0.64, 1], a: 9, d: 0.22 },
     ];
-    const TABLE = 0.06; // the table's thickness: a breath of colour over the page while the disc is a lens
     const DEEP = 1.5; // the dark bands: where the facet sends back the stone's own depth
     // The stone's absorption per channel (emerald.js: red goes fast, blue a little faster than green).
     const SIG = [3.4, 0.62, 1.15];
@@ -131,7 +130,7 @@
       const root = document.documentElement;
       const props = {
         "--pz-x": x + "px", "--pz-y": y + "px", "--pz-r0": closing ? R + "px" : "0px", "--pz-a": ang.toFixed(1) + "deg",
-        "--pz-table": body(TABLE), "--pz-deep": body(DEEP),
+        "--pz-deep": body(DEEP),
       };
       STEPS.forEach((s, i) => { props["--pz-t" + i] = body(s.d); });
       for (const p in props) root.style.setProperty(p, props[p]);
@@ -156,9 +155,6 @@
         for (const n of copy.querySelectorAll("[data-gem], [data-stamp-host], [data-count]")) { n.removeAttribute("data-gem"); n.removeAttribute("data-stamp-host"); n.removeAttribute("data-count"); }
         return copy;
       };
-      const table = document.createElement("div");
-      table.className = "pz-table";
-      if (!closing) pz.append(table);
       const moving = []; // [element, step, part of the colour split]
       STEPS.forEach((s, i) => {
         const st = document.createElement("div");
@@ -202,14 +198,13 @@
         return LENS[1] + (R - LENS[1]) * easeSweep(Math.min(1, (ms - GROW - HOLD) / SWEEP));
       };
       const N = Math.round(T / 8);
-      const disc = [], rim = [], lens = [], frames = moving.map(() => []);
+      const disc = [], rim = [], frames = moving.map(() => []);
       for (let i = 0; i <= N; i++) {
         const t = i / N, r = radius(t * T);
         disc.push({ clipPath: `circle(${r.toFixed(2)}px at ${x}px ${y}px)` });
         // The bands of light turn a little as the stone passes, so the facets read as cut, not painted.
         const turn = (closing ? 1 - t : t) * 26 - 12;
         rim.push({ "--pz-r": r.toFixed(2) + "px", "--pz-turn": turn.toFixed(2) + "deg" });
-        lens.push({ opacity: Math.max(0, Math.min(1, 1 - (r - 130) / 200)).toFixed(3) });
         const k = Math.max(r, 36);
         moving.forEach(([, s, part], j) => {
           // Beryl's dispersion: the warm copy bends a little less than the cool one.
@@ -222,7 +217,6 @@
         root.animate(disc, { ...timing, pseudoElement: closing ? "::view-transition-old(root)" : "::view-transition-new(root)" });
         pz.animate(rim, timing);
         sp.animate(rim, timing);
-        if (!closing) table.animate(lens, timing);
         moving.forEach(([el], j) => el.animate(frames[j], timing));
       }).catch(() => {});
       vt.finished.finally(() => {
@@ -393,13 +387,6 @@
   .pz-s2::before,
   .pz-s2::after {
     --o: -27deg;
-  }
-  /* The table: a breath of the stone's colour over the page while the disc is a lens; it clears as it opens. */
-  .pz-table {
-    position: absolute;
-    inset: 0;
-    mix-blend-mode: multiply;
-    background: radial-gradient(circle at var(--pz-x) var(--pz-y), var(--pz-table) calc(var(--pz-r) - var(--pz-w)), transparent calc(var(--pz-r) - var(--pz-w)));
   }
   /* The junctions between the steps, 0.5px: dark on the inner side, light on the outer, so the steps read at 1x. */
   .pz-seams,
