@@ -35,6 +35,7 @@ const ogImage = image ? new URL(image, Astro.site) : undefined;
     <meta property="og:url" content={canonical} />
     {ogImage && <meta property="og:image" content={ogImage} />}
     <meta name="twitter:card" content={ogImage ? "summary_large_image" : "summary"} />
+    {ogImage && <meta name="twitter:image" content={ogImage} />}
     <slot name="head" />
     {
       CF_BEACON_TOKEN && (
