@@ -30,7 +30,7 @@ export const cases: Case[] = [
     name: "Medal.tv",
     principle: "03 — Make the call, then check it",
     description:
-      "How recording starts in Medal, a desktop app that records your games in the background and saves clips on a hotkey. 3 million daily users.",
+      "How recording starts in Medal, a desktop app that records your games in the background and saves clips on a hotkey. 3 million daily users.",
     mark: "phil 01 ppov · NF · 2022",
     hero: s("IMG-00a", "IMG-00b"),
     card: "IMG-00a",
