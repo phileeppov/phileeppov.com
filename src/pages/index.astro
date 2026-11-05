@@ -23,13 +23,17 @@ import Stamp from "../components/Stamp.astro";
 
     <Tools />
 
-    <!-- How I work: captions only, in the caption half. The first sentence of each moment in full ink and weight, the
-         rest quieter; read down the first sentences alone and the page still tells the whole offer. -->
+    <!-- How I work: the moments in the caption half, the first sentence of each in full ink and weight, the rest
+         quieter; the offer between them at Display. -->
     <section class="part how grid" aria-labelledby="how-label">
       <h2 class="label" id="how-label">HOW I WORK</h2>
       <div class="cap moments">
         <p><span>You send me your product.</span> <span>A landing page, an onboarding flow, a product that doesn't exist yet.</span> <span>Whatever you're stuck on.</span></p>
-        <p><span>I send back a free video review within 48&nbsp;hours.</span> <span>What I see, what I'd do, what it would cost.</span> <span>If we're not aligned, we stop there. You keep the review.</span></p>
+      </div>
+      <!-- The offer itself is the part's statement, between the moment that asks and the ones that answer. -->
+      <p class="statement offer"><span class="ph"><span>I send back</span> <span>a free video review</span> <span>within 48&nbsp;hours.</span></span></p>
+      <div class="cap moments rest">
+        <p><span>What I see, what I'd do, what it would cost.</span> <span>If we're not aligned, we stop there. You keep the review.</span></p>
         <p><span>If we are, we work async.</span> <span>Video updates, shared Figma, decisions in writing.</span> <span>Calls when useful.</span></p>
         <p><span>A pharmacy website went from my spec to launch in six weeks.</span> <span>Longer partnerships run on a monthly retainer, after the first project.</span></p>
       </div>
@@ -77,6 +81,8 @@ import Stamp from "../components/Stamp.astro";
   }
   .hero h1 {
     grid-column: 1 / -1;
+    /* The line and its button share the first screen: on a short screen the Display steps down to fit both. */
+    font-size: max(min(var(--text-display), calc((100svh - 250px) / 6)), min(var(--text-display), 72px));
   }
   .hero .cap {
     margin-top: 48px;
@@ -106,6 +112,10 @@ import Stamp from "../components/Stamp.astro";
     margin-top: 0;
     display: grid;
     gap: 40px;
+  }
+  .how .moments.rest {
+    grid-row: auto;
+    margin-top: 48px;
   }
   .moments p {
     display: grid;
@@ -160,6 +170,9 @@ import Stamp from "../components/Stamp.astro";
     .how .moments {
       grid-row: 2;
       margin-top: 40px;
+    }
+    .how .moments.rest {
+      grid-row: auto;
     }
     .how .label {
       grid-column: 1 / -1;

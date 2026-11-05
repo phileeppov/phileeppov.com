@@ -1,3 +1,8 @@
+/* The paper under everything (tokens.css --paper); the black band and the buttons lie on it with their own faces. */
+:root {
+  background-image: var(--paper);
+}
+
 /* Shared pieces of the Onest pages (home, manifesto, about, 404), loaded by Site.astro. Values only from tokens.css. */
 
 /* Not used by the wall pages any more; kept because the "No product yet" tab icon on /review (class "page") still
