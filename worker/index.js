@@ -46,10 +46,14 @@ const REVIEW_EVENT = /^review:(view|start|scratch|send:(product|scratch))$/;
 // out was taken — the two review buttons, the tools, the manifesto and about links, the X handle and the pill up top.
 const SITE_EVENT = /^site:(view|hero|end|chefkiss|glass|manifesto|about|x|pill)$/;
 
+// The /chefkiss page (src/pages/chefkiss.astro), once per visit each: the page opened, the install line copied, the
+// repository and the review followed.
+const CHEFKISS_EVENT = /^chefkiss:(view|copy|repo|review)$/;
+
 async function track(request, env) {
   if (request.method !== "POST") return new Response(null, { status: 405, headers: { Allow: "POST" } });
   const name = (await request.text()).trim().slice(0, 40);
-  if (!EVENT.test(name) && !REVIEW_EVENT.test(name) && !SITE_EVENT.test(name)) return new Response(null, { status: 400 });
+  if (!EVENT.test(name) && !REVIEW_EVENT.test(name) && !SITE_EVENT.test(name) && !CHEFKISS_EVENT.test(name)) return new Response(null, { status: 400 });
   const day = new Date().toISOString().slice(0, 10);
   try {
     await env.EVENTS.batch([

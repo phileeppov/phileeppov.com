@@ -1,10 +1,10 @@
 // The glint: the emerald cursor throws a faint spectrum on the 0.5px edge of the nearest raised thing (the pill, the
-// dark buttons, the tool tiles), on the side that faces it. Within 160px; strongest a little way off and gone at
+// dark buttons, the two tools: the chefkiss drawing and the Glass icon), on the side that faces it. Within 160px; strongest a little way off and gone at
 // contact, where the stone on the arrow takes over. One element at a time. Runs only with the emerald cursor
 // (Site.astro: wide screen, fine pointer, no reduced motion); nothing runs while the hand is still.
 export function startGlint() {
   const REACH = 160;
-  const els = [...document.querySelectorAll(".top .work, .btn, .tile .art")].filter((el) => !el.closest(".pz"));
+  const els = [...document.querySelectorAll(".top .work, .btn, .ck .art, .gl .icon")].filter((el) => !el.closest(".pz"));
   if (!els.length) return;
   for (const el of els) el.classList.add("glint");
   let x = -1e4, y = -1e4, queued = false, lit = null;

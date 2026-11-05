@@ -109,7 +109,7 @@ async function loadFile(file, via) {
   } else if (file.type.startsWith("image/")) {
     await loadUrl(URL.createObjectURL(file), via);
   } else {
-    say("That file isn't an image. Try an SVG or PNG.");
+    say("That file isn’t an image. Try an SVG or PNG.");
   }
 }
 
@@ -123,7 +123,7 @@ async function loadSvg(text, via) {
   const svg = doc.documentElement;
   if (svg.nodeName.toLowerCase() !== "svg") {
     tell("error:image");
-    return say("Couldn't read that SVG.");
+    return say("Couldn’t read that SVG.");
   }
   solidify(svg);
   const vb = (svg.getAttribute("viewBox") ?? "").split(/[\s,]+/).map(Number);
@@ -159,7 +159,7 @@ async function loadUrl(url, via) {
   } catch {
     URL.revokeObjectURL(url);
     tell("error:image");
-    return say("Couldn't open that image.");
+    return say("Couldn’t open that image.");
   }
   try {
     const source = unplate(img);
@@ -167,7 +167,7 @@ async function loadUrl(url, via) {
   } catch {
     // For example, an SVG with <foreignObject> (background blur from Figma): the browser won't let us read the pixels.
     tell("error:image");
-    return say("Couldn't open that image.");
+    return say("Couldn’t open that image.");
   } finally {
     URL.revokeObjectURL(url);
   }
@@ -1105,15 +1105,15 @@ function soundError(mode, e) {
   const name = e?.name ?? "";
   if (mode === "mic") {
     const reason = micReason(e);
-    if (reason === "unsupported") return isSecureContext ? "This browser can't use the mic. Try Chrome or Safari." : "The mic only works over HTTPS.";
+    if (reason === "unsupported") return isSecureContext ? "This browser can’t use the mic. Try Chrome or Safari." : "The mic only works over HTTPS.";
     if (reason === "denied") return inApp ? "Mic access is off in this app. Open this page in Chrome or Safari." : "Mic access is blocked. Allow it for this page and try again.";
     if (reason === "none") return "No mic found.";
     if (reason === "busy") return "The mic is busy in another app.";
-    return "Couldn't start the mic.";
+    return "Couldn’t start the mic.";
   }
-  if (mode === "demo") return "Couldn't play Lofi in this browser.";
+  if (mode === "demo") return "Couldn’t play Lofi in this browser.";
   if (name === "NotAllowedError") return `${touch ? "Tap" : "Click"} Track to play it.`; // mostly after a drop, which is a mouse gesture
-  return "Couldn't play that file. Try MP3, M4A or WAV.";
+  return "Couldn’t play that file. Try MP3, M4A or WAV.";
 }
 
 const soundInputs = [...root.querySelectorAll("input[name=sound]")];
@@ -1239,7 +1239,7 @@ tiltButton.addEventListener("click", async () => {
     tell("tilt");
   } catch {
     tell("error:tilt");
-    say("Motion access is off, so the glass won't tilt.");
+    say("Motion access is off, so the glass won’t tilt.");
   }
 });
 
@@ -1726,9 +1726,9 @@ async function copyLink() {
   history.replaceState(null, "", url);
   try {
     await navigator.clipboard.writeText(url);
-    say("Link copied. Your logo isn't in it.");
+    say("Link copied. Your logo isn’t in it.");
   } catch {
-    say("Couldn't copy. The link is in the address bar.");
+    say("Couldn’t copy. The link is in the address bar.");
   }
 }
 
@@ -1893,7 +1893,7 @@ videoButton.addEventListener("click", async () => {
   const type = typeof MediaRecorder === "undefined" ? undefined : types.find((t) => MediaRecorder.isTypeSupported(t));
   if (!type) {
     tell("error:record");
-    return say("This browser can't record video. Try Chrome or Safari.");
+    return say("This browser can’t record video. Try Chrome or Safari.");
   }
   const demo = sound.mode === "demo";
   const length = !audio ? PERIOD : demo ? LOOP * 1000 : CLIP;
@@ -1909,7 +1909,7 @@ videoButton.addEventListener("click", async () => {
   videoButton.style.setProperty("--rec", `${length}ms`);
   root.classList.add("is-recording");
   videoButton.disabled = pngButton.disabled = true;
-  say(params.background === "none" ? "Recording on light: video can't be transparent." : "Recording…");
+  say(params.background === "none" ? "Recording on light: video can’t be transparent." : "Recording…");
 
   // If the browser can't handle recording (codec, 1080p, bitrate), the page must not be left with disabled buttons.
   let message = "";
@@ -1996,14 +1996,14 @@ videoButton.addEventListener("click", async () => {
       // X takes MP4 and MOV video; browsers that can't record MP4 (Firefox) write WebM.
       if (!mp4) message = "Saved as WebM. For X, record in Chrome or Safari.";
     } else {
-      message = "This browser can't record video. Try Chrome or Safari.";
+      message = "This browser can’t record video. Try Chrome or Safari.";
       tell("error:record");
     }
   } catch (e) {
     // A recording whose sound stopped: the next touch brings the sound back, so another try works.
-    if (e?.message === "stalled") message = "Couldn't record the video with sound. Try again.";
-    else if (audio) message = "This browser can't record video with sound. Turn Sound off to record without it.";
-    else message = "This browser can't record video. Try Chrome or Safari.";
+    if (e?.message === "stalled") message = "Couldn’t record the video with sound. Try again.";
+    else if (audio) message = "This browser can’t record video with sound. Turn Sound off to record without it.";
+    else message = "This browser can’t record video. Try Chrome or Safari.";
     tell(audio ? "error:record-sound" : "error:record");
   } finally {
     recording = false;

@@ -1,0 +1,222 @@
+---
+// chefkiss: the mod's page on the site, where its tile leads (site.md §9). Copy verbatim: the line from the repository's
+// About, the paragraphs, the install lines and the video's description from its README, the sign-off from /glass. Laid
+// out as the wall (site.css): the line at Display, the README's edited recording of a real session under it as a print
+// on the wall, captions in the caption half.
+import Site from "../layouts/Site.astro";
+
+const REPO = "https://github.com/phileeppov/chefkiss";
+const CLIP =
+  "An edited recording of a real Claude Code session (camera, captions and speed-ups added): 💩 on a line from a LinkedIn post about coffee, and Claude replies 'got it: avoid stock LinkedIn-style hooks and tidy moral twists'; then 🎯 on a git tip and 🤌 on a coffee shop tagline, each with its own one-line reply.";
+---
+
+<Site
+  passage
+  title="chefkiss"
+  description="A 💩 button for AI slop. Claude takes the hint. Every answer in Claude Code gets three buttons: 🤌 for how it's said, 🎯 for what it says, 💩 for AI slop."
+  image="/chefkiss-og.png"
+  imageSize={[1280, 640]}
+>
+  <main class="wall chefkiss">
+    <section class="intro grid">
+      <h1 class="label">CHEFKISS</h1>
+      <p class="statement"><span class="ph"><span>A 💩 button</span> <span>for&nbsp;AI&nbsp;slop.</span> <span>Claude&nbsp;takes the&nbsp;hint.</span></span></p>
+      <!-- The recording, not a drawing: an animation reads as a mock-up, a real session as proof. It plays while a
+           quarter of it is in view; with reduced motion, only its first frame. -->
+      <figure class="clip">
+        <video src="/media/chefkiss-2026.mp4" poster="/media/chefkiss-2026.jpg" width="1600" height="900" muted loop playsinline preload="none" aria-label={CLIP}></video>
+      </figure>
+    </section>
+
+    <section class="part grid" aria-labelledby="what-label">
+      <h2 class="label" id="what-label">WHAT IT DOES</h2>
+      <div class="cap">
+        <p>Every answer in Claude Code gets three buttons: 🤌 for how it's said, 🎯 for what it says, 💩 for AI slop. Select a sentence first to react to that part only (in the desktop app). Claude replies to each click with a one-line takeaway, and new sessions start with your latest ones, 15 at most, in every&nbsp;project.</p>
+        <p>Animated buttons in the desktop app, plain emoji in the&nbsp;terminal.</p>
+        <p>After a few reactions, the <code>/chefkiss</code> pane can sum you up: one line about you, up to five on how you like your answers. Cross out what it got wrong and post the rest. Forget all erases lessons, the summary, and&nbsp;reactions.</p>
+        <p>Why not a line in CLAUDE.md? You click in the moment instead of editing a file, you can react to a single sentence, and Claude's reply shows right away whether it&nbsp;understood.</p>
+        <p>Lessons are stored on your machine, and the mod doesn't save Claude's answers. There's no chefkiss&nbsp;server.</p>
+        <p>Each click costs one Sonnet call on your Claude Code account, about&nbsp;500&nbsp;tokens. Sum up is one more call, only when you press&nbsp;it. You can turn those calls off in Settings; details in <a class="link" href={`${REPO}#what-gets-sent-where`} data-gem>what&nbsp;gets&nbsp;sent&nbsp;where</a>.</p>
+      </div>
+    </section>
+
+    <section class="part grid" aria-labelledby="install-label">
+      <h2 class="label" id="install-label">INSTALL</h2>
+      <div class="cap">
+        <p>At the prompt of a Claude Code terminal session:</p>
+        <!-- The command as it is typed, in two halves that wrap only at their spaces (never after the "--"); on a phone
+             word by word. The key copies its text whole, however it wraps. -->
+        <!-- prettier-ignore -->
+        <div class="cmd"><code><span class="g"><span>/plugin</span> <span>install</span> <span>chefkiss</span></span> <span class="g"><span>--marketplace</span> <span>phileeppov/chefkiss</span></span></code><button type="button" class="copy" data-copy data-gem-off>Copy</button></div>
+        <p>In the desktop app, where <code>/plugin</code> does not run: click + next to the prompt box, then Plugins, Add marketplace with <code>phileeppov/chefkiss</code>, then Add&nbsp;plugin.</p>
+        <a class="btn" href={REPO} data-gem data-count="chefkiss:repo">Source on GitHub <span class="arw">→</span></a>
+      </div>
+    </section>
+
+    <!-- The sign-off of /glass: who made it, and the way to the review; under it the line the README ends on. -->
+    <section class="part end grid">
+      <div class="cap">
+        <p>Made by Nikita Filippov ☺</p>
+        <p>Product designer.<br /><a class="link" href="/review/" data-gem data-count="chefkiss:review">Send your product or idea, get a video review <span class="arw">→</span></a></p>
+        <p class="meta">Not affiliated with Anthropic.</p>
+      </div>
+    </section>
+  </main>
+</Site>
+
+<script>
+  import { count } from "../scripts/review-count";
+
+  count("chefkiss:view");
+
+  // The recording plays while a quarter of it is in view and pauses out of view; with reduced motion, only the poster.
+  const video = document.querySelector<HTMLVideoElement>(".clip video");
+  if (video && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    new IntersectionObserver(
+      ([e]) => {
+        if (e.isIntersecting) video.play().catch(() => {});
+        else video.pause();
+      },
+      { threshold: 0.25 },
+    ).observe(video);
+  }
+
+  // Copy: the line as written, then a moment of "Copied" on the key.
+  for (const key of document.querySelectorAll<HTMLButtonElement>("[data-copy]")) {
+    key.addEventListener("click", async () => {
+      const line = key.parentElement?.querySelector("code")?.textContent ?? "";
+      try {
+        await navigator.clipboard.writeText(line);
+      } catch {
+        return;
+      }
+      count("chefkiss:copy");
+      key.textContent = "Copied";
+      window.setTimeout(() => (key.textContent = "Copy"), 1600);
+    });
+  }
+</script>
+
+<style>
+  .intro {
+    padding-bottom: 120px;
+  }
+  .intro .label,
+  .intro .statement {
+    grid-column: 1 / -1;
+  }
+  .intro .statement {
+    margin-top: 72px;
+  }
+  /* The recording: a print on the wall over eight columns, like the shots of the cases: a small radius, a 0.5px edge. */
+  .clip {
+    grid-column: 1 / span 8;
+    margin: 96px 0 0;
+  }
+  .clip video {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 4px;
+    box-shadow: 0 0 0 0.5px var(--hair);
+  }
+
+  /* Parts: the label under the hairline, the caption 48px under it, a long rest after. */
+  .part {
+    row-gap: 0;
+    padding-bottom: 160px;
+  }
+  .part > .label {
+    grid-column: 1 / -1;
+  }
+  .part > .cap {
+    margin-top: 48px;
+  }
+  .cap p + p {
+    margin-top: 1em;
+  }
+  .cap .btn {
+    margin-top: 32px;
+  }
+  .cap code {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+    letter-spacing: 0;
+  }
+  .meta {
+    font-size: var(--text-meta);
+    opacity: 0.6;
+  }
+  .end {
+    padding-bottom: 96px;
+  }
+
+  /* The command: a black block, the line in monospace at body size, the key inside it on the right. A long line wraps
+     at its spaces; the key copies it whole. */
+  .cmd {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin: 16px 0;
+    padding: 12px 12px 12px 20px;
+    border-radius: 20px;
+    background: var(--color-black);
+    color: var(--color-off-white);
+  }
+  .cmd code span {
+    white-space: nowrap;
+  }
+  .cmd code {
+    flex: 1;
+    font-size: var(--text-body);
+    line-height: 1.45;
+  }
+  /* Its radius is the block's less the 12px between them: the same curve, one step in. */
+  .copy {
+    flex: none;
+    min-width: 76px;
+    padding: 10px 16px;
+    border: 0;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--color-off-white) 14%, var(--color-black));
+    box-shadow: inset 0 0.5px 0 color-mix(in srgb, var(--color-off-white) 16%, transparent);
+    color: inherit;
+    font: inherit;
+    font-size: var(--text-meta);
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 120ms ease-out;
+  }
+  .copy:hover {
+    background: color-mix(in srgb, var(--color-off-white) 22%, var(--color-black));
+  }
+  .copy:focus-visible {
+    outline: 2px solid var(--color-off-white);
+    outline-offset: 2px;
+  }
+
+  @media (max-width: 767px) {
+    .clip {
+      grid-column: 1 / -1;
+    }
+  }
+  @media (max-width: 560px) {
+    .clip {
+      margin-top: 56px;
+    }
+    .part {
+      padding-bottom: 120px;
+    }
+    .cmd {
+      padding-left: 16px;
+      border-radius: 16px;
+    }
+    .cmd code .g {
+      white-space: normal;
+    }
+    .copy {
+      min-width: 0;
+      border-radius: 4px;
+    }
+  }
+</style>

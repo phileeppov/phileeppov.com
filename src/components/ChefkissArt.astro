@@ -1,0 +1,241 @@
+---
+// The chefkiss drawing: the end of an answer in Claude Code and the mod's three buttons under it. Drawn, not a
+// screenshot: no words. At rest the first answer is up; pressed, the 💩 goes down, the answer folds away and a shorter,
+// better-shaped one is written in its place. It is pressed while an ancestor is: the chefkiss tile under the hand or in
+// keyboard focus, or marked "fixed" (a touch screen, a guest from the repository). With reduced motion: the pressed
+// state, still. It fills its box. Rows: --i counts from the top (writing order), --j from the bottom (folding order).
+---
+
+<div class="chat" aria-hidden="true">
+  <div class="answer">
+    <!-- The first answer: long, its start scrolled away, bullets with a bold lead-in each. -->
+    <div class="slop">
+      <span class="r" style="--w:100%;--j:9"><i></i></span>
+      <span class="r" style="--w:93%;--j:8"><i></i></span>
+      <span class="r" style="--w:68%;--j:7"><i></i></span>
+      <span class="r li p" style="--w:90%;--j:6"><s></s><i class="b"></i><i style="--f:3"></i></span>
+      <span class="r li" style="--w:84%;--j:5"><s></s><i class="b" style="--f:1.3"></i><i style="--f:2.5"></i></span>
+      <span class="r li" style="--w:95%;--j:4"><s></s><i class="b" style="--f:0.9"></i><i style="--f:3.3"></i></span>
+      <span class="r li" style="--w:79%;--j:3"><s></s><i class="b" style="--f:1.1"></i><i style="--f:2.2"></i></span>
+      <span class="r p" style="--w:100%;--j:2"><i></i></span>
+      <span class="r" style="--w:97%;--j:1"><i></i></span>
+      <span class="r" style="--w:46%;--j:0"><i></i></span>
+    </div>
+    <!-- The second: whole on screen, its ⏺ visible; one line, one more, the command in a code block. -->
+    <div class="fix">
+      <span class="r lead" style="--w:54%;--i:0;--j:2"><s></s><i class="b"></i></span>
+      <span class="r" style="--w:71%;--i:1;--j:1"><i></i></span>
+      <span class="r code" style="--w:46%;--i:2;--j:0"
+        ><i class="b" style="--f:2"></i><i style="--f:5"></i><i style="--f:3"></i></span
+      >
+    </div>
+  </div>
+  <div class="reacts"><b>🤌</b><b>🎯</b><b class="hint">💩</b></div>
+</div>
+
+<style>
+  /* Sizes per screen; the drawing below only reads them. Colours: the drawing stands on black. */
+  .chat {
+    --bar: 9px; /* a line of prose */
+    --gap: 11px; /* between lines */
+    --para: 10px; /* extra space between paragraphs */
+    --indent: 20px; /* text after the ⏺ */
+    --fade: 56px; /* the top of a long answer scrolls away */
+    --pill-w: 52px;
+    --pill-h: 40px;
+    --emoji: 18px; /* body size: nothing on the wall between body and Display */
+    --pill-gap: 8px;
+    --react-gap: 24px;
+    --row-gap: 6px;
+    --dot: 5px;
+    --code-r: 6px;
+    --token-r: 2px;
+    --code-top: 3px;
+
+    --pill: var(--surface);
+    --line: color-mix(in srgb, var(--color-off-white) 20%, transparent);
+    --strong: color-mix(in srgb, var(--color-off-white) 36%, transparent);
+    --mark: color-mix(in srgb, var(--color-off-white) 90%, transparent);
+    --code-bg: color-mix(in srgb, var(--color-off-white) 8%, var(--color-black));
+    --code-edge: inset 0 0 0 0.5px color-mix(in srgb, var(--color-off-white) 14%, transparent);
+    --pill-edge: inset 0 -1px 0 color-mix(in srgb, var(--color-black) 10%, transparent),
+      0 0 0 0.5px color-mix(in srgb, var(--color-black) 70%, transparent),
+      0 2px 6px -1px color-mix(in srgb, var(--color-black) 80%, transparent);
+    /* Pressed: a tray tone, lighter than the band and darker than the raised pills, so the emoji keeps its strength. */
+    --pressed: color-mix(in srgb, var(--color-off-white) 30%, var(--color-black));
+    --pressed-edge: inset 0 1.5px 3px color-mix(in srgb, var(--color-black) 55%, transparent),
+      inset 0 0 0 0.5px color-mix(in srgb, var(--color-off-white) 16%, transparent);
+  }
+  /* The drawing starts at its box's left edge: the ⏺ of the answer on the line of the label under it. */
+  .chat {
+    display: grid;
+    height: 100%;
+    grid-template-rows: minmax(0, 1fr) auto;
+    place-items: stretch;
+    gap: var(--react-gap);
+  }
+  /* Both answers in one cell, pinned to the bottom: a long one runs out of the top. */
+  .answer {
+    display: grid;
+    align-content: unsafe end;
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(transparent, black var(--fade));
+    mask-image: linear-gradient(transparent, black var(--fade));
+  }
+  .slop,
+  .fix {
+    grid-area: 1 / 1;
+    display: grid;
+    align-content: end;
+    gap: var(--gap);
+  }
+  /* A row: one line of the answer. It is drawn by its clip, right edge rounded, so it folds and writes from the left. */
+  .r {
+    --cr: 999px;
+    display: flex;
+    align-items: center;
+    gap: var(--row-gap);
+    width: min(var(--w), 100% - var(--indent));
+    height: var(--bar);
+    margin-left: var(--indent);
+    clip-path: inset(0 0 0 0 round var(--cr));
+  }
+  .r.p {
+    margin-top: var(--para);
+  }
+  .r i {
+    flex: var(--f, 1) 1 0;
+    height: 100%;
+    border-radius: 999px;
+    background: var(--line);
+  }
+  .r .b {
+    background: var(--strong);
+  }
+  /* A list bullet, small; on the lead row it is the ⏺ that starts an answer, hanging left of the text. */
+  .r s {
+    flex: none;
+    width: var(--dot);
+    height: var(--dot);
+    border-radius: 50%;
+    background: var(--strong);
+  }
+  .lead {
+    gap: calc(var(--indent) - var(--bar));
+    width: min(var(--w), 100%);
+    margin-left: 0;
+  }
+  .lead s {
+    width: var(--bar);
+    height: var(--bar);
+    background: var(--mark);
+  }
+  /* The command: a recessed block, square-ended tokens like monospace. */
+  .code {
+    --cr: var(--code-r);
+    height: auto;
+    gap: calc(var(--bar) * 0.8);
+    margin-top: var(--code-top);
+    padding: calc(var(--bar) * 0.8) calc(var(--bar) * 1.1);
+    border-radius: var(--code-r);
+    background: var(--code-bg);
+    box-shadow: var(--code-edge);
+  }
+  .code i {
+    height: calc(var(--bar) * 0.8);
+    border-radius: var(--token-r);
+  }
+
+  .reacts {
+    display: flex;
+    gap: var(--pill-gap);
+    margin-left: var(--indent);
+  }
+  .reacts b {
+    display: grid;
+    place-items: center;
+    width: var(--pill-w);
+    height: var(--pill-h);
+    border-radius: 999px;
+    background: var(--pill);
+    box-shadow: var(--pill-edge);
+    font-size: var(--emoji);
+    font-weight: 400;
+    letter-spacing: 0;
+    line-height: 1;
+  }
+
+  /* Motion. At rest the first answer is up and the second folded. Pressed: the 💩 goes down and overshoots a hair,
+     the first answer folds from the bottom up (~180 ms, as if the press pushed it), then the second is written top
+     down (~420 ms). Leaving plays it back. */
+  .fix .r {
+    clip-path: inset(0 100% 0 0 round var(--cr));
+    transition: clip-path 140ms cubic-bezier(0.5, 0, 0.9, 0.5) calc(var(--j) * 16ms);
+  }
+  .slop .r {
+    transition: clip-path 340ms cubic-bezier(0.2, 0.8, 0.2, 1) calc(150ms + (9 - var(--j)) * 14ms);
+  }
+  .hint {
+    transition: transform 280ms cubic-bezier(0.3, 1.8, 0.5, 1);
+  }
+  :global(.ck:hover) .slop .r,
+  :global(.ck:focus-visible) .slop .r,
+  :global(.ck.fixed) .slop .r {
+    clip-path: inset(0 100% 0 0 round var(--cr));
+    transition: clip-path 110ms cubic-bezier(0.5, 0, 0.9, 0.5) calc(60ms + var(--j) * 7ms);
+  }
+  :global(.ck:hover) .fix .r,
+  :global(.ck:focus-visible) .fix .r,
+  :global(.ck.fixed) .fix .r {
+    clip-path: inset(0 0 0 0 round var(--cr));
+    transition: clip-path 340ms cubic-bezier(0.2, 0.8, 0.2, 1) calc(240ms + var(--i) * 40ms);
+  }
+  /* Through .reacts: the pressed pill has to outweigh the raised one (.reacts b). */
+  :global(.ck:hover) .reacts .hint,
+  :global(.ck:focus-visible) .reacts .hint,
+  :global(.ck.fixed) .reacts .hint {
+    transform: translateY(1px) scale(0.94);
+    background: var(--pressed);
+    box-shadow: var(--pressed-edge);
+  }
+
+  /* Reduced motion: one still picture, the pressed state, the way the line ends. */
+  @media (prefers-reduced-motion: reduce) {
+    .r,
+    .hint {
+      transition: none !important;
+    }
+    .slop {
+      display: none;
+    }
+    .fix .r {
+      clip-path: inset(0 0 0 0 round var(--cr));
+    }
+    .reacts .hint {
+      transform: translateY(1px) scale(0.94);
+      background: var(--pressed);
+      box-shadow: var(--pressed-edge);
+    }
+  }
+
+  /* Phone: the drawing scaled to a square half the screen wide. */
+  @media (max-width: 560px) {
+    .chat {
+      --bar: 5px;
+      --gap: 7px;
+      --para: 5px;
+      --indent: 11px;
+      --fade: 28px;
+      --pill-w: 32px;
+      --pill-h: 26px;
+      --emoji: 14px;
+      --pill-gap: 5px;
+      --react-gap: 12px;
+      --row-gap: 4px;
+      --dot: 3px;
+      --code-r: 4px;
+      --token-r: 1px;
+      --code-top: 2px;
+    }
+  }
+</style>

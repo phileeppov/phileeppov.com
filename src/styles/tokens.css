@@ -9,6 +9,7 @@
      Once web files exist: @font-face in src/styles/fonts.css, family name first in the stack. */
   --font-base: "Helvetica Neue", Arial, system-ui, sans-serif;
   --font-anomaly: Georgia, "Times New Roman", serif; /* italic only, for the anomaly only */
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace; /* a command to copy */
 
   /* Scale (draft, checked on the site build). The wall: a statement read from across the room, a caption read up close,
      nothing between. Display is 9.5vw of the window: 137px at 1440, 97px at 1024; on a phone 11.5vw, 45px at 390,
