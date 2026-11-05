@@ -5,7 +5,7 @@
 <footer id="site-end">
   <p><a href="mailto:nikita@phileeppov.com">nikita@phileeppov.com</a></p>
   <!-- prettier-ignore -->
-  <p><a href="https://x.com/phileeppov">X</a> · <a href="https://linkedin.com/in/phileeppov">LinkedIn</a> · <a href="https://github.com/phileeppov">GitHub</a></p>
+  <p><a href="https://x.com/phileeppov">X</a> <span class="sep">·</span> <a href="https://linkedin.com/in/phileeppov">LinkedIn</a> <span class="sep">·</span> <a href="https://github.com/phileeppov">GitHub</a></p>
 </footer>
 
 <style>
@@ -28,5 +28,9 @@
   }
   a:hover {
     opacity: 1;
+  }
+  /* The dot between links: the glyph the emerald rises out of (src/scripts/emerald.js scales it while the stone is out). */
+  .sep {
+    display: inline-block;
   }
 </style>
