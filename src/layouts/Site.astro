@@ -5,7 +5,7 @@
 // is open); pages that don't fill it get the X handle and the "Work with me" pill to /review, as on /glass.
 // Footer: site.md §1.7. Links marked data-count are counted when followed (src/scripts/review-count.ts).
 // The emerald on links and dark buttons (src/scripts/emerald.js) and the emerald cursor (src/scripts/emerald-cursor.js)
-// start here for every page that marks its links data-gem.
+// start here for every page that marks its links data-gem; on touch screens only the first, for the press.
 import Base from "./Base.astro";
 import Footer from "../components/Footer.astro";
 import "../styles/onest.css";
@@ -73,16 +73,21 @@ const aside = Astro.slots.has("aside");
     if (link?.dataset.count) count(link.dataset.count);
   });
 
-  // The emeralds, on the arrows and as the cursor, only where a hand moves a fine pointer over a wide screen; they
-  // load after the page. Pages without data-gem (/review, with its own pointer play) keep the system cursor, and so
-  // does anyone who asked the system for more contrast or forced colours (a large system cursor often comes with it).
-  const wide = matchMedia(
-    "(min-width: 1024px) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) and (forced-colors: none) and (prefers-contrast: no-preference)",
-  );
-  if (wide.matches && document.querySelector("[data-gem]")) {
+  // The emeralds, on the arrows and as the cursor, where a hand moves a fine pointer over a wide screen; on a touch
+  // screen only the stone under the finger while it presses, no cursor. They load after the page, at idle, and build
+  // their shaders off the main thread. Pages without data-gem (/review, with its own pointer play) keep the system
+  // cursor, and so does anyone who asked the system for less motion, more contrast or forced colours (a large system
+  // cursor often comes with them).
+  const calm = "(prefers-reduced-motion: no-preference) and (forced-colors: none) and (prefers-contrast: no-preference)";
+  const wide = matchMedia(`(min-width: 1024px) and (hover: hover) and (pointer: fine) and ${calm}`);
+  const touch = matchMedia(`(hover: none) and (pointer: coarse) and ${calm}`);
+  const isWide = wide.matches;
+  if ((isWide || touch.matches) && document.querySelector("[data-gem]")) {
     const go = () => {
-      import("../scripts/emerald.js").then((m) => m.startEmerald());
-      import("../scripts/emerald-cursor.js").then((m) => m.startCursor());
+      if (isWide) {
+        import("../scripts/emerald.js").then((m) => m.startEmerald());
+        import("../scripts/emerald-cursor.js").then((m) => m.startCursor());
+      } else import("../scripts/emerald.js").then((m) => m.startEmerald({ touch: true }));
     };
     if ("requestIdleCallback" in window) requestIdleCallback(go, { timeout: 1500 });
     else setTimeout(go, 300);

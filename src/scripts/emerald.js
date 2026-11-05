@@ -3,14 +3,27 @@
 // the stone settles, the loop stops and the last frame stays on the canvas.
 // One WebGL2 canvas over the page that only ever draws a few small quads. Elements opt in with data-gem; the glyph the
 // stone grows from is .arw inside them (without one, the stone sits after the label). Dark buttons (.btn) get the stone
-// in a closed collet, so it stays light on the dark. This runs only on wide screens with a fine pointer and no
-// reduced-motion preference (see the caller); elsewhere the arrows stay arrows.
-export async function startEmerald() {
+// in a closed collet, so it stays light on the dark. This runs only with no reduced-motion preference (see the
+// caller): on wide screens with a fine pointer, for hover, focus and press; on touch screens ({ touch: true }) for
+// the press alone. There the stone comes out under the finger as it lands, stays while it is down and while the
+// page it opens loads, and goes at once if the touch turns into a scroll or a long press. On a phone the canvas is
+// hidden whenever nothing is pressed, so scrolling composites no extra layer and runs no frames.
+export async function startEmerald({ touch: TOUCH = false } = {}) {
 const cv = document.createElement('canvas');
 cv.setAttribute('aria-hidden', 'true');
-cv.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:50';
-const gl = cv.getContext('webgl2', { premultipliedAlpha: true, antialias: false, alpha: true });
+cv.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:50' + (TOUCH ? ';visibility:hidden' : '');
+// On a phone only a real GPU: WebGL drawn on the CPU would heat the phone and still miss the finger.
+// It never tests depth: a phone skips that buffer, a screenful of GPU memory.
+const gl = cv.getContext('webgl2', { premultipliedAlpha: true, antialias: false, alpha: true, ...(TOUCH && { depth: false, failIfMajorPerformanceCaveat: true }) });
 if (!gl) return;
+if (TOUCH) {
+  const info = gl.getExtension('WEBGL_debug_renderer_info');
+  // Without parallel builds the first query of a shader blocks the page until it is built: a phone keeps its arrows.
+  if ((info && /swiftshader|llvmpipe|software|basic render/i.test(gl.getParameter(info.UNMASKED_RENDERER_WEBGL))) || !gl.getExtension('KHR_parallel_shader_compile')) {
+    const lose = gl.getExtension('WEBGL_lose_context'); if (lose) lose.loseContext();
+    return;
+  }
+}
 document.body.append(cv);
 // ---------- the cut: 49 planes, same stone as free-02-emerald-cut ----------
 const A = 1.0, B = 0.72, CUT = 0.24;
@@ -36,7 +49,11 @@ const p2z = -z0 - 0.2 * Math.tan(deg(52));
 const NP = planes.length;
 
 // ---------- GL ----------
-let dpr = Math.min(devicePixelRatio || 1, 2);
+// The canvas resolution: at most 2x. A phone at 3x gets the stone at 2x: a 3x canvas would hold 2.25 times the pixels
+// for a stone barely sharper at its size.
+const DPR_MAX = 2;
+const SS_TOUCH = 2;
+let dpr = Math.min(devicePixelRatio || 1, DPR_MAX);
 const VS = `#version 300 es
 in vec2 aP; uniform vec4 uRect; uniform vec2 uRes;
 void main(){ vec2 px = uRect.xy + aP * uRect.zw; gl_Position = vec4(px / uRes * 2.0 - 1.0, 0.0, 1.0); }`;
@@ -347,8 +364,29 @@ gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([0, 0, 1, 0, 0, 1, 1, 1]), gl.ST
 gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
 gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 let W = 0, H = 0;
-function resize() { dpr = Math.min(devicePixelRatio || 1, 2); W = innerWidth; H = innerHeight; cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+// On a phone 100vh is the tall viewport, under the browser's bars too, and innerHeight is the visible part: the
+// canvas takes its own size, so its pixels stay square and the stone lands on its arrow whatever the bars do.
+function resize() {
+  dpr = Math.min(devicePixelRatio || 1, DPR_MAX);
+  if (!TOUCH) { W = innerWidth; H = innerHeight; cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); return; }
+  W = cv.clientWidth || innerWidth; H = cv.clientHeight || innerHeight;
+  const w = Math.round(W * dpr), h = Math.round(H * dpr);
+  if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+}
 resize(); addEventListener('resize', () => { resize(); kick(); });
+// A phone builds the stone's pipeline now, at idle, with one draw that leaves nothing on the canvas: a GPU that
+// finishes its shaders only at the first draw would otherwise do it on the first press, as a hitch under the finger.
+if (TOUCH) {
+  gl.viewport(0, 0, cv.width, cv.height);
+  for (const P of [PS, PX]) {
+    gl.useProgram(P.p); gl.uniform2f(P.u.uRes, cv.width, cv.height);
+    gl.uniform4f(P.u.uRect, 0, 0, 4, 4);
+    if (P === PS) { gl.uniform1i(PS.u.uSS, 1); gl.uniform1f(PS.u.uS, 1); gl.uniform1f(PS.u.uA, 0); } else gl.uniform1f(PX.u.uI, 0);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  }
+  // Sent now: the hidden canvas isn't shown, so nothing else would hand these draws to the GPU before the first press.
+  gl.flush();
+}
 
 // ---------- small math ----------
 const qmul = (a, b) => [a[3] * b[0] + a[0] * b[3] + a[1] * b[2] - a[2] * b[1], a[3] * b[1] - a[0] * b[2] + a[1] * b[3] + a[2] * b[0],
@@ -384,6 +422,8 @@ const BZ = 'dark';
 const REST = qn(qmul(qax(0, 0, 1, 0.1), qmul(qax(0, 1, 0, 0.24), qax(1, 0, 0, -0.34))));
 const ptr = { x: -999, y: -999, t: -1e9, el: null, lastEl: null, leftT: -1e9, enterT: -1e9, real: false, inside: false };
 let pressEl = null, pressT = -1e9, focusEl = null, focusT = -1e9, lastInput = 'pointer';
+// A phone: the element a tap has just followed. Its stone stays until the page goes.
+let held = null;
 const stones = [], specs = [];
 let cur = null;
 
@@ -433,9 +473,11 @@ function newStone(el, a) {
   if (!RM) s.q = qn(qmul(qax(0, 1, 0, -1.25), REST));
   stones.push(s); return s;
 }
+// The light: on the pointer's side. From the keyboard, and on a phone (a finger is no lamp, and it covers the stone),
+// the studio's own key light, high on the left: the split light then falls down and right, on the screen.
 function lightFor(s) {
   let lx = (ptr.x - s.x) / 70, ly = -(ptr.y - s.y) / 70;
-  if (!(Math.abs(lx) < 50) || lastInput === 'key') { lx = -0.55; ly = 0.75; }
+  if (!(Math.abs(lx) < 50) || lastInput === 'key' || TOUCH) { lx = -0.55; ly = 0.75; }
   lx = Math.max(-1.4, Math.min(1.4, lx)); ly = Math.max(-1.4, Math.min(1.4, ly));
   const l = Math.hypot(lx, ly, 1);
   return [lx / l, ly / l, 1 / l];
@@ -443,7 +485,8 @@ function lightFor(s) {
 // The split light lands just outside the element, on the line from the light through the stone, a little downhill.
 function landing(s) {
   const r = s.el.getBoundingClientRect();
-  let lx = s.x - (lastInput === 'key' ? s.x - 40 : ptr.x), ly = s.y - (lastInput === 'key' ? s.y - 30 : ptr.y);
+  const fixed = lastInput === 'key' || TOUCH;
+  let lx = s.x - (fixed ? s.x - 40 : ptr.x), ly = s.y - (fixed ? s.y - 30 : ptr.y);
   const l0 = Math.hypot(lx, ly) || 1; lx = lx / l0; ly = ly / l0 + 1.2;
   const l = Math.hypot(lx, ly); lx /= l; ly /= l;
   const tx = lx > 0 ? (r.right - s.x) / lx : lx < 0 ? (r.left - s.x) / lx : 1e9;
@@ -475,21 +518,36 @@ function move(x, y) {
   // A pointermove that goes nowhere (a still hand, a synthetic event after scroll) doesn't wake the loop.
   if (d > 0.5 || ptr.el !== was) kick();
 }
+// Pressed with the button: it dips, rocks a little and its facets flash; the light it splits falls outside.
+function burst() {
+  if (!cur) return;
+  cur.flash = 1;
+  // On a phone the press is the stone's birth: it rocks and flashes but doesn't dip, or it would come out late.
+  if (!RM) { cur.w[0] -= 5; if (!TOUCH) cur.vp -= 2.2; }
+  const { ang, R } = landing(cur);
+  specs.push({ x: cur.x, y: cur.y, ang, R, t0: performance.now(), amp: 1 });
+}
+// A phone: the stone comes out at once, the flash waits until the touch is a press (lifted, or still for 90ms), so a
+// scroll that starts on a button only shows a small stone folding back, not a flash and a rainbow.
+let pend = false;
+const CONFIRM = 90;
 function press(el, x, y) {
   pressEl = el; pressT = performance.now(); ptr.t = pressT;
   kick();
+  if (TOUCH) { pend = true; return; }
   // The stone exists by the next frame: then it flashes, turns, and the light it splits falls outside.
-  requestAnimationFrame(() => {
-    if (!cur) return;
-    // Pressed with the button: it dips, rocks a little and its facets flash.
-    cur.flash = 1;
-    if (!RM) { cur.w[0] -= 5; cur.vp -= 2.2; }
-    const { ang, R } = landing(cur);
-    specs.push({ x: cur.x, y: cur.y, ang, R, t0: performance.now(), amp: 1 });
-  });
+  requestAnimationFrame(burst);
 }
 addEventListener('pointermove', (e) => {
-  if (e.pointerType === 'touch') return;
+  if (e.pointerType === 'touch') {
+    // A phone: a finger that rolls on the button before it lifts rocks the stone and tilts it after the finger.
+    if (TOUCH && pressEl && cur && cur.el === pressEl && !RM) {
+      const dx = e.clientX - ptr.x, dy = e.clientY - ptr.y;
+      ptr.x = e.clientX; ptr.y = e.clientY;
+      if (Math.hypot(dx, dy) > 0.5) { cur.w[1] += dx * 0.06; cur.w[0] += dy * 0.06; kick(); }
+    }
+    return;
+  }
   ptr.real = true; ptr.inside = true;
   lastInput = 'pointer';
   move(e.clientX, e.clientY);
@@ -497,6 +555,7 @@ addEventListener('pointermove', (e) => {
 addEventListener('pointerdown', (e) => {
   lastInput = 'pointer'; ptr.real = true;
   const el = e.target.closest('[data-gem]');
+  if (TOUCH) held = null;
   if (!el) return;
   ptr.x = e.clientX; ptr.y = e.clientY;
   if (e.pointerType === 'touch') setHover(el);
@@ -510,11 +569,38 @@ document.addEventListener('pointerleave', away);
 addEventListener('pointercancel', away);
 addEventListener('dragstart', away);
 addEventListener('resize', away);
+if (TOUCH) {
+  // The touch became a scroll, or a long press opened the link's menu: the stone goes at once, the arrow is back.
+  const drop = () => {
+    pressEl = null; pressT = -1e9; held = null; pend = false;
+    setHover(null); ptr.lastEl = null;
+    if (cur) { cur.want = 0; cur.snap = true; cur = null; }
+    specs.length = 0;
+    kick();
+  };
+  addEventListener('pointercancel', (e) => { if (e.pointerType === 'touch') drop(); });
+  addEventListener('contextmenu', drop);
+  // The page lost focus under the finger (a link preview, another app): no pointerup may follow.
+  addEventListener('blur', drop);
+  // The tap is followed: the stone stays while the next page loads, until pagehide. A link that leads nowhere new
+  // (a hash on this page, a new tab, a script that took the click) lets it go as a press does.
+  addEventListener('click', (e) => {
+    const el = e.target.closest && e.target.closest('a[data-gem][href]');
+    if (!el || e.defaultPrevented || el.target === '_blank' || el.hasAttribute('download')) return;
+    const u = new URL(el.href, location.href);
+    if (u.hash && u.origin === location.origin && u.pathname === location.pathname && u.search === location.search) return;
+    held = el; kick();
+    // A load that never comes (offline, stopped): let the stone go after a while, counted from the last tap.
+    const tap = pressT;
+    setTimeout(() => { if (held === el && pressT === tap) { held = null; kick(); } }, 5000);
+  });
+}
 addEventListener('pagehide', () => {
-  away(); focusEl = null; ptr.lastEl = null;
+  away(); focusEl = null; ptr.lastEl = null; held = null;
   for (const s of stones) if (s.arw) s.arw.style.cssText = '';
   stones.length = 0; specs.length = 0; cur = null;
   gl.clear(gl.COLOR_BUFFER_BIT);
+  if (TOUCH) cv.style.visibility = 'hidden';
 });
 // The page scrolls under a still pointer: the stones ride with their elements; one whose element has left the
 // pointer goes. A new one comes out only when the hand moves: links passing under a still pointer stay arrows.
@@ -533,7 +619,11 @@ document.addEventListener('focusout', () => { focusEl = null; kick(); });
 
 // ---------- the loop: it runs only while a stone is out or something moves ----------
 let running = false, last = 0, dead = false;
-function kick() { if (!running && !dead) { running = true; last = performance.now(); requestAnimationFrame(frame); } }
+function kick() {
+  // A phone wakes the loop only for a press or a stone still out: a scroll or a resize at rest costs no frame.
+  if (TOUCH && !pressEl && !held && !stones.length && !specs.length) return;
+  if (!running && !dead) { running = true; last = performance.now(); requestAnimationFrame(frame); }
+}
 // The GPU dropped the context (a driver reset, too many tabs): the stones go, every arrow comes back, nothing draws again.
 cv.addEventListener('webglcontextlost', () => {
   dead = true;
@@ -552,6 +642,8 @@ function settled(s) {
 }
 function frame(now) {
   if (dead) { running = false; return; }
+  // A phone shows its canvas from the frame, not from the touch handler, which only records the press.
+  if (TOUCH && cv.style.visibility) cv.style.visibility = '';
   const dt = Math.min(0.05, Math.max(0, (now - last) / 1000)); last = now;
   // Scrolled since the last frame: everything drawn moves with the page, so a stone stays on its arrow.
   const dsx = scrollX - sx0, dsy = scrollY - sy0; sx0 = scrollX; sy0 = scrollY;
@@ -564,7 +656,8 @@ function frame(now) {
     // hovered or focused, still hand or not.
     let el = null, travel = false;
     const hovEl = ptr.el || (now - ptr.leftT < GRACE ? ptr.lastEl : null);
-    if (pressEl || now - pressT < 650) el = pressEl || (cur && cur.el) || hovEl;
+    if (held) el = held;
+    else if (pressEl || now - pressT < 650) el = pressEl || (cur && cur.el) || hovEl;
     else if (focusEl && lastInput === 'key') { el = focusEl; travel = true; }
     else if (hovEl && ((cur && cur.want === 1) || (ptr.el && now - ptr.enterT > DWELL))) el = hovEl;
     if (el) {
@@ -592,10 +685,13 @@ function frame(now) {
       }
     } else if (cur && cur.want === 1) { cur.want = 0; if (!RM) cur.w[1] += 5; }
 
+    if (pend && cur && (!pressEl || now - pressT > CONFIRM)) { pend = false; burst(); }
     const n = Math.max(1, Math.ceil(dt * 240)), h = dt / n;
     for (const s of stones) {
       for (let k = 0; k < n; k++) {
-        [s.p, s.vp] = spring(s.p, s.vp, s.want, RM ? (s.quick ? 45 : 12) : s.want ? 22 : 18, RM ? 1 : s.want ? 0.55 : 1, h);
+        // On a phone it comes out faster, grown in about four frames; dropped by a scroll under the finger, it goes
+        // back into its arrow in about 100ms.
+        [s.p, s.vp] = spring(s.p, s.vp, s.want, RM ? (s.quick ? 45 : 12) : s.want ? (TOUCH ? 34 : 22) : s.snap ? 50 : 18, RM ? 1 : s.want ? 0.55 : 1, h);
         if (s.p < 0) { s.p = 0; s.vp = 0; }
         if (RM) { s.x = s.tx; s.y = s.ty; s.vx = s.vy = 0; s.q = REST; }
         else {
@@ -625,7 +721,7 @@ function frame(now) {
   const waiting = (ptr.el && !(cur && cur.el === ptr.el) && now - ptr.enterT < DWELL + 50) || (!ptr.el && ptr.lastEl && now - ptr.leftT < GRACE + 30);
   const busy = stones.some((s) => !settled(s)) || specs.length || waiting || now - pressT < 700 || (focusEl && now - focusT < 1200);
   if (busy) requestAnimationFrame(frame);
-  else { running = false; if (!stones.length) gl.clear(gl.COLOR_BUFFER_BIT); }
+  else { running = false; if (!stones.length) { gl.clear(gl.COLOR_BUFFER_BIT); if (TOUCH) cv.style.visibility = 'hidden'; } }
 }
 function drawSpec(x, y, ang, R, I) {
   const Rd = R * dpr, Wd = 6 * dpr, len = 16 * dpr, half = Rd + Math.max(Wd * 3, len * 1.5);
@@ -648,7 +744,9 @@ function draw(now) {
   }
   for (const s of stones) if (s.glint > 0.02 && s.p > 0.3) { const { ang, R } = landing(s); drawSpec(s.x, s.y, ang, R, s.glint * 0.45 * Math.min(1, s.p)); }
   gl.useProgram(PS.p); gl.uniform2f(PS.u.uRes, cv.width, cv.height);
-  gl.uniform1i(PS.u.uSS, dpr >= 2 ? 3 : 4);
+  // Samples per pixel side. A phone takes 2: four rays a pixel instead of nine, under half the GPU time, and on a
+  // dense screen the difference doesn't show.
+  gl.uniform1i(PS.u.uSS, TOUCH ? SS_TOUCH : dpr >= 2 ? 3 : 4);
   for (const s of stones) {
     // On the way between neighbours it tucks in a little, so it slides past the next label instead of over it.
     // Raised above the footer row it clears the words, so there it keeps its size along the way.
