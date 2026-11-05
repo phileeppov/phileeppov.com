@@ -5,6 +5,7 @@
 // src/assets/about/; until then the text starts at the left edge.
 import { Image } from "astro:assets";
 import Site from "../layouts/Site.astro";
+import Stamp from "../components/Stamp.astro";
 
 const photos = import.meta.glob<{ default: ImageMetadata }>("../assets/about/*.{jpg,jpeg,png,webp}", { eager: true });
 const photo = Object.values(photos)[0]?.default;
@@ -25,7 +26,10 @@ const photo = Object.values(photos)[0]?.default;
           </figure>
         )
       }
-      <div class="text">
+      <!-- The stamp signs off the page: its rim crosses "it" in the last words (off until approved; ?stamp=on to
+           review). -->
+      <div class="text" data-stamp-host>
+        <Stamp seed={2} prefer={-30} />
         <p class="lead"><span>I design products.</span> <span>I've been doing it for five&nbsp;years.</span></p>
         <p>I studied business, not design. I started designing because of a project of my own: I felt nobody else would get how I wanted it to look. Then came work for friends, then a website for a local repair and tailoring shop. It's still&nbsp;live.</p>
         <p>Then Medal, a desktop app for gamers. I worked on avatars and rewards, then on how you record the thing that just happened. Then crypto: a wallet, an explorer, a set of tools. The wallet launched at ETHDenver 2023. The explorer never shipped. None of it runs now, for reasons that had nothing to do with&nbsp;design.</p>
@@ -39,7 +43,7 @@ const photo = Object.values(photos)[0]?.default;
         <hr class="rule" />
 
         <div class="closing">
-          <p>That's about it.<br />If you want to work together —</p>
+          <p>That's about <span data-stamp-at>it</span>.<br />If you want to work together —</p>
           <a class="btn" href="/review/" data-gem>Send a link, get a video review <span class="arw">→</span></a>
         </div>
       </div>
