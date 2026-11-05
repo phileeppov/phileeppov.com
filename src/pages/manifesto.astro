@@ -1,10 +1,12 @@
 ---
 // Manifesto: site.md §2, copy verbatim. The title stands where every page has it (label above, left edge); below it
-// the principles run down the right. Each principle's number stands in the left column in Lead at a third of the ink and stays in view while its
-// principle is read (sticky), so the column carries the structure, not just the page label.
+// the principles run down the right. Each principle's number stands in the left column in Lead at a third of the ink
+// and stays in view while its principle is read (sticky), so the column carries the structure, not just the page label.
 // Two pacings, set on <main> (both kept for review until one is chosen):
-//   data-pace="length": the pause after a principle grows with its length (data-len on the article);
-//   data-pace="screen": one principle, one screen (from 900px wide; the phone keeps even gaps).
+//   data-pace="length": the pause after a principle grows with its length (data-len on the article); the number is a
+//     running head in the page's corner, held through the pause until the next one pushes it out;
+//   data-pace="screen": one principle, one screen (from 900px wide; the phone keeps even gaps); the number leaves with
+//     its text's last line.
 // data-italic="whose" | "typing" | "purpose": the italic switch (brand: one anomaly per composition) on one word of the
 // explanations; without it, no switch. Georgia stands in for the anomaly face until web fonts exist.
 import Site from "../layouts/Site.astro";
@@ -114,26 +116,27 @@ import Stamp from "../components/Stamp.astro";
   .principles {
     row-gap: 0;
   }
-  /* The pause is padding on the article, outside its one grid row: the number's cell is only as tall as the text. */
   article {
     grid-column: 1 / -1;
     display: grid;
     grid-template-columns: subgrid;
     align-content: start;
     align-items: start;
-    padding-bottom: var(--rest);
   }
-  /* The number's cell stretches to the text's row only: a sticky grid item would be held by the whole article, pause
-     included, so the number sticks inside this cell instead. */
+  /* The number's cell stretches to the article's one grid row, and the number sticks inside this cell: a sticky grid
+     item would be held by the whole article box. */
   .side {
     align-self: stretch;
   }
-  /* The number, in the left column: as large as the title, a third of the ink. It stays 96px from the top while its
-     text goes by, from the title down to the last line, and leaves with it. */
+  /* The number, in the left column: as large as the title, a third of the ink. A running head: the pause sits inside
+     the row (.text below), so the number holds through its text and the pause in the wordmark's corner (16px from the
+     top, as the page's own top padding), and the next number, starting where this cell ends, pushes it out. So close
+     to the edge it can only sit below its text's last line while that line is already sliding out under the window's
+     edge. */
   .num {
     display: block;
     position: sticky;
-    top: 96px;
+    top: 16px;
     font-size: var(--text-lead);
     font-weight: 500;
     line-height: 1.1;
@@ -142,8 +145,10 @@ import Stamp from "../components/Stamp.astro";
   }
   .text {
     display: grid;
+    align-content: start;
     gap: 16px;
     max-width: 36em;
+    padding-bottom: var(--rest);
   }
   h2 {
     margin: 0 0 8px;
@@ -162,7 +167,15 @@ import Stamp from "../components/Stamp.astro";
   }
 
   /* One principle, one screen: each takes most of a screen, so the next title only shows at the bottom. A long
-     principle still keeps a pause after it. */
+     principle still keeps a pause after it. The pause is outside the row here, so the number holds only beside its
+     text, 96px from the top, and leaves with the last line: held through the pause it would hang alone on an empty
+     screen. */
+  .manifesto[data-pace="screen"] .text {
+    padding-bottom: 0;
+  }
+  .manifesto[data-pace="screen"] .num {
+    top: 96px;
+  }
   @media (min-width: 901px) {
     .manifesto[data-pace="screen"] article {
       box-sizing: border-box;
@@ -198,16 +211,16 @@ import Stamp from "../components/Stamp.astro";
     article {
       row-gap: 6px;
     }
-    article {
-      padding-bottom: calc(24px + var(--rest) * 0.4);
-    }
     .num {
       position: static;
+    }
+    .text {
+      padding-bottom: calc(24px + var(--rest) * 0.4);
     }
     .manifesto[data-pace="screen"] article {
       padding-bottom: 88px;
     }
-    article:last-child,
+    article:last-child .text,
     .manifesto[data-pace="screen"] article:last-child {
       padding-bottom: 0;
     }
