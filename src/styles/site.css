@@ -10,6 +10,35 @@
   padding-bottom: 32px;
 }
 
+/* Two speeds (home, about, 404): titles, labels and text start at one left edge, the page padding; text keeps to one
+   column, objects (the tools, the photo) may run the full width. Parts of the page stand far apart, the pieces of one
+   part close together: the space says what belongs to what. */
+.page.flow {
+  --part: 200px;
+  /* The right edge of text: Lead lines run to it. Body paragraphs stop sooner, at about 70 characters a line. */
+  --column: 684px;
+  --measure-body: 28em;
+  gap: var(--part);
+  padding-bottom: 96px;
+}
+/* A part: its label above it, on the same edge. */
+.part {
+  display: grid;
+  justify-items: start;
+  align-content: start;
+  gap: 28px;
+}
+.part > * {
+  max-width: 100%;
+}
+/* The page title, in one place on every page: Display size, at the left edge, under the header. */
+.page-title {
+  margin: 0;
+  font-size: clamp(40px, 5.6vw, 80px);
+  font-weight: 500;
+  line-height: 0.98;
+  letter-spacing: -0.045em;
+}
 /* A row: a label on the left, the content on the right. */
 .row {
   display: grid;
@@ -105,6 +134,10 @@
   .row > .label:empty {
     display: none;
   }
+  .page.flow {
+    --part: 128px;
+    padding-bottom: 64px;
+  }
 }
 @media (max-width: 560px) {
   .btn {
@@ -112,5 +145,15 @@
   }
   .closing p {
     font-size: 24px;
+  }
+  .page.flow {
+    --part: 112px;
+    padding-bottom: 48px;
+  }
+  .part {
+    gap: 24px;
+  }
+  .page-title {
+    font-size: 35px;
   }
 }

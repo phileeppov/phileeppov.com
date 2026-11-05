@@ -9,13 +9,16 @@ import glass from "../assets/tools/glass.png";
 ---
 
 <Site description="Nikita Filippov, product designer. I redesigned game recording in Medal.tv, an app with 3M daily users." image="/review-og.png">
-  <main class="page home">
+  <!-- data-layout: "grid" (How I work in two columns from 1200px, the rest on the left edge), "grid-about" (the same,
+       the about line in the second column), "grid-shift" (the about line and the closing call in the second column) or
+       "column" (one column throughout). -->
+  <main class="page flow home" data-layout="grid-about">
     <section class="hero">
-      <h1><span>Nikita Filippov, product designer.</span> <span>I&nbsp;redesigned game recording in&nbsp;Medal.tv, an&nbsp;app with 3M daily&nbsp;users.</span></h1>
+      <h1 class="page-title"><span>Nikita Filippov, product designer.</span> <span>I&nbsp;redesigned game recording in&nbsp;Medal.tv, an&nbsp;app with 3M daily&nbsp;users.</span></h1>
       <a class="btn" href="/review/" data-gem data-count="site:hero">Send a link, get a video review <span class="arw">→</span></a>
     </section>
 
-    <section class="row tools" aria-labelledby="tools-label">
+    <section class="part tools" aria-labelledby="tools-label">
       <h2 class="label caps" id="tools-label">TOOLS</h2>
       <div class="tiles">
         <a class="tile" href="https://github.com/phileeppov/chefkiss" data-count="site:chefkiss">
@@ -39,7 +42,9 @@ import glass from "../assets/tools/glass.png";
       </div>
     </section>
 
-    <section class="row how" aria-labelledby="how-label">
+    <!-- How I work: the first line of each moment at Lead, the rest quieter at body size. Read down the Lead lines
+         alone and the page still tells the whole offer. -->
+    <section class="part how" aria-labelledby="how-label">
       <h2 class="label caps" id="how-label">HOW I WORK</h2>
       <div class="moments">
         <p><span>You send me your product.</span> <span>A landing page, an onboarding flow, a product that doesn't exist yet.</span> <span>Whatever you're stuck on.</span></p>
@@ -49,30 +54,24 @@ import glass from "../assets/tools/glass.png";
       </div>
     </section>
 
-    <!-- The manifesto preview folded to one line (site.md §1.2: the list stood between the promise and the proof). -->
-    <section class="row principles">
-      <span class="label" aria-hidden="true"></span>
-      <div class="one">
-        <p>Five principles I work by:</p>
-        <a class="link" href="/manifesto/" data-gem data-count="site:manifesto"><span class="arw">→</span> Read full manifesto</a>
+    <!-- About and the manifesto as one part: the about line at Lead, then two ways further at body size (the manifesto
+         preview folded to one line, site.md §1.2). -->
+    <section class="part about">
+      <p><span>I'm Nikita. I can't ship work I&nbsp;wouldn't sign.</span> <span>So I design alone, async, and only with founders who feel the same.</span> <span>For code I team up with a developer I've shipped with, and I'm taking more of it on myself, this site included.</span></p>
+      <div class="further">
+        <a class="link hang" href="/about/" data-gem data-count="site:about"><span class="arw">→</span> More about me</a>
+        <div class="one">
+          <p>Five principles I work by:</p>
+          <a class="link" href="/manifesto/" data-gem data-count="site:manifesto"><span class="arw">→</span> Read full manifesto</a>
+        </div>
       </div>
     </section>
 
-    <section class="row about">
-      <span class="label" aria-hidden="true"></span>
-      <div>
-        <p><span>I'm Nikita. I can't ship work I&nbsp;wouldn't sign.</span> <span>So I design alone, async, and only with founders who feel the same.</span> <span>For code I team up with a developer I've shipped with, and I'm taking more of it on myself, this site included.</span></p>
-        <a class="link" href="/about/" data-gem data-count="site:about"><span class="arw">→</span> More about me</a>
-      </div>
-    </section>
-
-    <section class="row cta">
-      <span class="label" aria-hidden="true"></span>
-      <div class="panel">
-        <h2><span>Send me your product.</span> <span>Get a video review in&nbsp;return.</span></h2>
-        <p>A link is enough: a landing page, Notion, Figma, anything that shows what you're working on. No call needed to&nbsp;start.</p>
-        <a class="btn" href="/review/" data-gem data-count="site:end">Send a link, get a video review <span class="arw">→</span></a>
-      </div>
+    <!-- The closing call, straight on the page: the button carries the depth, not a panel around it. -->
+    <section class="part cta">
+      <h2><span>Send me your product.</span> <span>Get a video review in&nbsp;return.</span></h2>
+      <p>A link is enough: a landing page, Notion, Figma, anything that shows what you're working on. No call needed to&nbsp;start.</p>
+      <a class="btn" href="/review/" data-gem data-count="site:end">Send a link, get a video review <span class="arw">→</span></a>
     </section>
   </main>
 </Site>
@@ -88,21 +87,23 @@ import glass from "../assets/tools/glass.png";
   .hero {
     display: grid;
     justify-items: start;
-    gap: 36px;
+    gap: 48px;
     padding-top: 40px;
   }
   h1 {
-    margin: 0;
     max-width: 17em;
-    font-size: clamp(40px, 5.6vw, 80px);
-    font-weight: 500;
-    line-height: 0.98;
-    letter-spacing: -0.058em;
   }
-  /* Each sentence starts its own line, as the title on /review; on a phone they run on. */
+  /* Each sentence starts its own line, as the title on /review. */
   h1 span {
     display: block;
     text-wrap: pretty;
+  }
+
+  /* The tools are objects: they run the full width, past the text column. With the hero they make the opening, the
+     claim and what backs it, so they stand closer to it than the parts below stand to each other. */
+  .tools {
+    justify-items: stretch;
+    margin-top: calc(var(--part) * -0.36);
   }
 
   .tile:focus-visible {
@@ -247,96 +248,127 @@ import glass from "../assets/tools/glass.png";
     }
   }
 
-  /* How I work: four moments. The first line of each is the moment, the rest is quieter. */
+  /* How I work: four moments, 64px apart. The first line of each is the moment, at Lead; the rest is quieter, at body
+     size, each sentence on its own line. */
   .moments {
     display: grid;
-    gap: 40px;
-    max-width: 38em;
+    gap: 64px;
+    max-width: var(--column);
   }
   .moments p {
+    display: grid;
     margin: 0;
     line-height: 1.45;
   }
   .moments span {
-    display: block;
     opacity: 0.6;
     text-wrap: pretty;
   }
   .moments span:first-child {
+    margin-bottom: 12px;
+    font-size: var(--text-lead);
     font-weight: 500;
+    line-height: 1.1;
+    letter-spacing: -0.05em;
     opacity: 1;
+    text-wrap: balance;
   }
 
-  /* Principles: one line at Lead size, the words quiet and the link full ink; on a narrow screen the link wraps whole. */
+  /* About: the one Lead block below How I work, its first sentence in full ink. Under it two ways further at body
+     size: more about me, and the manifesto line with its words quiet and the link in full ink. */
+  .about {
+    gap: 32px;
+  }
+  .about > p {
+    margin: 0;
+    max-width: var(--column);
+    font-size: var(--text-lead);
+    font-weight: 500;
+    line-height: 1.15;
+    letter-spacing: -0.05em;
+    text-wrap: pretty;
+  }
+  .about > p span:not(:first-child) {
+    opacity: 0.6;
+  }
+  .further {
+    display: grid;
+    justify-items: start;
+    gap: 6px;
+  }
   .one {
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
     gap: 0 0.3em;
-    font-size: var(--text-lead);
-    font-weight: 500;
-    line-height: 1.15;
-    letter-spacing: -0.05em;
   }
   .one p {
     margin: 0;
-    color: color-mix(in srgb, var(--ink) 60%, transparent);
+    opacity: 0.6;
   }
   .one .link {
     white-space: nowrap;
   }
 
-  /* The manifesto line and the about line read as one pair: closer to each other than the rows around them. */
-  .principles + .about {
-    margin-top: -64px;
-  }
-  .about p {
-    margin: 0 0 24px;
-    max-width: 30em;
-    font-size: var(--text-lead);
-    font-weight: 500;
-    line-height: 1.15;
-    letter-spacing: -0.05em;
-  }
-  .about p span:not(:first-child) {
-    opacity: 0.6;
-  }
-
-  /* The closing call: a raised panel, like the screen on /review, with the same dark button. */
-  .panel {
-    display: grid;
-    justify-items: start;
+  /* The closing call, on the page itself: Lead, a quiet paragraph, the dark button; more air above it than above any
+     other part. */
+  .cta {
     gap: 16px;
-    max-width: 760px;
-    padding: 40px;
-    border-radius: 28px;
-    background: var(--surface);
-    box-shadow: var(--float);
+    margin-top: calc(var(--part) * 0.2);
   }
-  .panel h2 {
+  .cta h2 {
     margin: 0;
     font-size: var(--text-lead);
     font-weight: 500;
     line-height: 1.05;
     letter-spacing: -0.05em;
-    text-wrap: balance;
   }
-  /* Each sentence starts its own line, as the title on /review; on a phone they run on. */
-  .panel h2 span {
+  /* Each sentence starts its own line, as the title on /review. */
+  .cta h2 span {
     display: block;
     text-wrap: balance;
   }
-  .panel p {
-    margin: 0 0 12px;
-    max-width: 34em;
+  .cta p {
+    margin: 0;
+    max-width: var(--measure-body);
     opacity: 0.6;
     text-wrap: pretty;
   }
+  .cta .btn {
+    margin-top: 20px;
+  }
+
+  /* From 1200px How I work takes the width the tools take: the four moments in two columns on the tools' split, so
+     the second column starts where the Glass tile does. Body lines stay short, about 60 characters. */
+  @media (min-width: 1200px) {
+    .home[data-layout^="grid"] .moments {
+      justify-self: stretch;
+      grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+      gap: 72px 24px;
+      max-width: none;
+    }
+    /* A moment keeps its own height in a row: the rest sits under its first line, not spread down the row. */
+    .home[data-layout^="grid"] .moments p {
+      align-content: start;
+    }
+    .home[data-layout^="grid"] .moments span:not(:first-child) {
+      max-width: 24em;
+      text-wrap: balance;
+    }
+    /* The about line (and in grid-shift the closing call too) in the second column. There the arrow of "More about me"
+       has a real margin to hang in, so the words keep the text edge. */
+    .home[data-layout="grid-shift"] .about,
+    .home[data-layout="grid-shift"] .cta,
+    .home[data-layout="grid-about"] .about {
+      padding-left: calc((100% - 24px) * 7 / 12 + 24px);
+    }
+    .home[data-layout="grid-shift"] .hang,
+    .home[data-layout="grid-about"] .hang {
+      margin-left: -1.15em;
+    }
+  }
 
   @media (max-width: 900px) {
-    .principles + .about {
-      margin-top: -40px;
-    }
     .tiles {
       grid-template-columns: minmax(0, 1fr);
       gap: 40px;
@@ -347,31 +379,33 @@ import glass from "../assets/tools/glass.png";
       padding-top: 16px;
       gap: 28px;
     }
-    h1 {
-      font-size: clamp(30px, 9.4vw, 36px);
-    }
+    /* Each sentence still starts its own line, balanced: the same six lines from 360 to 430px, no hole after
+       "game recording" (the space in "in Medal.tv" stays non-breaking). */
     h1 span {
-      display: inline;
-      text-wrap: pretty;
+      text-wrap: balance;
     }
-    .one {
-      font-size: 22px;
+    .moments {
+      gap: 44px;
     }
-    .about p {
-      font-size: 22px;
+    .moments span:first-child {
+      margin-bottom: 8px;
+      font-size: 24px;
     }
-    .panel h2 span {
-      display: inline;
+    .about {
+      gap: 24px;
+    }
+    .about > p,
+    .cta h2 {
+      font-size: 24px;
+    }
+    .cta .btn {
+      margin-top: 12px;
     }
     .art {
       height: 240px;
     }
     .art.dark img {
       width: 210px;
-    }
-    .panel {
-      padding: 28px 22px 24px;
-      margin-inline: -8px;
     }
   }
 </style>
