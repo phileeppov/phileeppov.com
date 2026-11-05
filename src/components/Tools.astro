@@ -1,16 +1,17 @@
 ---
-// Tools on the home page (site.md §1.8): chefkiss and Glass, two tiles of one material.
+// Tools on the home page (site.md §1.8): chefkiss and Glass, on a full-width black band: the wall goes dark for its
+// two objects. No tiles: each object stands straight on the black with its wall label under it (name, line, address).
 // The chefkiss tile does what its line says: the 💩 under an answer goes down, the answer folds away and a shorter,
 // better-shaped one is written in its place. Desktop: under the hand or keyboard focus, and back on leaving. Touch:
 // once, when the tile is first in view or on the first touch. With reduced motion: the pressed state, still.
-// Material: both tiles near-black, the chefkiss pills raised and light.
+// Material: the chefkiss pills raised and light, the only raised things on the band (they are what you press).
 import { Image } from "astro:assets";
 import glass from "../assets/tools/glass.png";
 ---
 
-<section class="part tools" aria-labelledby="tools-label">
-  <h2 class="label caps" id="tools-label">TOOLS</h2>
-  <div class="tiles">
+<section class="tools" aria-labelledby="tools-label">
+  <h2 class="label" id="tools-label">TOOLS</h2>
+  <div class="tiles grid">
     <a class="tile ck" href="https://github.com/phileeppov/chefkiss" data-count="site:chefkiss">
       <!-- The end of an answer in Claude Code and the mod's three buttons under it. Drawn, not a screenshot: no words.
            Rows: --i counts from the top (writing order), --j from the bottom (folding order). -->
@@ -46,7 +47,7 @@ import glass from "../assets/tools/glass.png";
     </a>
     <a class="tile gl" href="/glass/" data-count="site:glass">
       <div class="art dark" aria-hidden="true">
-        <Image src={glass} alt="" widths={[260, 520]} sizes="260px" />
+        <Image src={glass} alt="" widths={[260, 520]} sizes="(max-width: 560px) 40vw, 260px" />
       </div>
       <p class="name">Glass</p>
       <p class="line">Drop a logo, get it back in glass.</p>
@@ -84,59 +85,63 @@ import glass from "../assets/tools/glass.png";
 </script>
 
 <style>
-  /* The tools are objects: they run the full width, past the text column. With the hero they make the opening, the
-     claim and what backs it, so they stand closer to it than the parts below stand to each other (--part comes from
-     the page, site.css .page.flow). */
+  /* The band: the full width of the window, black. The label at its top as on every part of the wall, the two objects
+     72px under it standing on one line, their labels under them. */
   .tools {
-    justify-items: stretch;
-    margin-top: calc(var(--part, 0px) * -0.36);
+    margin-inline: calc(var(--bleed, 24px) * -1);
+    padding: 24px max(var(--bleed, 24px), 100% + var(--bleed, 24px) - 1392px) 120px var(--bleed, 24px);
+    background: var(--color-black);
+    color: var(--color-off-white);
   }
-  /* Two tiles, the newer one wider. Each picture is a raised surface. */
+  .tools .label {
+    opacity: 0.6;
+  }
+  /* Both objects in boxes of one height, standing on the box's foot: their labels start on one line. */
   .tiles {
-    display: grid;
-    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
-    gap: 24px;
+    margin-top: 72px;
+    align-items: start;
   }
   .tile {
     display: grid;
     align-content: start;
-    gap: 4px;
+    gap: 2px;
     color: inherit;
     text-decoration: none;
-    border-radius: 28px;
+  }
+  .ck {
+    grid-column: 1 / span 6;
+  }
+  /* Glass from column 7, the caption line of the whole wall. */
+  .gl {
+    grid-column: 7 / span 6;
   }
   .tile:focus-visible {
-    outline: 2px solid var(--ink);
-    outline-offset: 4px;
+    outline: 2px solid var(--color-off-white);
+    outline-offset: 8px;
+    border-radius: 4px;
   }
+  /* The object: no frame, no surface, straight on the band. */
   .art {
     position: relative;
     display: grid;
-    place-items: center;
     height: 300px;
-    margin-bottom: 14px;
-    border-radius: 28px;
-    background: var(--surface);
-    box-shadow: var(--float);
-    overflow: hidden;
-    transition: transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 260ms ease-out;
+    margin-bottom: 28px;
   }
-  .art.dark,
-  .art.chat {
-    background: var(--color-black);
-    box-shadow: 0 0 0 0.5px color-mix(in srgb, var(--color-black) 60%, transparent),
-      0 16px 40px -16px color-mix(in srgb, var(--color-black) 40%, transparent);
+  .art.dark {
+    place-items: end start;
   }
+  /* The picture's own black is a shade darker than the band: lighten lets the band show through it. */
   .art.dark img {
-    width: min(260px, 93%);
+    display: block;
+    width: 260px;
     height: auto;
+    mix-blend-mode: lighten;
+    transition: transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
   }
   /* Glass lifts a little under the hand; chefkiss answers with its press instead. */
   @media (hover: hover) {
-    .gl:hover .art {
-      transform: translateY(-3px);
-      box-shadow: 0 0 0 0.5px color-mix(in srgb, var(--color-black) 60%, transparent),
-        0 24px 48px -18px color-mix(in srgb, var(--color-black) 55%, transparent);
+    .gl:hover .art img {
+      transform: translateY(-4px);
     }
   }
   .name {
@@ -148,7 +153,7 @@ import glass from "../assets/tools/glass.png";
     text-wrap: pretty;
   }
   .where {
-    margin: 2px 0 0;
+    margin: 6px 0 0;
     font-size: var(--text-meta);
     opacity: 0.5;
   }
@@ -162,7 +167,7 @@ import glass from "../assets/tools/glass.png";
     --fade: 56px; /* the top of a long answer scrolls away */
     --pill-w: 52px;
     --pill-h: 40px;
-    --emoji: 20px;
+    --emoji: 18px; /* body size: nothing on the wall between body and Display */
     --pill-gap: 8px;
     --react-gap: 24px;
 
@@ -181,11 +186,12 @@ import glass from "../assets/tools/glass.png";
       inset 0 0 0 0.5px color-mix(in srgb, var(--color-off-white) 16%, transparent);
   }
 
+  /* The drawing starts at the band's left edge: the ⏺ of the answer on the label's line. */
   .chat {
     grid-template-rows: minmax(0, 1fr) auto;
     place-items: stretch;
     gap: var(--react-gap);
-    padding: 28px 12% 32px;
+    padding: 0 8% 0 0;
   }
   /* Both answers in one cell, pinned to the bottom: a long one runs out of the top. */
   .answer {
@@ -324,20 +330,30 @@ import glass from "../assets/tools/glass.png";
     }
   }
 
-  /* Phone: two square tiles side by side, the drawing scaled to them. */
-  @media (max-width: 560px) {
-    .tiles {
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-      gap: 12px;
+  /* Narrower: the two objects share the band evenly. */
+  @media (max-width: 1023px) {
+    .ck {
+      grid-column: 1 / span 6;
     }
-    .tile,
+    .gl {
+      grid-column: 7 / span 6;
+    }
     .art {
-      border-radius: 22px;
+      height: 300px;
+    }
+  }
+  /* Phone: two square objects side by side, the drawing scaled to them. */
+  @media (max-width: 560px) {
+    .tools {
+      padding-bottom: 72px;
+    }
+    .tiles {
+      margin-top: 40px;
     }
     .art {
       height: auto;
       aspect-ratio: 1;
-      margin-bottom: 10px;
+      margin-bottom: 16px;
     }
     .tools {
       --bar: 5px;
@@ -352,10 +368,10 @@ import glass from "../assets/tools/glass.png";
       --react-gap: 12px;
     }
     .art.dark img {
-      width: 80%;
+      width: 100%;
     }
     .chat {
-      padding: 14px 14px 16px;
+      padding: 0;
     }
     .r {
       gap: 4px;

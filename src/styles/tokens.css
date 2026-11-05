@@ -7,8 +7,13 @@
   --font-base: "Helvetica Neue", Arial, system-ui, sans-serif;
   --font-anomaly: Georgia, "Times New Roman", serif; /* italic only, for the anomaly only */
 
-  /* Scale (draft). Nothing between Display and Lead. */
-  --text-display: clamp(64px, 5.5vw, 80px);
+  /* Scale (draft, checked on the site build). The wall: a statement read from across the room, a caption read up close,
+     nothing between. Display is 9.5vw of the window: 137px at 1440, 97px at 1024; on a phone 11.5vw, 45px at 390,
+     where "product designer." fills the measure. Text that needs more than body and isn't a statement stays body and
+     takes weight or position, not size. Lead is left only for the form on /review. */
+  --text-display: min(9.5vw, 137px);
+  --tracking-display: -0.045em;
+  --leading-display: 1; /* in Onest a y or g over an i: the tail and the dot clear by 0.05em */
   --text-lead: clamp(28px, 2.2vw, 32px);
   --text-body: clamp(17px, 1.25vw, 18px);
   --text-meta: 13px;
@@ -29,6 +34,8 @@
   --tracking-ui: -0.04em;
   --ink: color-mix(in srgb, var(--color-black) 88%, var(--color-off-white));
   --hair: color-mix(in srgb, var(--color-black) 22%, transparent);
+  /* The same hairline on black, for the dark band. */
+  --hair-dark: color-mix(in srgb, var(--color-off-white) 18%, transparent);
   --tray: color-mix(in srgb, var(--color-black) 5%, var(--color-off-white));
   --panel: color-mix(in srgb, white 40%, var(--color-off-white));
   /* Raised white surface: panels, pills, thumbs. */
@@ -55,4 +62,10 @@
   /* Dark button: slightly lighter than black, a thin highlight on top, 0.5px along the edge. */
   --btn-dark: linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 100%);
   --btn-edge: inset 0 0.5px 0 rgb(255 255 255 / 0.16), 0 0 0 0.5px rgb(0 0 0 / 0.5), 0 1px 2px rgb(0 0 0 / 0.14);
+}
+
+@media (max-width: 560px) {
+  :root {
+    --text-display: 11.5vw;
+  }
 }

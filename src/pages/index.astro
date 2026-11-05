@@ -1,29 +1,33 @@
 ---
-// Home: site.md §1, the MVP in the /review style (Site.astro: Onest, monochrome, depth in the controls).
+// Home: site.md §1, the MVP in the /review style (Site.astro: Onest, monochrome, depth in the controls), laid out as
+// a wall (site.css): statements at Display, captions at body and meta, nothing between.
 // Hero: the "who" line from §8.1 in place of the temporary §1.1 hero. Cases are left out while they're being redone;
-// in their place, the tools. The form lives on /review: both buttons lead there instead of repeating it here.
-// The arrows turn into emeralds under a moving pointer (data-gem, Site.astro).
+// in their place, the tools, on a dark band. The form lives on /review: both buttons lead there instead of repeating it
+// here. The arrows turn into emeralds under a moving pointer (data-gem, Site.astro).
 import Site from "../layouts/Site.astro";
 import Tools from "../components/Tools.astro";
 import Stamp from "../components/Stamp.astro";
 ---
 
 <Site description="Nikita Filippov, product designer. I redesigned game recording in Medal.tv, an app with 3M daily users." image="/home-og.png">
-  <!-- From 1200px How I work runs in two columns, and the about line keeps the left one with its two links beside it,
-       in the second; the closing call follows below. Narrower, one column throughout. -->
-  <main class="page flow home">
-    <section class="hero">
-      <h1 class="page-title"><span>Nikita Filippov, product designer.</span> <span>I&nbsp;redesigned game recording in&nbsp;Medal.tv, an&nbsp;app with 3M daily&nbsp;users.</span></h1>
-      <a class="btn" href="/review/" data-gem data-count="site:hero">Send a link, get a video review <span class="arw">→</span></a>
+  <main class="wall home">
+    <!-- The hero is the first screen: the line at Display, one meaning part to a line, six lines on a wide screen and
+         seven on a phone (the last part breaks where its measure ends). The button is its caption, under it in the
+         caption half, as every statement on the wall has its caption. -->
+    <section class="hero grid">
+      <h1 class="statement"><span>Nikita Filippov,</span> <span>product designer.</span> <span>I&nbsp;redesigned</span> <span>game recording</span> <span>in&nbsp;Medal.tv,<br class="on-phone" /> an&nbsp;app<br class="off-phone" /> with<br class="on-phone" /> 3M daily&nbsp;users.</span></h1>
+      <div class="cap">
+        <a class="btn" href="/review/" data-gem data-count="site:hero">Send a link, get a video review <span class="arw">→</span></a>
+      </div>
     </section>
 
     <Tools />
 
-    <!-- How I work: the first line of each moment at Lead, the rest quieter at body size. Read down the Lead lines
-         alone and the page still tells the whole offer. -->
-    <section class="part how" aria-labelledby="how-label">
-      <h2 class="label caps" id="how-label">HOW I WORK</h2>
-      <div class="moments">
+    <!-- How I work: captions only, in the caption half. The first sentence of each moment in full ink and weight, the
+         rest quieter; read down the first sentences alone and the page still tells the whole offer. -->
+    <section class="part how grid" aria-labelledby="how-label">
+      <h2 class="label" id="how-label">HOW I WORK</h2>
+      <div class="cap moments">
         <p><span>You send me your product.</span> <span>A landing page, an onboarding flow, a product that doesn't exist yet.</span> <span>Whatever you're stuck on.</span></p>
         <p><span>I send back a free video review within 48&nbsp;hours.</span> <span>What I see, what I'd do, what it would cost.</span> <span>If we're not aligned, we stop there. You keep the review.</span></p>
         <p><span>If we are, we work async.</span> <span>Video updates, shared Figma, decisions in writing.</span> <span>Calls when useful.</span></p>
@@ -31,26 +35,30 @@ import Stamp from "../components/Stamp.astro";
       </div>
     </section>
 
-    <!-- About and the manifesto as one part: the about line at Lead, then two ways further at body size (the manifesto
-         preview folded to one line, site.md §1.2). -->
-    <!-- The stamp signs the about line: its rim crosses "sign". -->
-    <section class="part about">
-      <Stamp seed={0} prefer={-60} />
-      <p data-stamp-host><span>I'm Nikita. I can't ship work I&nbsp;<span class="nw">wouldn't <span data-stamp-at>sign</span>.</span></span> <span>So I design alone, async, and only with founders who feel the same.</span> <span>For code I team up with a developer I've shipped with, and I'm taking more of it on myself, this site included.</span></p>
-      <div class="further">
-        <a class="link" href="/about/" data-gem data-count="site:about"><span class="arw">→</span> More about me</a>
-        <div class="one">
-          <p>Five principles I work by:</p>
-          <a class="link" href="/manifesto/" data-gem data-count="site:manifesto"><span class="arw">→</span> Read full manifesto</a>
+    <!-- About: its first sentences are the statement, the rest a caption with the two ways further under it (the
+         manifesto preview folded to one line, site.md §1.2). The stamp signs the statement: its rim crosses "sign". -->
+    <section class="part about grid">
+      <Stamp seed={0} prefer={0} />
+      <p class="statement" data-stamp-host><span>I'm Nikita.</span> <span>I can't ship work</span> <span>I&nbsp;wouldn't <span data-stamp-at>sign.</span></span></p>
+      <div class="cap">
+        <p>So I design alone, async, and only with founders who feel the same. For code I team up with a developer I've shipped with, and I'm taking more of it on myself, this site included.</p>
+        <div class="further">
+          <a class="link" href="/about/" data-gem data-count="site:about"><span class="arw">→</span> More about me</a>
+          <div class="one">
+            <p>Five principles I work by:</p>
+            <a class="link" href="/manifesto/" data-gem data-count="site:manifesto"><span class="arw">→</span> Read full manifesto</a>
+          </div>
         </div>
       </div>
     </section>
 
-    <!-- The closing call, straight on the page: the button carries the depth, not a panel around it. -->
-    <section class="part cta">
-      <h2><span>Send me your product.</span> <span>Get a video review in&nbsp;return.</span></h2>
-      <p>A link is enough: a landing page, Notion, Figma, anything that shows what you're working on. No call needed to&nbsp;start.</p>
-      <a class="btn" href="/review/" data-gem data-count="site:end">Send a link, get a video review <span class="arw">→</span></a>
+    <!-- The closing call: the last statement, its paragraph and the button as the caption. -->
+    <section class="part cta grid">
+      <h2 class="statement"><span>Send me your product.</span> <span class="ph"><span>Get a video review</span> <span>in&nbsp;return.</span></span></h2>
+      <div class="cap">
+        <p>A link is enough: a landing page, Notion, Figma, anything that shows what you're working on. No call needed to&nbsp;start.</p>
+        <a class="btn" href="/review/" data-gem data-count="site:end">Send a link, get a video review <span class="arw">→</span></a>
+      </div>
     </section>
   </main>
 </Site>
@@ -63,67 +71,58 @@ import Stamp from "../components/Stamp.astro";
 </script>
 
 <style>
-  /* "sign." never goes to the next line alone. */
-  .nw {
-    white-space: nowrap;
-  }
+  /* The hero: the line, and the button under it as its caption. */
   .hero {
-    display: grid;
-    justify-items: start;
-    gap: 48px;
-    padding-top: 40px;
+    padding-bottom: 120px;
   }
-  h1 {
-    max-width: 17em;
+  .hero h1 {
+    grid-column: 1 / -1;
   }
-  /* Each sentence starts its own line, as the title on /review. */
-  h1 span {
-    display: block;
-    text-wrap: pretty;
+  .hero .cap {
+    margin-top: 48px;
   }
 
-  /* How I work: four moments, 64px apart. The first line of each is the moment, at Lead; the rest is quieter, at body
-     size, each sentence on its own line. */
-  .moments {
+  /* Parts: the statement 72px under the hairline (or under the label), the caption 48px under the statement, and a
+     long rest after, so the next statement starts on the next screen. */
+  .part {
+    row-gap: 0;
+    padding-bottom: 200px;
+  }
+  .part > .statement {
+    grid-column: 1 / -1;
+    margin-top: 72px;
+  }
+  .part > .cap {
+    margin-top: 48px;
+  }
+
+  /* How I work: the label on the left at the hairline, the moments in the caption half, level with it. */
+  .how .label {
+    grid-column: 1 / span 4;
+    grid-row: 1;
+  }
+  .how .moments {
+    grid-row: 1;
+    margin-top: 0;
     display: grid;
-    gap: 64px;
-    max-width: var(--column);
+    gap: 40px;
   }
   .moments p {
     display: grid;
-    margin: 0;
-    line-height: 1.45;
   }
   .moments span {
     opacity: 0.6;
-    text-wrap: pretty;
   }
   .moments span:first-child {
-    margin-bottom: 12px;
-    font-size: var(--text-lead);
     font-weight: 500;
-    line-height: 1.1;
-    letter-spacing: -0.05em;
     opacity: 1;
-    text-wrap: balance;
   }
 
-  /* About: the one Lead block below How I work, its first sentence in full ink. Under it two ways further at body
-     size: more about me, and the manifesto line with its words quiet and the link in full ink. */
-  .about {
-    gap: 32px;
-  }
-  .about > p {
-    margin: 0;
-    max-width: var(--column);
-    font-size: var(--text-lead);
-    font-weight: 500;
-    line-height: 1.15;
-    letter-spacing: -0.05em;
-    text-wrap: pretty;
-  }
-  .about > p span:not(:first-child) {
-    opacity: 0.6;
+  /* About: the caption, then the two ways further. */
+  .about .cap {
+    display: grid;
+    justify-items: start;
+    gap: 28px;
   }
   .further {
     display: grid;
@@ -137,96 +136,55 @@ import Stamp from "../components/Stamp.astro";
     gap: 0 0.3em;
   }
   .one p {
-    margin: 0;
     opacity: 0.6;
   }
   .one .link {
     white-space: nowrap;
   }
 
-  /* The closing call, on the page itself: Lead, a quiet paragraph, the dark button; more air above it than above any
-     other part. */
-  .cta {
-    gap: 16px;
-    margin-top: calc(var(--part) * 0.2);
+  /* The closing call: the paragraph quiet, the button under it. */
+  .cta .cap {
+    display: grid;
+    justify-items: start;
+    gap: 32px;
   }
-  .cta h2 {
-    margin: 0;
-    font-size: var(--text-lead);
-    font-weight: 500;
-    line-height: 1.05;
-    letter-spacing: -0.05em;
-  }
-  /* Each sentence starts its own line, as the title on /review. */
-  .cta h2 span {
-    display: block;
-    text-wrap: balance;
-  }
-  .cta p {
-    margin: 0;
-    max-width: var(--measure-body);
+  .cta .cap p {
     opacity: 0.6;
-    text-wrap: pretty;
   }
-  .cta .btn {
-    margin-top: 20px;
-  }
-
-  /* From 1200px How I work takes the width the tools take: the four moments in two columns on the tools' split, so
-     the second column starts where the Glass tile does. Body lines stay short, about 60 characters. */
-  @media (min-width: 1200px) {
-    .moments {
-      justify-self: stretch;
-      grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
-      gap: 72px 24px;
-      max-width: none;
-    }
-    /* A moment keeps its own height in a row: the rest sits under its first line, not spread down the row. */
-    .moments p {
-      align-content: start;
-    }
-    .moments span:not(:first-child) {
-      max-width: 24em;
-      text-wrap: balance;
-    }
-    /* The about line in the first column, the two links beside it in the second, on its last line. The gutter
-       between them is no margin to hang an arrow in, so the arrow stays inside. */
-    .about {
-      grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
-      column-gap: 24px;
-      align-items: last baseline;
-    }
-    .further {
-      grid-column: 2;
-    }
+  .cta {
+    padding-bottom: 96px;
   }
 
+  @media (max-width: 767px) {
+    .how .moments {
+      grid-row: 2;
+      margin-top: 40px;
+    }
+    .how .label {
+      grid-column: 1 / -1;
+    }
+  }
   @media (max-width: 560px) {
     .hero {
-      padding-top: 16px;
-      gap: 28px;
+      padding-bottom: 72px;
     }
-    /* Each sentence still starts its own line, balanced: the same six lines from 360 to 430px, no hole after
-       "game recording" (the space in "in Medal.tv" stays non-breaking). */
-    h1 span {
-      text-wrap: balance;
+    .hero .cap {
+      margin-top: 32px;
     }
-    .moments {
-      gap: 44px;
+    .part {
+      padding-bottom: 120px;
     }
-    .moments span:first-child {
-      margin-bottom: 8px;
-      font-size: 24px;
+    .part > .statement {
+      margin-top: 48px;
     }
-    .about {
-      gap: 24px;
+    .part > .cap {
+      margin-top: 32px;
     }
-    .about > p,
-    .cta h2 {
-      font-size: 24px;
+    .how .moments {
+      gap: 32px;
     }
-    .cta .btn {
-      margin-top: 12px;
+    .cta {
+      padding-bottom: 64px;
     }
   }
 </style>

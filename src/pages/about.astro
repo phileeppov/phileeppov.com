@@ -1,8 +1,7 @@
 ---
-// About: site.md §4, copy verbatim. The /review style (Site.astro): the title at the left edge, as on every page, then
-// one column of short paragraphs. Photo: one shot, an asymmetric crop, mid-size (design notes §4), on the left edge
-// beside the text, looking into it, and held there while the text scrolls. It shows once a file is in
-// src/assets/about/; until then the text starts at the left edge.
+// About: site.md §4, copy verbatim, laid out as the wall (site.css). One statement, the name at Display; under it the
+// photo on the left edge, held while the text scrolls, and the story as a caption in the caption half. The photo shows
+// once a file is in src/assets/about/; until then the caption stands alone.
 import { Image } from "astro:assets";
 import Site from "../layouts/Site.astro";
 import Stamp from "../components/Stamp.astro";
@@ -12,24 +11,24 @@ const photo = Object.values(photos)[0]?.default;
 ---
 
 <Site title="About" description="I design products. I've been doing it for five years." image="/about-og.jpg">
-  <main class="page flow about">
-    <section class="part intro">
-      <h1 class="label caps">ABOUT</h1>
-      <p class="page-title">I'm Nikita.</p>
+  <main class="wall about">
+    <section class="intro grid">
+      <h1 class="label">ABOUT</h1>
+      <p class="statement">I'm Nikita.</p>
     </section>
 
-    <section class="story">
+    <section class="part story grid">
       {
         photo && (
           <figure class="photo">
-            <Image src={photo} alt="Nikita Filippov" widths={[400, 800]} sizes="(min-width: 900px) 336px, 70vw" />
+            <Image src={photo} alt="Nikita Filippov" widths={[480, 960]} sizes="(min-width: 1200px) 448px, (min-width: 768px) 40vw, 78vw" />
           </figure>
         )
       }
       <!-- The stamp signs off the page: its rim crosses "it" in the last words. -->
-      <div class="text">
+      <div class="cap text">
         <Stamp seed={2} prefer={-30} />
-        <p class="lead"><span>I design products.</span> <span>I've been doing it for five&nbsp;years.</span></p>
+        <p class="first"><span>I design products.</span> <span>I've been doing it for five&nbsp;years.</span></p>
         <p>I studied business, not design. I started designing because of a project of my own: I felt nobody else would get how I wanted it to look. Then came work for friends, then a website for a local repair and tailoring shop. It's still&nbsp;live.</p>
         <p>Then Medal, a desktop app for gamers. I worked on avatars and rewards, then on how you record the thing that just happened. Then crypto: a wallet, an explorer, a set of tools. The wallet launched at ETHDenver 2023. The explorer never shipped. None of it runs now, for reasons that had nothing to do with&nbsp;design.</p>
         <p>I've worked in teams and in a studio. Now I design on my own. The work I'm proudest of came when the decisions were mine to&nbsp;make.</p>
@@ -52,93 +51,94 @@ const photo = Object.values(photos)[0]?.default;
 
 <style>
   .intro {
-    gap: 20px;
-    padding-top: 40px;
+    padding-bottom: 120px;
   }
-  /* The title and the story are one part: closer than the parts of the home page. */
-  .page.about {
-    gap: 96px;
-  }
-
-  /* The photo on the left edge, the text beside it; the photo holds its place while the text scrolls past. */
-  .story {
-    display: grid;
-    /* 336px: on a full-width page the text starts on the manifesto's line (its 3:9 row), at x=408. */
-    grid-template-columns: minmax(0, 336px) minmax(0, var(--measure-body));
-    gap: 48px;
-    align-items: start;
-  }
-  .story > .text:only-child {
+  .intro .label,
+  .intro .statement {
     grid-column: 1 / -1;
   }
+  .intro .statement {
+    margin-top: 72px;
+  }
+
+  .story {
+    padding-bottom: 96px;
+    align-items: start;
+  }
+  /* The photo on the left edge, four columns, a print rather than a button: a small radius, a 0.5px edge, no shadow.
+     It holds its place while the text scrolls past. */
   .photo {
+    grid-column: 1 / span 4;
     position: sticky;
     top: 24px;
-    margin: 0;
+    margin: 72px 0 0;
   }
-  /* A print, not a button: a small radius, a 0.5px edge, no shadow under it. */
   .photo :global(img) {
     display: block;
     width: 100%;
     height: auto;
-    border-radius: 6px;
+    border-radius: 4px;
     box-shadow: 0 0 0 0.5px color-mix(in srgb, var(--color-black) 16%, transparent);
   }
 
+  /* The story: one caption, body size; its first sentences in weight, not size. */
   .text {
     display: grid;
     gap: 22px;
-    max-width: var(--measure-body);
+    margin-top: 72px;
   }
   .text p {
     margin: 0;
-    line-height: 1.5;
-    text-wrap: pretty;
   }
-  .text .lead {
-    margin-bottom: 6px;
-    font-size: var(--text-lead);
+  .text .first {
     font-weight: 500;
-    line-height: 1.1;
-    letter-spacing: -0.05em;
   }
-  /* Each sentence starts its own line. */
-  .text .lead span {
+  .text .first span {
     display: block;
   }
   .rule {
-    margin: 40px 0;
+    height: 0;
+    margin: 32px 0;
+    border: 0;
+    border-top: 0.5px solid var(--hair);
   }
   .closing {
+    display: grid;
+    justify-items: start;
+    gap: 24px;
     margin-top: 8px;
   }
+  .closing p {
+    font-weight: 500;
+  }
 
-  @media (max-width: 900px) {
-    .page.about {
-      gap: 64px;
+  @media (max-width: 1199px) {
+    .photo {
+      grid-column: 1 / span 4;
     }
-    .story {
-      grid-template-columns: minmax(0, 1fr);
-      gap: 40px;
-    }
+  }
+  @media (max-width: 767px) {
     .photo {
       position: static;
+      grid-column: 1 / -1;
       width: min(300px, 78%);
+    }
+    .text {
+      margin-top: 40px;
     }
   }
   @media (max-width: 560px) {
     .intro {
-      gap: 16px;
-      padding-top: 16px;
+      padding-bottom: 72px;
     }
-    .page.about {
-      gap: 48px;
+    .intro .statement {
+      margin-top: 48px;
     }
-    .text .lead {
-      font-size: 24px;
+    .photo {
+      margin-top: 48px;
     }
     .rule {
-      margin: 24px 0;
+      margin: 16px 0;
     }
   }
 </style>

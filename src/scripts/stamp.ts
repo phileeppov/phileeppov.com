@@ -281,11 +281,17 @@ function setup(svg: SVGSVGElement, host: HTMLElement, word: HTMLElement) {
     // Beside the word rather than on it: the rim crosses the word, the mark lands on clear paper, the whole
     // impression stays inside the page's edges and off anything outside the host (the stamp paints paper there).
     // Where the mark can't find clear paper (a narrow screen where the word sits mid-paragraph), no stamp.
+    // A word taller than the stamp (a statement at Display): the tries start from the edge of the word's box, not
+    // from its middle, or every one of them would land on the word itself.
+    const big = wb.height > R;
+    const edge = (ang: number) =>
+      big ? Math.min(wb.width / 2 / Math.max(Math.abs(Math.cos(ang)), 1e-6), wb.height / 2 / Math.max(Math.abs(Math.sin(ang)), 1e-6)) : 0;
     let best: [number, number] | null = null, bestScore = Infinity;
     for (let step = 0; step < 24; step++) {
       const ang = prefer + ((step % 2 ? -1 : 1) * Math.ceil(step / 2) * Math.PI) / 12;
+      const out = edge(ang);
       for (const d of [0.62, 0.72, 0.82, 0.92, 1.02]) {
-        const cx = wx + Math.cos(ang) * d * R, cy = wy + Math.sin(ang) * d * R;
+        const cx = wx + Math.cos(ang) * (d * R + out), cy = wy + Math.sin(ang) * (d * R + out);
         if (cx - R < Math.max(6, left) || cx + R > Math.min(W - 6, right)) continue;
         const far = Math.max(...[wb.left, wb.right].flatMap((x) => [wb.top, wb.bottom].map((y) => Math.hypot(x - cx, y - cy))));
         const near = Math.hypot(clamp(cx, wb.left, wb.right) - cx, clamp(cy, wb.top, wb.bottom) - cy);
@@ -296,9 +302,11 @@ function setup(svg: SVGSVGElement, host: HTMLElement, word: HTMLElement) {
         if (onText > 0.12) continue;
         const score =
           4 * onText +
-          0.5 * cover(cx, cy, R, text) +
+          // Beside a big word the rim is meant to lie over its letters: that costs little, and the stamp keeps to the
+          // side it was asked for, on the line, rather than sliding under it.
+          (big ? 0.1 : 0.5) * cover(cx, cy, R, text) +
           6 * cover(cx, cy, 1.1 * R, things) +
-          0.12 * (1 - Math.cos(ang - prefer)) +
+          (big ? 1 : 0.12) * (1 - Math.cos(ang - prefer)) +
           0.05 * Math.abs(d - 0.72);
         if (score < bestScore) {
           bestScore = score;
