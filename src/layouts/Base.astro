@@ -34,6 +34,9 @@ const ogImage = image ? new URL(image, Astro.site) : undefined;
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
     {ogImage && <meta property="og:image" content={ogImage} />}
+    {/* Every preview image is 1200×630; saying so lets Facebook and LinkedIn show it on the very first share. */}
+    {ogImage && <meta property="og:image:width" content="1200" />}
+    {ogImage && <meta property="og:image:height" content="630" />}
     <meta name="twitter:card" content={ogImage ? "summary_large_image" : "summary"} />
     {ogImage && <meta name="twitter:image" content={ogImage} />}
     <slot name="head" />
