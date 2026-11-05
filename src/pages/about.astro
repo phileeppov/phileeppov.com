@@ -28,7 +28,7 @@ const photo = Object.values(photos)[0]?.default;
       }
       <!-- The stamp signs off the page: its rim crosses "it" in the last words (off until approved; ?stamp=on to
            review). -->
-      <div class="text" data-stamp-host>
+      <div class="text">
         <Stamp seed={2} prefer={-30} />
         <p class="lead"><span>I design products.</span> <span>I've been doing it for five&nbsp;years.</span></p>
         <p>I studied business, not design. I started designing because of a project of my own: I felt nobody else would get how I wanted it to look. Then came work for friends, then a website for a local repair and tailoring shop. It's still&nbsp;live.</p>
@@ -43,7 +43,7 @@ const photo = Object.values(photos)[0]?.default;
         <hr class="rule" />
 
         <div class="closing">
-          <p>That's about <span data-stamp-at>it</span>.<br />If you want to work together —</p>
+          <p data-stamp-host>That's about <span data-stamp-at>it</span>.<br />If you want to work together —</p>
           <a class="btn" href="/review/" data-gem>Send a link, get a video review <span class="arw">→</span></a>
         </div>
       </div>
