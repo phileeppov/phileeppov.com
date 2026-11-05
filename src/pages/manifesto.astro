@@ -1,45 +1,64 @@
 ---
 // Manifesto: site.md §2, copy verbatim. The /review style (Site.astro): the label on the left, the principles down the
-// right with their numbers hanging, as on the home page; wide space between them (design notes: 200–300px on desktop).
+// right. Each principle's number stands in the left column in Lead at a third of the ink and stays in view while its
+// principle is read (sticky), so the column carries the structure, not just the page label.
+// Two pacings, set on <main> (both kept for review until one is chosen):
+//   data-pace="length": the pause after a principle grows with its length (data-len on the article);
+//   data-pace="screen": one principle, one screen (from 900px wide; the phone keeps even gaps).
+// data-italic="whose" | "typing" | "purpose": the italic switch (brand: one anomaly per composition) on one word of the
+// explanations; without it, no switch. Georgia stands in for the anomaly face until web fonts exist.
 import Site from "../layouts/Site.astro";
 ---
 
 <Site title="Manifesto" description="Five principles I work by." image="/review-og.png">
-  <main class="page manifesto">
+  <main class="page manifesto" data-pace="length">
     <section class="row intro">
       <h1 class="label caps">MANIFESTO</h1>
       <p class="title">Five principles I work&nbsp;by.</p>
     </section>
 
-    <section class="row">
-      <span class="label" aria-hidden="true"></span>
-      <div class="principles">
-        <article>
-          <h2><span>01.</span> Every decision has an&nbsp;author.</h2>
-          <p>If no one will defend it, it shouldn't ship. Every product is built on a few thousand small decisions: what the cancel button says, where the password strength meter sits, whether the empty state is funny or quiet. Most of those get made by accident. I make them on&nbsp;purpose.</p>
+    <!-- The articles take the row's own columns (subgrid), so the numbers line up with the label above them. -->
+    <section class="row principles">
+      <article data-len="long">
+        <div class="side"><span class="num">01.</span></div>
+        <div class="text">
+          <h2>Every decision has an&nbsp;author.</h2>
+          <p>If no one will defend it, it shouldn't ship. Every product is built on a few thousand small decisions: what the cancel button says, where the password strength meter sits, whether the empty state is funny or quiet. Most of those get made by accident. I make them on&nbsp;<span class="sw" data-w="purpose">purpose</span>.</p>
           <p>Settings are unfinished decisions. So is sending people to support for something the screen could have told them. "Make it customizable" is what designers say when they can't&nbsp;decide.</p>
-        </article>
+        </div>
+      </article>
 
-        <article>
-          <h2><span>02.</span> The brief is wrong until proven&nbsp;right.</h2>
-          <p>A brief is the founder's first guess at the problem. The work starts with checking that guess. If you hand me a brief and I do exactly what it says, I'm not designing. I'm&nbsp;typing.</p>
-        </article>
+      <article data-len="short">
+        <div class="side"><span class="num">02.</span></div>
+        <div class="text">
+          <h2>The brief is wrong until proven&nbsp;right.</h2>
+          <p>A brief is the founder's first guess at the problem. The work starts with checking that guess. If you hand me a brief and I do exactly what it says, I'm not designing. I'm&nbsp;<span class="sw" data-w="typing">typing</span>.</p>
+        </div>
+      </article>
 
-        <article>
-          <h2><span>03.</span> Make the call, then check&nbsp;it.</h2>
+      <article data-len="short">
+        <div class="side"><span class="num">03.</span></div>
+        <div class="text">
+          <h2>Make the call, then check&nbsp;it.</h2>
           <p>Research sharpens a decision. It doesn't replace one. I decide from what I've seen, and research where I'm&nbsp;unsure.</p>
-        </article>
+        </div>
+      </article>
 
-        <article>
-          <h2><span>04.</span> Character is not a&nbsp;layer.</h2>
+      <article data-len="mid">
+        <div class="side"><span class="num">04.</span></div>
+        <div class="text">
+          <h2>Character is not a&nbsp;layer.</h2>
           <p>A product has one voice or none. The voice shows up in places people don't think of as design: the wording on a 404, the timing of a toast notification, what your invoice email feels like. If those don't match the rest of the product, the product doesn't have a voice. It has a&nbsp;styleguide.</p>
-        </article>
+        </div>
+      </article>
 
-        <article>
-          <h2><span>05.</span> The safe version is already&nbsp;taken.</h2>
-          <p>Every category has its safe version, and it's already taken. The banking app in navy blue. The pharmacy site that opens with a sale. Building another one puts you at the back of a line someone else started. You should be able to tell whose product it is without seeing the&nbsp;logo.</p>
-        </article>
-      </div>
+      <article data-len="mid">
+        <div class="side"><span class="num">05.</span></div>
+        <div class="text">
+          <h2>The safe version is already&nbsp;taken.</h2>
+          <p>Every category has its safe version, and it's already taken. The banking app in navy blue. The pharmacy site that opens with a sale. Building another one puts you at the back of a line someone else started. You should be able to tell <span class="sw" data-w="whose">whose</span> product it is without seeing the&nbsp;logo.</p>
+        </div>
+      </article>
     </section>
 
     <section class="row">
@@ -55,6 +74,18 @@ import Site from "../layouts/Site.astro";
   </main>
 </Site>
 
+<!-- Review toggles for the variants: /manifesto/?pace=screen, ?italic=whose (or typing, purpose). Remove together with
+     the variants that aren't chosen. -->
+<script is:inline>
+  (() => {
+    const q = new URLSearchParams(location.search);
+    const main = document.querySelector("main.manifesto");
+    if (!main) return;
+    if (q.get("pace")) main.dataset.pace = q.get("pace");
+    if (q.get("italic")) main.dataset.italic = q.get("italic");
+  })();
+</script>
+
 <style>
   .intro {
     padding-top: 40px;
@@ -68,21 +99,56 @@ import Site from "../layouts/Site.astro";
     letter-spacing: -0.058em;
   }
 
-  .principles {
-    display: grid;
-    gap: 200px;
-    max-width: 36em;
-  }
+  /* The pause after a principle, by its length: two paragraphs, one long paragraph, one short. After the last one the
+     page's own step leads to the closing. */
   article {
+    --rest: 120px;
+  }
+  article[data-len="long"] {
+    --rest: 200px;
+  }
+  article[data-len="mid"] {
+    --rest: 160px;
+  }
+  article:last-child {
+    --rest: 0px;
+  }
+
+  .principles {
+    row-gap: 0;
+  }
+  /* The pause is padding on the article, outside its one grid row: the number's cell is only as tall as the text. */
+  article {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: subgrid;
+    align-content: start;
+    align-items: start;
+    padding-bottom: var(--rest);
+  }
+  /* The number's cell stretches to the text's row only: a sticky grid item would be held by the whole article, pause
+     included, so the number sticks inside this cell instead. */
+  .side {
+    align-self: stretch;
+  }
+  /* The number, in the left column: as large as the title, a third of the ink. It stays 96px from the top while its
+     text goes by, from the title down to the last line, and leaves with it. */
+  .num {
+    display: block;
+    position: sticky;
+    top: 96px;
+    font-size: var(--text-lead);
+    font-weight: 500;
+    line-height: 1.1;
+    letter-spacing: -0.05em;
+    opacity: 0.3;
+  }
+  .text {
     display: grid;
     gap: 16px;
+    max-width: 36em;
   }
-  /* The number hangs in its own column, so a title that wraps stays under its words, and the text below lines up with
-     the words, not the number. */
   h2 {
-    display: grid;
-    grid-template-columns: 38px minmax(0, 1fr);
-    align-items: baseline;
     margin: 0 0 8px;
     font-size: var(--text-lead);
     font-weight: 500;
@@ -90,16 +156,38 @@ import Site from "../layouts/Site.astro";
     letter-spacing: -0.05em;
     text-wrap: balance;
   }
-  h2 span {
-    font-size: var(--text-meta);
-    letter-spacing: 0;
-    opacity: 0.5;
-  }
-  article p {
-    margin: 0 0 0 38px;
-    max-width: 31em;
+  /* 28.5em keeps the longest line at 70 characters (brand: 55–70); at 29em the 04 paragraph reaches 72. */
+  .text p {
+    margin: 0;
+    max-width: 28.5em;
     line-height: 1.5;
     text-wrap: pretty;
+  }
+
+  /* One principle, one screen: each takes most of a screen, so the next title only shows at the bottom. A long
+     principle still keeps a pause after it. */
+  @media (min-width: 901px) {
+    .manifesto[data-pace="screen"] article {
+      box-sizing: border-box;
+      min-height: 72vh;
+      padding-bottom: 96px;
+    }
+    .manifesto[data-pace="screen"] article:last-child {
+      min-height: 0;
+      padding-bottom: 0;
+    }
+  }
+
+  /* The italic switch: one word, in the anomaly face, at zero tracking. */
+  .manifesto[data-italic="whose"] .sw[data-w="whose"],
+  .manifesto[data-italic="typing"] .sw[data-w="typing"],
+  .manifesto[data-italic="purpose"] .sw[data-w="purpose"] {
+    font-family: var(--font-anomaly);
+    font-style: italic;
+    font-weight: 400;
+    font-size: 1.06em;
+    line-height: 1;
+    letter-spacing: 0;
   }
 
   .end {
@@ -107,9 +195,24 @@ import Site from "../layouts/Site.astro";
     gap: 64px;
   }
 
+  /* One column: the number sits above its title, as the label sits above the page title; the text takes the full
+     width. The pauses keep their order at about half the size; one screen each makes no sense here, so even gaps. */
   @media (max-width: 900px) {
-    .principles {
-      gap: 112px;
+    article {
+      row-gap: 6px;
+    }
+    article {
+      padding-bottom: calc(24px + var(--rest) * 0.4);
+    }
+    .num {
+      position: static;
+    }
+    .manifesto[data-pace="screen"] article {
+      padding-bottom: 88px;
+    }
+    article:last-child,
+    .manifesto[data-pace="screen"] article:last-child {
+      padding-bottom: 0;
     }
   }
   @media (max-width: 560px) {
@@ -119,15 +222,9 @@ import Site from "../layouts/Site.astro";
     .title {
       font-size: 36px;
     }
+    .num,
     h2 {
-      grid-template-columns: 30px minmax(0, 1fr);
       font-size: 24px;
-    }
-    article p {
-      margin-left: 30px;
-    }
-    .principles {
-      gap: 88px;
     }
     .end {
       gap: 48px;
