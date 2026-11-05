@@ -10,6 +10,14 @@ import Tools from "../components/Tools.astro";
 import Stamp from "../components/Stamp.astro";
 import { cases, shot } from "../data/cases";
 
+// Presto has no case page yet: its card is a video and not a link. Its three lines wait for the author's approval and
+// live only here (and in the home page's ignore list in copy-map.json), so a change is one edit.
+const PRESTO = {
+  name: "Presto",
+  line: "A wallet explorer: Etherscan in plain language. I worked on it in 2023–24 and redesigned it in 2026.",
+  note: "No write-up yet.",
+};
+
 // Selected work: each case as its card shot, name and description. A card's columns on a wide screen give its image
 // sizes; a shot is never shown wider than its design size (half its pixels: the exports are @2x).
 const SPANS = [3, 8, 7, 4];
@@ -50,6 +58,13 @@ const cards = cases.map((c, i) => {
           </a>
         ))
       }
+      <!-- Presto: the video plays only while the card is in view, never with reduced motion (script below). -->
+      <div class="card k5 wip">
+        <video src="/media/presto-2026.mp4" poster="/media/presto-2026.jpg" width="1280" height="720" muted loop playsinline preload="none"></video>
+        <h3 class="name">{PRESTO.name}</h3>
+        <p class="line">{PRESTO.line}</p>
+        <p class="soon">{PRESTO.note}</p>
+      </div>
     </section>
 
     <Tools />
@@ -103,6 +118,22 @@ const cards = cases.map((c, i) => {
 
   // A visit to the home page, counted once (Web Analytics misses many visits to blockers).
   count("site:view");
+
+  // The Presto video: plays while a quarter of it is in view, pauses out of view; with reduced motion, only the poster.
+  const video = document.querySelector<HTMLVideoElement>(".wip video");
+  const still = matchMedia("(prefers-reduced-motion: reduce)");
+  if (video && "IntersectionObserver" in window) {
+    let seen = false;
+    const sync = () => (seen && !still.matches ? video.play().catch(() => {}) : video.pause());
+    new IntersectionObserver(
+      ([entry]) => {
+        seen = entry.isIntersecting;
+        sync();
+      },
+      { threshold: 0.25 },
+    ).observe(video);
+    still.addEventListener("change", sync);
+  }
 </script>
 
 <style>
@@ -156,7 +187,8 @@ const cards = cases.map((c, i) => {
     color: inherit;
     text-decoration: none;
   }
-  .card :global(img) {
+  .card :global(img),
+  .card video {
     display: block;
     width: 100%;
     max-width: var(--w);
@@ -179,7 +211,7 @@ const cards = cases.map((c, i) => {
     opacity: 0.6;
     text-wrap: pretty;
   }
-  .card:hover .name {
+  a.card:hover .name {
     opacity: 0.7;
   }
   .card:focus-visible {
@@ -203,6 +235,48 @@ const cards = cases.map((c, i) => {
     grid-column: 9 / span 4;
     grid-row: 3;
     align-self: end;
+  }
+  /* Presto, not written up yet: alone in the last row, hung from the caption column, like a note on the wall. */
+  .k5 {
+    grid-column: 7 / span 5;
+    grid-row: 4;
+  }
+  .wip video {
+    grid-area: 1 / 1;
+    max-width: 640px;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+  }
+  .wip .name {
+    grid-area: 2 / 1;
+  }
+  .wip .line {
+    grid-area: 3 / 1;
+  }
+  /* The note: quiet under the line; with a mouse, over the video's lower-left corner while the pointer is on the card. */
+  .soon {
+    grid-area: 4 / 1;
+    margin: 2px 0 0;
+    font-size: var(--text-meta);
+    line-height: 1.4;
+    opacity: 0.6;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .soon {
+      grid-area: 1 / 1;
+      align-self: end;
+      margin: 0 0 28px 10px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      background: color-mix(in srgb, var(--color-black) 72%, transparent);
+      color: var(--color-off-white);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 160ms ease-out;
+    }
+    .wip:hover .soon {
+      opacity: 1;
+    }
   }
 
   /* How I work: the label on the left at the hairline, the moments in the caption half, level with it. */
@@ -282,6 +356,9 @@ const cards = cases.map((c, i) => {
     .k4 {
       grid-column: 8 / span 5;
     }
+    .k5 {
+      grid-column: 5 / span 7;
+    }
   }
   @media (max-width: 767px) {
     .work {
@@ -293,7 +370,8 @@ const cards = cases.map((c, i) => {
     .k1,
     .k2,
     .k3,
-    .k4 {
+    .k4,
+    .k5 {
       grid-column: 1 / -1;
       grid-row: auto;
     }

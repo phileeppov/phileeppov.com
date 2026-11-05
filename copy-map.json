@@ -89,6 +89,9 @@
       ],
       "ignore": [
         "SELECTED WORK",
+        "Presto",
+        "A wallet explorer: Etherscan in plain language. I worked on it in 2023–24 and redesigned it in 2026.",
+        "No write-up yet.",
         "🤌",
         "🎯",
         "💩"
