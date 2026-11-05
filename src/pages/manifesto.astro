@@ -1,69 +1,136 @@
 ---
-// site.md §2: Manifesto. Copy verbatim, no design yet.
-import Base from "../layouts/Base.astro";
+// Manifesto: site.md §2, copy verbatim. The /review style (Site.astro): the label on the left, the principles down the
+// right with their numbers hanging, as on the home page; wide space between them (design notes: 200–300px on desktop).
+import Site from "../layouts/Site.astro";
 ---
 
-<Base title="Manifesto" description="Five principles I work by.">
-  <main>
-    <h1>MANIFESTO</h1>
-    <p>Five principles I work by.</p>
-
-    <section>
-      <h2>01. Every decision has an author.</h2>
-      <p>
-        If no one will defend it, it shouldn't ship. Every product is built on a few
-        thousand small decisions: what the cancel button says, where the password
-        strength meter sits, whether the empty state is funny or quiet. Most of those
-        get made by accident. I make them on purpose.
-      </p>
-      <p>
-        Settings are unfinished decisions. So is sending people to support for
-        something the screen could have told them. "Make it customizable" is what
-        designers say when they can't decide.
-      </p>
+<Site title="Manifesto" description="Five principles I work by." image="/review-og.png">
+  <main class="page manifesto">
+    <section class="row intro">
+      <h1 class="label caps">MANIFESTO</h1>
+      <p class="title">Five principles I work&nbsp;by.</p>
     </section>
 
-    <section>
-      <h2>02. The brief is wrong until proven right.</h2>
-      <p>
-        A brief is the founder's first guess at the problem. The work starts with
-        checking that guess. If you hand me a brief and I do exactly what it says,
-        I'm not designing. I'm typing.
-      </p>
+    <section class="row">
+      <span class="label" aria-hidden="true"></span>
+      <div class="principles">
+        <article>
+          <h2><span>01.</span> Every decision has an&nbsp;author.</h2>
+          <p>If no one will defend it, it shouldn't ship. Every product is built on a few thousand small decisions: what the cancel button says, where the password strength meter sits, whether the empty state is funny or quiet. Most of those get made by accident. I make them on&nbsp;purpose.</p>
+          <p>Settings are unfinished decisions. So is sending people to support for something the screen could have told them. "Make it customizable" is what designers say when they can't&nbsp;decide.</p>
+        </article>
+
+        <article>
+          <h2><span>02.</span> The brief is wrong until proven&nbsp;right.</h2>
+          <p>A brief is the founder's first guess at the problem. The work starts with checking that guess. If you hand me a brief and I do exactly what it says, I'm not designing. I'm&nbsp;typing.</p>
+        </article>
+
+        <article>
+          <h2><span>03.</span> Make the call, then check&nbsp;it.</h2>
+          <p>Research sharpens a decision. It doesn't replace one. I decide from what I've seen, and research where I'm&nbsp;unsure.</p>
+        </article>
+
+        <article>
+          <h2><span>04.</span> Character is not a&nbsp;layer.</h2>
+          <p>A product has one voice or none. The voice shows up in places people don't think of as design: the wording on a 404, the timing of a toast notification, what your invoice email feels like. If those don't match the rest of the product, the product doesn't have a voice. It has a&nbsp;styleguide.</p>
+        </article>
+
+        <article>
+          <h2><span>05.</span> The safe version is already&nbsp;taken.</h2>
+          <p>Every category has its safe version, and it's already taken. The banking app in navy blue. The pharmacy site that opens with a sale. Building another one puts you at the back of a line someone else started. You should be able to tell whose product it is without seeing the&nbsp;logo.</p>
+        </article>
+      </div>
     </section>
 
-    <section>
-      <h2>03. Make the call, then check it.</h2>
-      <p>
-        Research sharpens a decision. It doesn't replace one. I decide from
-        what I've seen, and research where I'm unsure.
-      </p>
+    <section class="row">
+      <span class="label" aria-hidden="true"></span>
+      <div class="end">
+        <hr class="rule" />
+        <div class="closing">
+          <p>If this sounds like how you want to build —</p>
+          <a class="btn" href="/review/" data-gem>Send a link, get a video review <span class="arw">→</span></a>
+        </div>
+      </div>
     </section>
-
-    <section>
-      <h2>04. Character is not a layer.</h2>
-      <p>
-        A product has one voice or none. The voice shows up in places people
-        don't think of as design: the wording on a 404, the timing of a
-        toast notification, what your invoice email feels like. If those don't
-        match the rest of the product, the product doesn't have a voice.
-        It has a styleguide.
-      </p>
-    </section>
-
-    <section>
-      <h2>05. The safe version is already taken.</h2>
-      <p>
-        Every category has its safe version, and it's already taken. The banking
-        app in navy blue. The pharmacy site that opens with a sale. Building
-        another one puts you at the back of a line someone else started. You should
-        be able to tell whose product it is without seeing the logo.
-      </p>
-    </section>
-
-    <hr />
-
-    <p>If this sounds like how you want to build —</p>
-    <a href="/#review">Send a link, get a video review →</a>
   </main>
-</Base>
+</Site>
+
+<style>
+  .intro {
+    padding-top: 40px;
+    align-items: baseline;
+  }
+  .title {
+    margin: 0;
+    font-size: clamp(40px, 5.6vw, 80px);
+    font-weight: 500;
+    line-height: 0.98;
+    letter-spacing: -0.058em;
+  }
+
+  .principles {
+    display: grid;
+    gap: 200px;
+    max-width: 36em;
+  }
+  article {
+    display: grid;
+    gap: 16px;
+  }
+  /* The number hangs in its own column, so a title that wraps stays under its words, and the text below lines up with
+     the words, not the number. */
+  h2 {
+    display: grid;
+    grid-template-columns: 38px minmax(0, 1fr);
+    align-items: baseline;
+    margin: 0 0 8px;
+    font-size: var(--text-lead);
+    font-weight: 500;
+    line-height: 1.1;
+    letter-spacing: -0.05em;
+    text-wrap: balance;
+  }
+  h2 span {
+    font-size: var(--text-meta);
+    letter-spacing: 0;
+    opacity: 0.5;
+  }
+  article p {
+    margin: 0 0 0 38px;
+    max-width: 31em;
+    line-height: 1.5;
+    text-wrap: pretty;
+  }
+
+  .end {
+    display: grid;
+    gap: 64px;
+  }
+
+  @media (max-width: 900px) {
+    .principles {
+      gap: 112px;
+    }
+  }
+  @media (max-width: 560px) {
+    .intro {
+      padding-top: 16px;
+    }
+    .title {
+      font-size: 36px;
+    }
+    h2 {
+      grid-template-columns: 30px minmax(0, 1fr);
+      font-size: 24px;
+    }
+    article p {
+      margin-left: 30px;
+    }
+    .principles {
+      gap: 88px;
+    }
+    .end {
+      gap: 48px;
+    }
+  }
+</style>

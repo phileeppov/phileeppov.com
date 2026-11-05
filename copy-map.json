@@ -1,6 +1,8 @@
 {
   "ignore": [
-    "phileeppov"
+    "phileeppov",
+    "Work with me",
+    "@phileeppov"
   ],
   "shared": {
     "caseTemplate": {
@@ -64,24 +66,28 @@
       "sources": [
         {
           "sections": [
-            "1.1",
-            "1.2",
-            "1.3",
             "1.4",
             "1.5",
-            "1.6",
-            "1.7"
+            "1.7",
+            "1.8"
           ]
         },
         {
           "sections": [
-            "8"
+            "1.1",
+            "1.2",
+            "1.6",
+            "8",
+            "4",
+            "7"
           ],
           "allow": true
-        },
-        {
-          "use": "cards"
         }
+      ],
+      "ignore": [
+        "🤌",
+        "🎯",
+        "💩"
       ]
     },
     "/review/": {

@@ -1,50 +1,126 @@
 ---
-// site.md §4: About. Copy verbatim, no design yet. Photo comes in the design phase.
-import Base from "../layouts/Base.astro";
+// About: site.md §4, copy verbatim. The /review style (Site.astro), one column of short paragraphs down the right.
+// Photo: one shot, an asymmetric crop, mid-size (design notes §4), in the left column beside the text and held there
+// while the text scrolls. It shows once a file is in src/assets/about/; until then the column stays empty.
+import { Image } from "astro:assets";
+import Site from "../layouts/Site.astro";
+
+const photos = import.meta.glob<{ default: ImageMetadata }>("../assets/about/*.{jpg,jpeg,png,webp}", { eager: true });
+const photo = Object.values(photos)[0]?.default;
 ---
 
-<Base title="About" description="I design products. I've been doing it for five years.">
-  <main>
-    <h1>ABOUT</h1>
-    <p>I'm Nikita.</p>
+<Site title="About" description="I design products. I've been doing it for five years." image="/review-og.png">
+  <main class="page about">
+    <section class="row intro">
+      <h1 class="label caps">ABOUT</h1>
+      <p class="title">I'm Nikita.</p>
+    </section>
 
-    <p>I design products. I've been doing it for five years.</p>
-    <p>
-      I studied business, not design. I started designing because of
-      a project of my own: I felt nobody else would get how I wanted it
-      to look. Then came work for friends, then a website for a local
-      repair and tailoring shop. It's still live.
-    </p>
-    <p>
-      Then Medal, a desktop app for gamers. I worked on avatars and
-      rewards, then on how you record the thing that just happened.
-      Then crypto: a wallet, an explorer, a set of tools. The wallet
-      launched at ETHDenver 2023. The explorer never shipped. None of it
-      runs now, for reasons that had nothing to do with design.
-    </p>
-    <p>
-      I've worked in teams and in a studio. Now I design on my own.
-      The work I'm proudest of came when the decisions were mine to make.
-    </p>
+    <section class="row">
+      {
+        photo ? (
+          <figure class="photo">
+            <Image src={photo} alt="Nikita Filippov" widths={[400, 800]} sizes="(min-width: 900px) 330px, 70vw" />
+          </figure>
+        ) : (
+          <span class="label" aria-hidden="true" />
+        )
+      }
+      <div class="text">
+        <p class="lead"><span>I design products.</span> <span>I've been doing it for five&nbsp;years.</span></p>
+        <p>I studied business, not design. I started designing because of a project of my own: I felt nobody else would get how I wanted it to look. Then came work for friends, then a website for a local repair and tailoring shop. It's still&nbsp;live.</p>
+        <p>Then Medal, a desktop app for gamers. I worked on avatars and rewards, then on how you record the thing that just happened. Then crypto: a wallet, an explorer, a set of tools. The wallet launched at ETHDenver 2023. The explorer never shipped. None of it runs now, for reasons that had nothing to do with&nbsp;design.</p>
+        <p>I've worked in teams and in a studio. Now I design on my own. The work I'm proudest of came when the decisions were mine to&nbsp;make.</p>
 
-    <hr />
+        <hr class="rule" />
 
-    <p>
-      I like to travel, change my surroundings and get deep into a culture
-      I don't know yet.
-    </p>
-    <p>
-      I reply to designers on X more than I post. I build my own tools
-      with Claude Code. I'm trying to make design experiments a habit,
-      and to post each one.
-    </p>
+        <p>I like to travel, change my surroundings and get deep into a culture I don't know&nbsp;yet.</p>
+        <p>I reply to designers on X more than I post. I build my own tools with Claude&nbsp;Code. I'm trying to make design experiments a habit, and to post each&nbsp;one.</p>
 
-    <hr />
+        <hr class="rule" />
 
-    <p>
-      That's about it.<br />
-      If you want to work together —
-    </p>
-    <a href="/#review">Send a link, get a video review →</a>
+        <div class="closing">
+          <p>That's about it.<br />If you want to work together —</p>
+          <a class="btn" href="/review/" data-gem>Send a link, get a video review <span class="arw">→</span></a>
+        </div>
+      </div>
+    </section>
   </main>
-</Base>
+</Site>
+
+<style>
+  .intro {
+    padding-top: 40px;
+    align-items: baseline;
+  }
+  .title {
+    margin: 0;
+    font-size: clamp(40px, 5.6vw, 80px);
+    font-weight: 500;
+    line-height: 0.98;
+    letter-spacing: -0.058em;
+  }
+
+  /* The photo holds its place in the left column while the text scrolls past it. */
+  .photo {
+    position: sticky;
+    top: 24px;
+    width: min(330px, 100%);
+    margin: 0;
+  }
+  .photo :global(img) {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 28px;
+    box-shadow: var(--float);
+  }
+
+  .text {
+    display: grid;
+    gap: 22px;
+    max-width: 31em;
+  }
+  .text p {
+    margin: 0;
+    line-height: 1.5;
+    text-wrap: pretty;
+  }
+  .text .lead {
+    font-size: var(--text-lead);
+    font-weight: 500;
+    line-height: 1.1;
+    letter-spacing: -0.05em;
+  }
+  /* Each sentence starts its own line. */
+  .text .lead span {
+    display: block;
+  }
+  .rule {
+    margin: 40px 0;
+  }
+  .closing {
+    margin-top: 8px;
+  }
+
+  @media (max-width: 900px) {
+    .photo {
+      position: static;
+      width: min(300px, 78%);
+    }
+  }
+  @media (max-width: 560px) {
+    .intro {
+      padding-top: 16px;
+    }
+    .title {
+      font-size: 36px;
+    }
+    .text .lead {
+      font-size: 24px;
+    }
+    .rule {
+      margin: 24px 0;
+    }
+  }
+</style>

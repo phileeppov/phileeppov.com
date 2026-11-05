@@ -1,9 +1,8 @@
-// sitemap.xml without a sitemap package: every site page except 404. /glass and /review are open before launch; the rest
-// redirect to the PDF until then (public/_redirects).
+// sitemap.xml without a sitemap package: every open page except 404. The case pages are left out while they're being
+// redone: until they come back, /work/* redirects to the PDF (public/_redirects).
 import type { APIRoute } from "astro";
-import { cases } from "../data/cases";
 
-const paths = ["/glass/", "/review/", "/", "/manifesto/", "/about/", ...cases.map((c) => `/work/${c.slug}/`)];
+const paths = ["/", "/manifesto/", "/about/", "/review/", "/glass/"];
 
 export const GET: APIRoute = ({ site }) => {
   const urls = paths.map((p) => `  <url><loc>${new URL(p, site)}</loc></url>`).join("\n");

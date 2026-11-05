@@ -4,6 +4,8 @@
 //   review:view — the page opened; review:start — something typed into the form; review:scratch — opened the "No
 //   product yet" tab (a click, a tap or picking it up); review:send:product, review:send:scratch — a request went
 //   through, and which kind it was.
+// The site pages use it too (Site.astro, index.astro): site:view — the home page opened; site:hero, site:end,
+//   site:chefkiss, site:glass, site:manifesto, site:about, site:x, site:pill — which link out was followed.
 
 const counted = new Set<string>();
 

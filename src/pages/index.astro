@@ -1,101 +1,377 @@
 ---
-// site.md §1: home. Copy verbatim, no design yet: layout and motion come in the design phase.
+// Home: site.md §1, the MVP in the /review style (Site.astro: Onest, monochrome, depth in the controls).
+// Hero: the "who" line from §8.1 in place of the temporary §1.1 hero. Cases are left out while they're being redone;
+// in their place, the tools. The form lives on /review: both buttons lead there instead of repeating it here.
+// The arrows turn into emeralds under a moving pointer (data-gem, Site.astro).
 import { Image } from "astro:assets";
-import Base from "../layouts/Base.astro";
-import ReviewForm from "../components/ReviewForm.astro";
-import { cases, shot } from "../data/cases";
+import Site from "../layouts/Site.astro";
+import glass from "../assets/tools/glass.png";
 ---
 
-<Base description="Nikita Filippov, product designer. I designed Medal.tv's recording flow.">
-  <main>
-    <section>
-      {/* Temporary hero: site.md §1.1, v4, 21.10.2026. */}
-      <h1>Nikita Filippov, product designer. I designed Medal.tv's recording flow.</h1>
-      <a href="#review">Send a link, get a video review →</a>
+<Site description="Nikita Filippov, product designer. I redesigned game recording in Medal.tv, an app with 3M daily users." image="/review-og.png">
+  <main class="page home">
+    <section class="hero">
+      <h1><span>Nikita Filippov, product designer.</span> <span>I&nbsp;redesigned game recording in&nbsp;Medal.tv, an&nbsp;app with 3M daily&nbsp;users.</span></h1>
+      <a class="btn" href="/review/" data-gem data-count="site:hero">Send a link, get a video review <span class="arw">→</span></a>
     </section>
 
-    <section>
-      <p>Five principles I work by:</p>
-      <ol>
-        <li>01. Every decision has an author.</li>
-        <li>02. The brief is wrong until proven right.</li>
-        <li>03. Make the call, then check it.</li>
-        <li>04. Character is not a layer.</li>
-        <li>05. The safe version is already taken.</li>
-      </ol>
-      <a href="/manifesto/">→ Read full manifesto</a>
+    <section class="row tools" aria-labelledby="tools-label">
+      <h2 class="label caps" id="tools-label">TOOLS</h2>
+      <div class="tiles">
+        <a class="tile" href="https://github.com/phileeppov/chefkiss" data-count="site:chefkiss">
+          <!-- The end of an answer in Claude Code, and the mod's three buttons under it. Drawn, not a screenshot: no words. -->
+          <div class="art chat" aria-hidden="true">
+            <div class="answer"><i></i><i></i><i></i><i></i></div>
+            <div class="reacts"><b>🤌</b><b>🎯</b><b class="on">💩</b></div>
+          </div>
+          <p class="name">chefkiss</p>
+          <p class="line">A 💩 button for AI slop. Claude takes the&nbsp;hint.</p>
+          <p class="where">github.com/phileeppov/chefkiss</p>
+        </a>
+        <a class="tile" href="/glass/" data-count="site:glass">
+          <div class="art dark" aria-hidden="true">
+            <Image src={glass} alt="" widths={[260, 520]} sizes="260px" />
+          </div>
+          <p class="name">Glass</p>
+          <p class="line">Drop a logo, get it back in glass.</p>
+          <p class="where">phileeppov.com/glass</p>
+        </a>
+      </div>
     </section>
 
-    <section id="work">
-      {
-        cases.map((c) => (
-          <a href={`/work/${c.slug}/`}>
-            <Image src={shot(c.slug, c.card)} alt="" widths={[640, 1280]} sizes="(min-width: 1024px) 50vw, 100vw" />
-            <h2>{c.name}</h2>
-            <p>{c.thesis}</p>
-            <p>{c.principle}</p>
-          </a>
-        ))
-      }
+    <section class="row how" aria-labelledby="how-label">
+      <h2 class="label caps" id="how-label">HOW I WORK</h2>
+      <div class="moments">
+        <p><span>You send me your product.</span> <span>A landing page, an onboarding flow, a product that doesn't exist yet.</span> <span>Whatever you're stuck on.</span></p>
+        <p><span>I send back a free video review within 48&nbsp;hours.</span> <span>What I see, what I'd do, what it would cost.</span> <span>If we're not aligned, we stop there. You keep the review.</span></p>
+        <p><span>If we are, we work async.</span> <span>Video updates, shared Figma, decisions in writing.</span> <span>Calls when useful.</span></p>
+        <p><span>A pharmacy website went from my spec to launch in six weeks.</span> <span>Longer partnerships run on a monthly retainer, after the first project.</span></p>
+      </div>
     </section>
 
-    <section>
-      <h2>HOW I WORK</h2>
-      <p>
-        You send me your product.<br />
-        A landing page, an onboarding flow, a product that doesn't exist yet.<br />
-        Whatever you're stuck on.
-      </p>
-      <p>
-        I send back a free video review within 48 hours.<br />
-        What I see, what I'd do, what it would cost.<br />
-        If we're not aligned, we stop there. You keep the review.
-      </p>
-      <p>
-        If we are, we work async.<br />
-        Video updates, shared Figma, decisions in writing.<br />
-        Calls when useful.
-      </p>
-      <p>
-        A pharmacy website went from my spec to launch in six weeks.<br />
-        Longer partnerships run on a monthly retainer, after the first project.
-      </p>
+    <!-- The manifesto preview folded to one line (site.md §1.2: the list stood between the promise and the proof). -->
+    <section class="row principles">
+      <span class="label" aria-hidden="true"></span>
+      <div class="one">
+        <p>Five principles I work by:</p>
+        <a class="link" href="/manifesto/" data-gem data-count="site:manifesto"><span class="arw">→</span> Read full manifesto</a>
+      </div>
     </section>
 
-    <section>
-      <p>
-        I'm Nikita. I can't ship work I wouldn't sign.<br />
-        So I design alone, async, and only with founders who feel the same.<br />
-        For code I team up with a developer I've shipped with,<br />
-        and I'm taking more of it on myself, this site included.
-      </p>
-      <a href="/about/">→ More about me</a>
+    <section class="row about">
+      <span class="label" aria-hidden="true"></span>
+      <div>
+        <p><span>I'm Nikita. I can't ship work I&nbsp;wouldn't sign.</span> <span>So I design alone, async, and only with founders who feel the same.</span> <span>For code I team up with a developer I've shipped with, and I'm taking more of it on myself, this site included.</span></p>
+        <a class="link" href="/about/" data-gem data-count="site:about"><span class="arw">→</span> More about me</a>
+      </div>
     </section>
 
-    <section id="review">
-      <h2>Send me your product. Get a video review in return.</h2>
-      <p>
-        A link is enough: a landing page, Notion, Figma, anything that shows
-        what you're working on. No call needed to start.
-      </p>
-      <ReviewForm />
+    <section class="row cta">
+      <span class="label" aria-hidden="true"></span>
+      <div class="panel">
+        <h2><span>Send me your product.</span> <span>Get a video review in&nbsp;return.</span></h2>
+        <p>A link is enough: a landing page, Notion, Figma, anything that shows what you're working on. No call needed to&nbsp;start.</p>
+        <a class="btn" href="/review/" data-gem data-count="site:end">Send a link, get a video review <span class="arw">→</span></a>
+      </div>
     </section>
   </main>
-</Base>
+</Site>
+
+<script>
+  import { count } from "../scripts/review-count";
+
+  // A visit to the home page, counted once (Web Analytics misses many visits to blockers).
+  count("site:view");
+</script>
 
 <style>
-  ol {
-    list-style: none;
-    padding: 0;
-  }
-  #work a {
-    display: block;
-    color: inherit;
-    text-decoration: none;
+  .hero {
+    display: grid;
+    justify-items: start;
+    gap: 36px;
+    padding-top: 40px;
   }
   h1 {
-    font-size: var(--text-display);
+    margin: 0;
+    max-width: 17em;
+    font-size: clamp(40px, 5.6vw, 80px);
+    font-weight: 500;
+    line-height: 0.98;
+    letter-spacing: -0.058em;
+  }
+  /* Each sentence starts its own line, as the title on /review; on a phone they run on. */
+  h1 span {
+    display: block;
+    text-wrap: pretty;
+  }
+
+  .tile:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 4px;
+  }
+
+  /* Tools: two tiles, the newer one wider. Each picture is a raised surface; it lifts a little under the hand. */
+  .tiles {
+    display: grid;
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    gap: 24px;
+  }
+  .tile {
+    display: grid;
+    align-content: start;
+    gap: 4px;
+    color: inherit;
+    text-decoration: none;
+    border-radius: 28px;
+  }
+  .art {
+    position: relative;
+    display: grid;
+    place-items: center;
+    height: 300px;
+    margin-bottom: 14px;
+    border-radius: 28px;
+    background: var(--surface);
+    box-shadow: var(--float);
+    overflow: hidden;
+    transition: transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 260ms ease-out;
+  }
+  .art.dark {
+    background: var(--color-black);
+    box-shadow: 0 0 0 0.5px rgb(0 0 0 / 0.6), 0 16px 40px -16px color-mix(in srgb, var(--color-black) 40%, transparent);
+  }
+  .art.dark img {
+    width: 260px;
+    height: auto;
+  }
+  @media (hover: hover) {
+    .tile:hover .art {
+      transform: translateY(-3px);
+      box-shadow: inset 0 1px 0 #fff, 0 0 0 0.5px color-mix(in srgb, var(--color-black) 8%, transparent),
+        0 2px 4px color-mix(in srgb, var(--color-black) 5%, transparent),
+        0 24px 48px -18px color-mix(in srgb, var(--color-black) 28%, transparent);
+    }
+    .tile:hover .art.dark {
+      box-shadow: 0 0 0 0.5px rgb(0 0 0 / 0.6), 0 24px 48px -18px color-mix(in srgb, var(--color-black) 55%, transparent);
+    }
+  }
+  .name {
+    margin: 0;
+    font-weight: 500;
+  }
+  .line {
+    margin: 0;
+    text-wrap: pretty;
+  }
+  .where {
+    margin: 2px 0 0;
+    font-size: var(--text-meta);
+    opacity: 0.5;
+  }
+
+  /* chefkiss: the last lines of an answer, then the row of reactions under it, the 💩 already pressed: sunk into the
+     tray. Under the hand it comes up and goes down again, a press played once. */
+  .chat {
+    align-content: center;
+    justify-items: start;
+    gap: 22px;
+    padding: 0 12%;
+  }
+  .answer {
+    display: grid;
+    gap: 10px;
+    width: 100%;
+  }
+  .answer i {
+    display: block;
+    height: 9px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--color-black) 9%, transparent);
+  }
+  .answer i:nth-child(1) {
+    width: 92%;
+  }
+  .answer i:nth-child(2) {
+    width: 100%;
+  }
+  .answer i:nth-child(3) {
+    width: 84%;
+  }
+  .answer i:nth-child(4) {
+    width: 46%;
+  }
+  .reacts {
+    display: flex;
+    gap: 8px;
+  }
+  .reacts b {
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 40px;
+    border-radius: 999px;
+    background: var(--surface);
+    box-shadow: var(--raise);
+    font-size: 20px;
     font-weight: 400;
-    line-height: 1;
+    letter-spacing: 0;
+    transition: transform 160ms ease-out, box-shadow 160ms ease-out, background-color 160ms ease-out;
+  }
+  .reacts b.on {
+    background: var(--tray);
+    box-shadow: var(--recess);
+  }
+  @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .tile:hover .reacts b.on {
+      animation: press 620ms cubic-bezier(0.3, 0.7, 0.2, 1);
+    }
+  }
+  @keyframes press {
+    0% {
+      transform: none;
+      background: var(--tray);
+      box-shadow: var(--recess);
+    }
+    35% {
+      transform: translateY(-2px);
+      background: #fff;
+      box-shadow: var(--raise);
+    }
+    60% {
+      transform: translateY(1px) scale(0.94);
+      background: var(--tray);
+      box-shadow: var(--recess);
+    }
+    100% {
+      transform: none;
+    }
+  }
+
+  /* How I work: four moments. The first line of each is the moment, the rest is quieter. */
+  .moments {
+    display: grid;
+    gap: 40px;
+    max-width: 38em;
+  }
+  .moments p {
+    margin: 0;
+    line-height: 1.45;
+  }
+  .moments span {
+    display: block;
+    opacity: 0.6;
+    text-wrap: pretty;
+  }
+  .moments span:first-child {
+    font-weight: 500;
+    opacity: 1;
+  }
+
+  /* Principles: one line at Lead size, the words quiet and the link full ink; on a narrow screen the link wraps whole. */
+  .one {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 0.3em;
+    font-size: var(--text-lead);
+    font-weight: 500;
+    line-height: 1.15;
+    letter-spacing: -0.05em;
+  }
+  .one p {
+    margin: 0;
+    color: color-mix(in srgb, var(--ink) 60%, transparent);
+  }
+  .one .link {
+    white-space: nowrap;
+  }
+
+  /* The manifesto line and the about line read as one pair: closer to each other than the rows around them. */
+  .principles + .about {
+    margin-top: -64px;
+  }
+  .about p {
+    margin: 0 0 24px;
+    max-width: 30em;
+    font-size: var(--text-lead);
+    font-weight: 500;
+    line-height: 1.15;
+    letter-spacing: -0.05em;
+  }
+  .about p span:not(:first-child) {
+    opacity: 0.6;
+  }
+
+  /* The closing call: a raised panel, like the screen on /review, with the same dark button. */
+  .panel {
+    display: grid;
+    justify-items: start;
+    gap: 16px;
+    max-width: 760px;
+    padding: 40px;
+    border-radius: 28px;
+    background: var(--surface);
+    box-shadow: var(--float);
+  }
+  .panel h2 {
+    margin: 0;
+    font-size: var(--text-lead);
+    font-weight: 500;
+    line-height: 1.05;
+    letter-spacing: -0.05em;
+    text-wrap: balance;
+  }
+  /* Each sentence starts its own line, as the title on /review; on a phone they run on. */
+  .panel h2 span {
+    display: block;
+    text-wrap: balance;
+  }
+  .panel p {
+    margin: 0 0 12px;
+    max-width: 34em;
+    opacity: 0.6;
+    text-wrap: pretty;
+  }
+
+  @media (max-width: 900px) {
+    .principles + .about {
+      margin-top: -40px;
+    }
+    .tiles {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 40px;
+    }
+  }
+  @media (max-width: 560px) {
+    .hero {
+      padding-top: 16px;
+      gap: 28px;
+    }
+    h1 {
+      font-size: clamp(30px, 9.4vw, 36px);
+    }
+    h1 span {
+      display: inline;
+      text-wrap: pretty;
+    }
+    .one {
+      font-size: 22px;
+    }
+    .about p {
+      font-size: 22px;
+    }
+    .panel h2 span {
+      display: inline;
+    }
+    .art {
+      height: 240px;
+    }
+    .art.dark img {
+      width: 210px;
+    }
+    .panel {
+      padding: 28px 22px 24px;
+      margin-inline: -8px;
+    }
   }
 </style>

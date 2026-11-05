@@ -1,12 +1,14 @@
 ---
-// Layout for the Onest pages of the site: /review now, the rest of the site with the MVP.
-// Onest with −4% tracking, like /glass. Header: only the wordmark in the default slot, to /review until the site
-// launches (the home page redirects to the PDF until then; at launch, back to /); X and the rest are in the footer, so
-// "phileeppov" isn't repeated up top.
-// The right side of the header is the "aside" slot (on /review, whether this week is open). Footer: site.md §1.7.
+// Layout for the Onest pages of the site: home, manifesto, about, 404 and /review.
+// Onest with −4% tracking, like /glass. Header: the wordmark to the home page; X and the rest are in the footer, so
+// "phileeppov" isn't repeated up top. The right side of the header is the "aside" slot (on /review, whether this week
+// is open); pages that don't fill it get the X handle and the "Work with me" pill to /review, as on /glass.
+// Footer: site.md §1.7. Links marked data-count are counted when followed (src/scripts/review-count.ts).
+// The emerald on links and dark buttons (src/scripts/emerald.js) starts here for every page that marks them data-gem.
 import Base from "./Base.astro";
 import Footer from "../components/Footer.astro";
 import "../styles/onest.css";
+import "../styles/site.css";
 
 interface Props {
   title?: string;
@@ -15,17 +17,69 @@ interface Props {
 }
 
 const { title, description, image } = Astro.props;
+const aside = Astro.slots.has("aside");
 ---
 
 <Base title={title} description={description} image={image} bare>
-  <slot name="head" slot="head" />
+  {
+    /* Until the stamp gives the site its own icon (site.md, before launch), pages without one use the smile from /review. */
+    Astro.slots.has("head") ? (
+      <slot name="head" slot="head" />
+    ) : (
+      <Fragment slot="head">
+        <link rel="icon" type="image/png" sizes="64x64" href="/review-favicon.png" />
+        <link rel="apple-touch-icon" href="/review-touch-icon.png" />
+      </Fragment>
+    )
+  }
   <header class="top">
-    <a class="mark" href="/review/" aria-label="phileeppov, work with me">phil<i>ee</i>ppov</a>
-    <slot name="aside" />
+    <a class="mark" href="/" aria-label="phileeppov, home">phil<i>ee</i>ppov</a>
+    {
+      aside ? (
+        <slot name="aside" />
+      ) : (
+        <nav>
+          <a class="handle" href="https://x.com/phileeppov" data-count="site:x">@phileeppov</a>
+          <a class="work" href="/review/" data-count="site:pill">Work with me</a>
+        </nav>
+      )
+    }
   </header>
   <slot />
   <Footer />
+  <!-- No one-letter word (and no "an") left hanging at the end of a line: the space after it becomes non-breaking.
+       Inline, so it runs as the page is parsed, before the first paint. Only on the .page layouts: /review sets its
+       breaks by hand. -->
+  <script is:inline>
+    (() => {
+      const main = document.querySelector("body > main.page");
+      if (!main) return;
+      const walk = document.createTreeWalker(main, NodeFilter.SHOW_TEXT);
+      for (let n = walk.nextNode(); n; n = walk.nextNode()) {
+        const t = n.nodeValue.replace(/(^|[\s(])(a|an|A|An|I)\s+(?=\S)/g, "$1$2\u00a0");
+        if (t !== n.nodeValue) n.nodeValue = t;
+      }
+    })();
+  </script>
 </Base>
+
+<script>
+  import { count } from "../scripts/review-count";
+
+  // Which way out was taken: each name once a visit, nothing else sent.
+  document.addEventListener("click", (event) => {
+    const link = (event.target as Element | null)?.closest?.<HTMLElement>("[data-count]");
+    if (link?.dataset.count) count(link.dataset.count);
+  });
+
+  // Emerald only in motion, and only where a hand moves a fine pointer over a wide screen; it loads after the page.
+  const wide = matchMedia("(min-width: 1024px) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)");
+  if (wide.matches && document.querySelector("[data-gem]")) {
+    const go = () => import("../scripts/emerald.js").then((m) => m.startEmerald());
+    if ("requestIdleCallback" in window) requestIdleCallback(go, { timeout: 1500 });
+    else setTimeout(go, 300);
+  }
+</script>
 
 <style is:global>
   /* :root and html body win over the base styles in Base.astro whatever order the bundles load in. */
@@ -65,6 +119,34 @@ const { title, description, image } = Astro.props;
   }
   .mark:hover {
     opacity: 0.6;
+  }
+  .top nav {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .handle:hover {
+    opacity: 0.6;
+  }
+  /* Under 340px the handle gives way, as on /glass. */
+  @media (max-width: 340px) {
+    .handle {
+      display: none;
+    }
+  }
+  /* The same raised pill as on /glass. */
+  .work {
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: var(--surface);
+    box-shadow: var(--raise);
+    font-weight: 500;
+  }
+  .work:hover {
+    filter: brightness(1.03);
+  }
+  .work:active {
+    transform: scale(0.98);
   }
   .mark i {
     font-family: var(--font-anomaly);

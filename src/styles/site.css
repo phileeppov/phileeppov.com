@@ -1,0 +1,116 @@
+/* Shared pieces of the Onest pages (home, manifesto, about, 404), loaded by Site.astro. Values only from tokens.css. */
+
+/* The page: rows down one edge, the same edge as the wordmark. On a very wide window it stops at 1440px and the space
+   stays on the right: asymmetric, not centred (brand: centring only in rare hero moments). */
+.page {
+  width: 100%;
+  max-width: 1440px;
+  display: grid;
+  gap: 128px;
+  padding-bottom: 32px;
+}
+
+/* A row: a label on the left, the content on the right. */
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 9fr);
+  gap: 24px 48px;
+  align-items: start;
+}
+.label {
+  margin: 0;
+  padding-top: 3px;
+  font-size: var(--text-meta);
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: -0.02em;
+  opacity: 0.6;
+  text-wrap: balance;
+}
+/* A label in capitals needs air between the letters that lowercase doesn't. */
+.label.caps {
+  letter-spacing: 0.04em;
+}
+
+/* Dark button, as SEND on /review: lighter than black, a thin highlight, 0.5px at the edge. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
+  padding: 15px 22px 15px 24px;
+  border-radius: 999px;
+  background: var(--btn-dark);
+  box-shadow: var(--btn-edge);
+  color: var(--color-off-white);
+  font-weight: 500;
+  text-decoration: none;
+  transition: transform 120ms ease-out, filter 120ms ease-out;
+}
+.btn:hover {
+  filter: brightness(1.12);
+}
+.btn:active {
+  transform: scale(0.985);
+}
+/* The arrow the emerald grows from (src/scripts/emerald.js scales it while the stone is out). */
+.arw {
+  display: inline-block;
+}
+.link {
+  color: inherit;
+  font-weight: 500;
+  text-decoration: none;
+  transition: opacity 120ms ease-out;
+}
+.link:hover {
+  opacity: 0.7;
+}
+.btn:focus-visible,
+.link:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 4px;
+  border-radius: 999px;
+}
+
+/* A thin rule between parts of a long page. */
+.rule {
+  height: 0;
+  margin: 0;
+  border: 0;
+  border-top: 0.5px solid var(--hair);
+}
+
+/* The closing line before the button: manifesto, about. */
+.closing {
+  display: grid;
+  justify-items: start;
+  gap: 20px;
+}
+.closing p {
+  margin: 0;
+  font-size: var(--text-lead);
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.05em;
+}
+
+@media (max-width: 900px) {
+  .page {
+    gap: 88px;
+  }
+  .row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+  .row > .label:empty {
+    display: none;
+  }
+}
+@media (max-width: 560px) {
+  .btn {
+    padding: 14px 20px 14px 22px;
+  }
+  .closing p {
+    font-size: 24px;
+  }
+}
