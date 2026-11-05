@@ -3,13 +3,16 @@
 // (src/pages/*.astro); when a page's copy changes, change it here too and run: node scripts/og.mjs
 // Same family as public/review-og.png and public/glass-og.png: paper, a raised object on the left, the words on the
 // right, the address under them. The home card is the exception: the hero alone, too long to share the width.
-import { readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { extname, join } from "node:path";
 import sharp from "sharp";
 import { ROOT, launchBrowser } from "./lib/site.mjs";
 
 const W = 1200;
 const H = 630;
+// The chefkiss tile on the home card: drawn at TILE (CSS px, the page's own drawing scale), shown at TILE_SHOWN.
+const TILE = [340, 283];
+const TILE_SHOWN = [420, 350];
 // The cards load the site's own files through a made-up origin, so tokens.css and onest.css work unchanged.
 const ORIGIN = "http://og.local";
 const TYPES = {
@@ -80,28 +83,41 @@ const STYLE = `
 `;
 
 const CARDS = {
-  // index.astro: the hero, each sentence on its own line, and the address.
+  // index.astro: the chefkiss tile from the page, pressed, and the hero beside it, each sentence on its own line.
   home: `
     <style>
-      .home {
-        display: grid;
-        align-content: center;
-        gap: 52px;
+      .card {
+        --object: ${TILE_SHOWN[0]}px;
+        align-items: center;
+      }
+      .tile {
+        width: ${TILE_SHOWN[0]}px;
+        height: ${TILE_SHOWN[1]}px;
+        border-radius: calc({radius} * ${TILE_SHOWN[0] / TILE[0]});
+        box-shadow: {shadow};
+      }
+      .tile img {
+        display: block;
+        width: 100%;
         height: 100%;
-        padding: 60px;
-        box-sizing: border-box;
       }
-      /* The first sentence whole on one line, as on the page; that sets the size. */
+      /* The words stand as tall as the tile: the title level with its top, the address with its foot. */
+      .home .words {
+        height: ${TILE_SHOWN[1]}px;
+      }
       .home .title {
-        font-size: 76px;
+        font-size: 50px;
       }
-      .home .title span + span {
+      .home .title span {
         text-wrap: balance;
       }
     </style>
-    <main class="home">
-      <p class="title"><span>Nikita Filippov, product designer.</span> <span>I&nbsp;redesigned game recording in&nbsp;Medal.tv, an&nbsp;app with 3M daily&nbsp;users.</span></p>
-      <p class="where">phileeppov.com</p>
+    <main class="card home">
+      <div class="tile"><img src="/og/chefkiss.png" alt="" /></div>
+      <div class="words">
+        <p class="title"><span>Nikita Filippov, product designer.</span> <span>I&nbsp;redesigned game recording in&nbsp;Medal.tv, an&nbsp;app with 3M daily&nbsp;users.</span></p>
+        <p class="where">phileeppov.com</p>
+      </div>
     </main>`,
 
   // manifesto.astro: the title, and the five principles on a raised sheet, numbered as on the page.
@@ -190,23 +206,61 @@ const html = (body) => `<!doctype html>
   <body>${body}</body>
 </html>`;
 
+// Pictures taken from the built site for the cards, served at /og/<name>.png.
+const shots = new Map();
+
+function serve(route) {
+  const url = route.request().url();
+  // The built pages call out (analytics); nothing leaves the machine.
+  if (!url.startsWith(ORIGIN)) return route.abort();
+  const path = decodeURIComponent(new URL(url).pathname);
+  const name = path.slice(1);
+  if (CARDS[name]) return route.fulfill({ contentType: "text/html", body: html(CARDS[name]) });
+  if (shots.has(path)) return route.fulfill({ contentType: "image/png", body: shots.get(path) });
+  // /src/... from the repo; the rest from dist (built pages and their assets), else public/, as the site serves it.
+  const files = path.startsWith("/src/")
+    ? [join(ROOT, path)]
+    : [join(ROOT, "dist", path.endsWith("/") ? path + "index.html" : path), join(ROOT, "public", path)];
+  for (const file of files) {
+    try {
+      return route.fulfill({ contentType: TYPES[extname(file)], body: readFileSync(file) });
+    } catch {}
+  }
+  return route.fulfill({ status: 404 });
+}
+
+// The chefkiss tile from the built home page, pressed (the still state the page shows with reduced motion), at the
+// given CSS size and twice the pixels. Corners come out clear; the card puts the tile's own edge and shadow back.
+async function chefkiss(browser, width, height) {
+  if (!existsSync(join(ROOT, "dist", "index.html"))) throw new Error("No dist/: run astro build first");
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2, reducedMotion: "reduce" });
+  await page.route("**/*", serve);
+  await page.goto(`${ORIGIN}/`, { waitUntil: "load" });
+  const tile = page.locator(".tools .ck .chat");
+  const look = await tile.evaluate(async (node, [w, h]) => {
+    await document.fonts.ready;
+    const style = getComputedStyle(node);
+    const look = { radius: style.borderRadius, shadow: style.boxShadow };
+    document.documentElement.style.background = "transparent";
+    document.body.style.background = "transparent";
+    Object.assign(node.style, { width: `${w}px`, height: `${h}px`, boxShadow: "none" });
+    return look;
+  }, [width, height]);
+  shots.set("/og/chefkiss.png", await tile.screenshot({ omitBackground: true }));
+  await page.close();
+  return look;
+}
+
 const only = process.argv.slice(2);
 const names = only.length ? only : Object.keys(CARDS);
 const browser = await launchBrowser();
 try {
+  if (names.includes("home")) {
+    const look = await chefkiss(browser, TILE[0], TILE[1]);
+    CARDS.home = CARDS.home.replaceAll("{radius}", look.radius).replaceAll("{shadow}", look.shadow);
+  }
   const page = await browser.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: 1 });
-  await page.route(`${ORIGIN}/**`, (route) => {
-    const path = decodeURIComponent(new URL(route.request().url()).pathname);
-    const name = path.slice(1);
-    if (CARDS[name]) return route.fulfill({ contentType: "text/html", body: html(CARDS[name]) });
-    // /src/... from the repo, everything else (the fonts) from public/, as the site serves it.
-    const file = path.startsWith("/src/") ? join(ROOT, path) : join(ROOT, "public", path);
-    try {
-      return route.fulfill({ contentType: TYPES[extname(file)], body: readFileSync(file) });
-    } catch {
-      return route.fulfill({ status: 404 });
-    }
-  });
+  await page.route(`${ORIGIN}/**`, serve);
 
   for (const name of names) {
     if (!CARDS[name]) throw new Error(`No card "${name}"`);
