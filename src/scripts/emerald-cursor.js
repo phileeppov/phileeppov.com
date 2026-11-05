@@ -1,8 +1,9 @@
 // The emerald cursor: the pointer itself is a cut stone, a kite whose tip is the hotspot. The material is the one the
 // stones on the buttons have (src/scripts/emerald.js): beryl's three indices, its absorption, a dark room with two tall
 // panels so the steps alternate light and dark, facet junctions hinted at 1x. Over text it turns into a baguette, the
-// I-beam; over a link or a button it fills out into a rounder drop and bows (chosen over a kite that swings round to
-// point like the site's arrows and one that shrinks to a seed). Moving, it is emerald; still, the colour drains to
+// I-beam; over a link or a button it becomes a pointing hand cut from the same stone, the kite drawing up into the index
+// finger (its tip stays the hotspot) while the palm, the curled fingers and the thumb come out of its base (chosen over
+// a rounder drop that bowed: it didn't say "you can press this" at a glance). Moving, it is emerald; still, the colour drains to
 // smoke. Over a link it stays green, unless the link grows its own stone: then the green is the stone's. Nothing is
 // drawn frame by frame at rest: the last frame stays on the canvas. The system cursor goes only once this one has
 // drawn, and comes back whenever it steps aside or WebGL fails. The caller runs this only on wide screens with a fine
@@ -75,42 +76,74 @@ function depth(P, verts) {
   }
   return -lo;
 }
+// A box and a bar (from a to b, half-width w) as outlines, CCW from the top left like the kite.
+const box = (x0, y0, x1, y1) => [[x0, y1], [x0, y0], [x1, y0], [x1, y1]];
+function bar(ax, ay, bx, by, w) {
+  const l = Math.hypot(bx - ax, by - ay), nx = (-(by - ay) / l) * w, ny = ((bx - ax) / l) * w;
+  return [[bx + nx, by + ny], [ax + nx, ay + ny], [ax - nx, ay - ny], [bx - nx, by - ny]];
+}
 const SHAPES = {
   // A kite with a sharp tip: the pointer. The tip is the hotspot.
-  kite: { verts: [[0, 0.62], [-0.3, -0.02], [0, -0.38], [0.3, -0.02]], cuts: [-0.03, 0.045, 0.05, 0.045], s: 0.42, pivot: [0, 0.62] },
+  kite: { verts: [[0, 0.62], [-0.3, -0.02], [0, -0.38], [0.3, -0.02]], cuts: [-0.03, 0.045, 0.05, 0.045], s: 0.42 },
   // A baguette: the same stone as an I-beam over text, centred on the hotspot.
-  bag: { verts: [[-0.085, 0.5], [-0.085, -0.5], [0.085, -0.5], [0.085, 0.5]], cuts: [0.02, 0.02, 0.02, 0.02], s: 0.118, pivot: [0, 0] },
-  // A drop: the kite filled out, shoulders and heel rounded off; the tip stays where it was.
-  drop: { verts: [[0, 0.62], [-0.37, 0.05], [0, -0.3], [0.37, 0.05]], cuts: [-0.03, 0.12, 0.15, 0.12], s: 0.47, pivot: [0, 0.62] },
+  bag: { verts: [[-0.085, 0.5], [-0.085, -0.5], [0.085, -0.5], [0.085, 0.5]], cuts: [0.02, 0.02, 0.02, 0.02], s: 0.118 },
+  // The index finger of the hand: the kite drawn up into a narrow stone with a rounded tip, the tip where the kite's was.
+  finger: { verts: box(-0.12, -0.17, 0.12, 0.62), cuts: [0.075, 0.02, 0.02, 0.075], s: 0.16 },
 };
-for (const k in SHAPES) { const S = SHAPES[k]; S.sides = sides(S.verts, S.cuts); S.planes = cut(S.sides, S.s); S.depth = depth(S.planes, S.verts); }
+// The rest of the hand, each a stone of its own set against the finger, a figurine cut in pieces: the curled fingers,
+// the palm, the thumb. Over a link or a button they come out of the kite while it draws up into the finger.
+const HAND = [
+  { verts: [[0.105, 0.1], [0.105, -0.2], [0.44, -0.2], [0.44, -0.02]], cuts: [0.015, 0.01, 0.01, 0.07], s: 0.2 },
+  { verts: [[-0.17, -0.14], [-0.12, -0.6], [0.38, -0.6], [0.44, -0.14]], cuts: [0.03, 0.06, 0.06, 0.03], s: 0.19 },
+  { verts: bar(-0.06, -0.3, -0.44, -0.08, 0.08), cuts: [0.055, 0.01, 0.01, 0.055], s: 0.14 },
+];
+const GROW = [0.05, -0.1];   // where the hand's pieces come out from: the base of the finger
+const NPP = 49;              // planes per piece (what cut() makes); the shader's NPP
+function piece(verts, cuts, s, sd) { sd = sd || sides(verts, cuts); const planes = cut(sd, s); return { verts, s, sides: sd, planes, depth: depth(planes, verts) }; }
+function assemble(pieces, pivot) {
+  return { pieces, pivot, verts: pieces.flatMap((p) => p.verts), depth: Math.max(...pieces.map((p) => p.depth)), s: Math.max(...pieces.map((p) => p.s)) };
+}
+for (const k in SHAPES) Object.assign(SHAPES[k], piece(SHAPES[k].verts, SHAPES[k].cuts, SHAPES[k].s));
+const FULL = {
+  kite: assemble([SHAPES.kite], [0, 0.62]),
+  bag: assemble([SHAPES.bag], [0, 0]),
+  hand: assemble([SHAPES.finger, ...HAND.map((h) => piece(h.verts, h.cuts, h.s))], [0, 0.62]),
+};
+// Every outline the cursor can take, for its bounds.
+const ALLV = [SHAPES.kite, SHAPES.bag, SHAPES.finger, ...HAND].flatMap((p) => p.verts);
 // Pair the kite's sides with another shape's, so one turns into the other side by side.
 function pairing(B) {
   let best = 0, bs = 1e9;
   for (let k = 0; k < 8; k++) { let s = 0; for (let i = 0; i < 8; i++) s += Math.abs(angDist(SHAPES.kite.sides[i][0], B.sides[(i + k) % 8][0])); if (s < bs) { bs = s; best = k; } }
   return best;
 }
-const SHIFT = { bag: pairing(SHAPES.bag), drop: pairing(SHAPES.drop) };
+const SHIFT = { bag: pairing(SHAPES.bag), finger: pairing(SHAPES.finger) };
 let shapeKey = '', shapeMemo = null;
-// The kite, part way to the baguette (mt) and part way to the drop (md).
+// The kite, part way to the baguette (mt) and part way to the hand (md).
 function shapeAt(mt, md) {
   mt = Math.round(Math.min(1, Math.max(0, mt)) * 400) / 400; md = Math.round(Math.min(1, Math.max(0, md)) * 400) / 400;
   const sum = mt + md; if (sum > 1) { mt /= sum; md /= sum; }
-  if (mt === 0 && md === 0) return SHAPES.kite;
-  if (mt === 1) return SHAPES.bag;
-  if (md === 1) return SHAPES.drop;
+  if (mt === 0 && md === 0) return FULL.kite;
+  if (mt === 1) return FULL.bag;
+  if (md === 1) return FULL.hand;
   const key = mt + ':' + md;
   if (key === shapeKey) return shapeMemo;
-  const A = SHAPES.kite, B = SHAPES.bag, C = SHAPES.drop;
+  const A = SHAPES.kite, B = SHAPES.bag, C = SHAPES.finger;
   const sd = A.sides.map((p, i) => {
-    const qb = B.sides[(i + SHIFT.bag) % 8], qc = C.sides[(i + SHIFT.drop) % 8];
+    const qb = B.sides[(i + SHIFT.bag) % 8], qc = C.sides[(i + SHIFT.finger) % 8];
     return [p[0] + angDist(p[0], qb[0]) * mt + angDist(p[0], qc[0]) * md, p[1] + (qb[1] - p[1]) * mt + (qc[1] - p[1]) * md];
   });
   const s = A.s + (B.s - A.s) * mt + (C.s - A.s) * md;
   const verts = A.verts.map((v, i) => [0, 1].map((j) => v[j] + (B.verts[i][j] - v[j]) * mt + (C.verts[i][j] - v[j]) * md));
-  const planes = cut(sd, s);
+  const pieces = [piece(verts, null, s, sd)];
+  // The other pieces grow out of the finger's base, quick at first, so the hand is there before the morph is done.
+  const k = 1 - (1 - md) * (1 - md);
+  if (k > 0.03) for (const h of HAND) {
+    const v = h.verts.map(([x, y]) => [GROW[0] + (x - GROW[0]) * k, GROW[1] + (y - GROW[1]) * k]);
+    pieces.push(piece(v, h.cuts.map((c) => c * k), h.s * k));
+  }
   shapeKey = key;
-  shapeMemo = { sides: sd, s, planes, verts, depth: depth(planes, verts), pivot: [0, 0.62 * (1 - mt)] };
+  shapeMemo = assemble(pieces, [0, 0.62 * (1 - mt)]);
   return shapeMemo;
 }
 
@@ -120,15 +153,18 @@ uniform vec4 uBox;
 void main() { vec2 c = vec2(float(gl_VertexID & 1), float(gl_VertexID >> 1)); gl_Position = vec4(mix(uBox.xy, uBox.zw, c), 0.0, 1.0); }`;
 const FS = `#version 300 es
 precision highp float;
-#define MAXP 56
+#define NPP 49                     // planes per piece: 8 sides, two crown steps, the table, three pavilion steps
+#define MAXP 196                   // up to four pieces: one stone, or the hand
 uniform vec4 uP[MAXP];
-uniform int uNP, uNS, uSS;
+uniform vec4 uPS;                  // each piece's step scale
+uniform int uNPc, uSS;
 uniform mat3 uR;                   // the stone's turn, local -> world
 uniform vec3 uPivL, uSig, uFloor, uFloorP, uL;
 uniform vec2 uOrigin, uCen, uSh;
 uniform float uUnit, uZ, uH, uRad, uShR, uAS, uAC, uCaustic, uS, uDisp, uFlash;
 out vec4 o;
 const float BIG = 1e9;
+int gB = 0; float gS = 1.0;        // the piece the last ray went into: its first plane, its step scale
 // smoothstep written out: many calls here run from the high edge to the low one, which the spec leaves undefined.
 float sstep(float a, float b, float x) { float t = clamp((x - a) / (b - a), 0.0, 1.0); return t * t * (3.0 - 2.0 * t); }
 float luma(vec3 c) { return dot(c, vec3(0.2126, 0.7152, 0.0722)); }
@@ -159,10 +195,10 @@ vec3 env(vec3 d) {
 }
 // The crown's own surface: a black card keeps the studio's sheen off it, only the hot light glints.
 vec3 sheen(vec3 d) { return 0.3 * env(d) + vec3(1.0, 0.99, 0.97) * (5.0 + 18.0 * uFlash) * sstep(0.962, 0.988, dot(d, uL)); }
-bool enter(vec3 o, vec3 d, out float t, out vec3 n) {
+bool enterP(int b, vec3 o, vec3 d, out float t, out vec3 n) {
   float tn = -BIG, tf = BIG;
-  n = vec3(0.0, 0.0, 1.0);
-  for (int i = 0; i < uNP; i++) {
+  n = vec3(0.0, 0.0, 1.0); t = BIG;
+  for (int i = b; i < b + NPP; i++) {
     vec3 N = uP[i].xyz; float dn = dot(N, d); float s = uP[i].w - dot(N, o);
     if (abs(dn) < 1e-7) { if (s < 0.0) return false; continue; }
     float ti = s / dn;
@@ -171,9 +207,28 @@ bool enter(vec3 o, vec3 d, out float t, out vec3 n) {
   t = tn;
   return tn < tf && tf > 0.0;
 }
+// The nearest piece the ray goes into; the rest of its path is inside that one.
+bool enter(vec3 o, vec3 d, out float t, out vec3 n) {
+  bool hit = false; t = BIG; n = vec3(0.0, 0.0, 1.0);
+  for (int p = 0; p < 4; p++) { if (p >= uNPc) break;
+    float tp; vec3 np;
+    if (enterP(p * NPP, o, d, tp, np) && tp < t) { t = tp; n = np; gB = p * NPP; gS = uPS[p]; hit = true; }
+  }
+  return hit;
+}
+// The outline of all the pieces together, signed (negative inside), and the side nearest.
+float outline(vec2 q, out vec2 en) {
+  float u = BIG; en = vec2(0.0, 1.0);
+  for (int p = 0; p < 4; p++) { if (p >= uNPc) break;
+    float sd = -BIG; vec2 e = vec2(0.0, 1.0);
+    for (int i = p * NPP; i < p * NPP + 8; i++) { float v = dot(uP[i].xy, q) - uP[i].w; if (v > sd) { sd = v; e = uP[i].xy; } }
+    if (sd < u) { u = sd; en = e; }
+  }
+  return u;
+}
 float leave(vec3 o, vec3 d, out vec3 n) {
   float tf = BIG; n = vec3(0.0, 0.0, 1.0);
-  for (int i = 0; i < uNP; i++) {
+  for (int i = gB; i < gB + NPP; i++) {
     vec3 N = uP[i].xyz; float dn = dot(N, d);
     if (dn > 1e-6) { float ti = (uP[i].w - dot(N, o)) / dn; if (ti < tf) { tf = ti; n = N; } }
   }
@@ -224,11 +279,11 @@ vec3 pageLight(vec2 w) {
   mat3 Rt = transpose(uR);
   vec3 ol = uPivL + Rt * vec3(w, -uZ);
   vec2 fl = (uPivL + Rt * vec3(w, 0.0)).xy;
-  float sd = -BIG;
-  for (int i = 0; i < uNS; i++) { sd = max(sd, dot(uP[i].xy, fl) - uP[i].w); }
+  vec2 en;
+  float sd = outline(fl, en);
   float soft = 0.05 * uS + 0.45 * uH;
   float occ = (1.0 - sstep(-soft, soft, sd - 0.2 * uH)) / (1.0 + 2.5 * uH);
-  vec3 ao = 1.0 - occ * (1.0 - 0.8 * exp(-uSig * 0.5 * uS));
+  vec3 ao = 1.0 - occ * (1.0 - 0.8 * exp(-uSig * 0.5));
   vec3 TU = normalize(cross(uL, vec3(0.0, 0.0, 1.0))), TV = cross(uL, TU);
   vec3 acc = vec3(0.0), ref = vec3(0.0);
   for (int k = 0; k < 12; k++) {
@@ -241,7 +296,7 @@ vec3 pageLight(vec2 w) {
     vec3 dl = Rt * L;
     float t; vec3 nn;
     float K = 1.0;
-    if (enter(ol, dl, t, nn)) K = through(ol, dl, t, nn, mix(1.545, 1.625, x), dot(uSig, wv) / dot(wv, vec3(1.0)));
+    if (enter(ol, dl, t, nn)) K = through(ol, dl, t, nn, mix(1.545, 1.625, x), dot(uSig, wv) / dot(wv, vec3(1.0)) / gS);
     acc += wv * K; ref += wv;
   }
   return 0.45 * ao + 0.55 * acc / ref;
@@ -278,15 +333,19 @@ void main() {
         if (enter(ro, rd, t, nn)) {
           vec3 hp = ro + rd * t;
           // Bluish green, vivid, transparent; beryl's three indices sit close, so no fire inside the stone.
-          vec3 c = vec3(channel(hp, rd, nn, 1.574, uSig.r, -0.3, 0), channel(hp, rd, nn, 1.580, uSig.g, 0.0, 1),
-            channel(hp, rd, nn, 1.588, uSig.b, 0.4, 2));
+          vec3 sg = uSig / gS;
+          vec3 c = vec3(channel(hp, rd, nn, 1.574, sg.r, -0.3, 0), channel(hp, rd, nn, 1.580, sg.g, 0.0, 1),
+            channel(hp, rd, nn, 1.588, sg.b, 0.4, 2));
           // Facet junctions, hinted: where the second-nearest plane is within a pixel, a hairline.
           float e1 = BIG, e2 = BIG;
-          for (int g = 0; g < uNP; g++) { float e = uP[g].w - dot(uP[g].xyz, hp); if (e < e1) { e2 = e1; e1 = e; } else if (e < e2) e2 = e; }
+          for (int g = gB; g < gB + NPP; g++) { float e = uP[g].w - dot(uP[g].xyz, hp); if (e < e1) { e2 = e1; e1 = e; } else if (e < e2) e2 = e; }
           edge += sstep(1.0 / uUnit, 0.3 / uUnit, e2);
           if (rimAmt > 0.0) {
-            float sd = -BIG; vec2 en = vec2(0.0);
-            for (int i = 0; i < uNS; i++) { float e = dot(uP[i].xy, hp.xy) - uP[i].w; if (e > sd) { sd = e; en = uP[i].xy; } }
+            vec2 en, e2;
+            float sd = outline(hp.xy, en);
+            // Only the outer edge of the whole hand: a seam between two pieces has stone just beyond it.
+            float so = outline(hp.xy + en * rimW, e2);
+            sd = mix(-BIG, sd, sstep(-0.25 * rimW, 0.25 * rimW, so));
             float side = 0.55 + 0.55 * max(dot(normalize((uR * vec3(en, 0.0)).xy), normalize(uL.xy)), 0.0);
             c = mix(c, METAL * 0.5 * side, rimAmt * sstep(-rimW, -0.25 * rimW, sd));
           }
@@ -319,7 +378,7 @@ if (par) await new Promise((done) => { const check = () => gl.isContextLost() ||
 if (gl.isContextLost() || !gl.getProgramParameter(prog, gl.LINK_STATUS)) return;
 gl.useProgram(prog);
 const U = {};
-for (const n of ['uBox', 'uP', 'uNP', 'uNS', 'uSS', 'uR', 'uPivL', 'uSig', 'uFloor', 'uFloorP', 'uL', 'uOrigin', 'uCen', 'uSh', 'uUnit', 'uZ', 'uH', 'uRad', 'uShR', 'uAS', 'uAC', 'uCaustic', 'uS', 'uDisp', 'uFlash'])
+for (const n of ['uBox', 'uP', 'uPS', 'uNPc', 'uSS', 'uR', 'uPivL', 'uSig', 'uFloor', 'uFloorP', 'uL', 'uOrigin', 'uCen', 'uSh', 'uUnit', 'uZ', 'uH', 'uRad', 'uShR', 'uAS', 'uAC', 'uCaustic', 'uS', 'uDisp', 'uFlash'])
   U[n] = gl.getUniformLocation(prog, n);
 gl.bindVertexArray(gl.createVertexArray());
 document.body.append(cv);
@@ -437,19 +496,19 @@ function step(dt, c, dvx, dvy) {
   st.since = (st.since || 0) + dt;
   if (st.since > 0.06) st.textOn = text;
   sp(st, 'mt', st.textOn ? 1 : 0, 6.5, 1, dt);
-  sp(st, 'ml', link ? 1 : 0, 6, 0.75, dt);
-  const m = clamp(st.mt, 0, 1), l = clamp(st.ml, 0, 1.15);
-  let rest = 0.36 * (1 - m);
-  rest -= 0.08 * l;
-  const a = [-Math.sin(st.yaw), Math.cos(st.yaw)], g = 1 - 0.85 * m;
+  sp(st, 'ml', link ? 1 : 0, 4.5, 0.75, dt);
+  const m = clamp(st.mt, 0, 1), l = clamp(st.ml, 0, 1.15), l1 = Math.min(1, l);
+  // The kite leans like an arrow; the hand stands up, finger straight, as the system's does.
+  const rest = 0.36 * (1 - m) * (1 - l1);
+  const a = [-Math.sin(st.yaw), Math.cos(st.yaw)], g = (1 - 0.85 * m) * (1 - 0.6 * l1);
   // Dragged by its tip: speed lays the tail behind, a change of speed swings it.
   st.yawV = (st.yawV || 0) + 0.065 * g * (a[0] * -st.vy - a[1] * st.vx) * dt;
   st.yawV += 0.0028 * g * (a[0] * -dvy - a[1] * dvx);
-  sp(st, 'yaw', rest, 3.0 + 4 * m, 0.45, dt);
+  sp(st, 'yaw', rest, 3.0 + 4 * m + 4 * l1, 0.5, dt);
   st.yaw = clamp(st.yaw, rest - 0.5, rest + 0.5);
   sp(st, 'roll', clamp(-0.06 * st.yawV, -0.4, 0.4), 5, 0.7, dt);
-  // The drop bows to what it is over: its body tips back and it reads shorter and rounder.
-  sp(st, 'pitch', 0.28 * l, 4, 0.35, dt);
+  // The hand leans in a touch to what it is over, as if about to press.
+  sp(st, 'pitch', -0.1 * l, 4, 0.35, dt);
   const speed = Math.hypot(st.vx, st.vy);
   // Colour: from speed, and kept over something you can press. Over a link that grows its own stone the green goes
   // there: the cursor turns to smoke, so the page has one emerald at a time.
@@ -458,7 +517,8 @@ function step(dt, c, dvx, dvy) {
   if (st.wake < 0.02 && (gem || (speed < 1 && !link))) st.wake = 0;
   // At rest it lies on the page; moving, it lifts a little and its shadow comes apart from it.
   sp(st, 'lift', ptr.down ? 0.0 : 0.25 * st.wake, 6, 0.6, dt);
-  sp(st, 'scale', (ptr.down ? 0.9 : 1 + 0.05 * st.wake) * (1 + 0.06 * l), 8, 0.5, dt);
+  // The hand is a size up from the kite, about the system hand's.
+  sp(st, 'scale', (ptr.down ? 0.9 : 1 + 0.05 * st.wake) * (1 + 0.2 * l), 8, 0.5, dt);
   ease(st, 'alpha', ptr.inside ? 1 : 0, 0.05, 0.08, dt);
 }
 
@@ -477,7 +537,7 @@ function tick(now) {
   if (slow >= 12) { fail(); return; }
   const c = ptr.inside ? sense(ptr.x, ptr.y) : NONE;
   // Coming onto something you can press: a nod and a glint.
-  if (c.kind === 'link' && lastSense.el !== c.el) { st.pitchV = (st.pitchV || 0) + 2.2; st.flash = Math.max(st.flash, 0.35); }
+  if (c.kind === 'link' && lastSense.el !== c.el) { st.pitchV = (st.pitchV || 0) - 2.2; st.flash = Math.max(st.flash, 0.35); }
   lastSense = c;
   // Pointer speed, measured per frame so it follows the page clock. A jump back into the window is not a throw.
   const ovx = st.vx, ovy = st.vy;
@@ -498,6 +558,7 @@ function tick(now) {
 }
 
 const lin = (c) => c.map((x) => Math.pow(x, 2.2));
+const flat = new Float32Array(4 * NPP * 4);
 function render(dtF) {
   gl.viewport(0, 0, cv.width, cv.height);
   gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
@@ -519,7 +580,7 @@ function render(dtF) {
   const z = shape.depth + Math.max(0, st.lift);
   // Bounds: the stone round its centre, its shadow pushed away from the light by its height.
   let cx = 0, cyy = 0; for (const v of shape.verts) { cx += v[0] / shape.verts.length; cyy += v[1] / shape.verts.length; }
-  let rad = 0; for (const v of [...shape.verts, ...SHAPES.kite.verts, ...SHAPES.bag.verts, ...SHAPES.drop.verts]) rad = Math.max(rad, Math.hypot(v[0] - cx, v[1] - cyy));
+  let rad = 0; for (const v of [...shape.verts, ...ALLV]) rad = Math.max(rad, Math.hypot(v[0] - cx, v[1] - cyy));
   rad = rad * 1.04 + shape.s * 0.5 * Math.min(1, Math.abs(st.pitch) + Math.abs(st.roll)) + 1.5 / unit;
   const ccx = R[0] * (cx - piv[0]) + R[3] * (cyy - piv[1]), ccy = R[1] * (cx - piv[0]) + R[4] * (cyy - piv[1]);
   const zc = z - shape.depth * 0.5;
@@ -534,13 +595,15 @@ function render(dtF) {
   const u = unit * dpr;
   const toX = (wx) => ((ox + wx * u) / cv.width) * 2 - 1, toY = (wy) => ((oy + wy * u) / cv.height) * 2 - 1;
   gl.uniform4f(U.uBox, toX(x0) - 0.002, toY(y0) - 0.002, toX(x1) + 0.002, toY(y1) + 0.002);
-  const flat = new Float32Array(56 * 4); shape.planes.forEach((p, i) => flat.set(p, i * 4));
+  const ps = [1, 1, 1, 1];
+  shape.pieces.forEach((pc, k) => { ps[k] = pc.s; pc.planes.forEach((p, i) => flat.set(p, (k * NPP + i) * 4)); });
   gl.uniform4fv(U.uP, flat);
-  gl.uniform1i(U.uNP, shape.planes.length); gl.uniform1i(U.uNS, 8);
+  gl.uniform4fv(U.uPS, ps); gl.uniform1i(U.uNPc, shape.pieces.length);
   gl.uniform1i(U.uSS, dpr >= 1.75 ? 2 : 3);
   gl.uniformMatrix3fv(U.uR, false, R);
   gl.uniform3f(U.uPivL, piv[0], piv[1], 0);
-  gl.uniform3fv(U.uSig, sig.map((s) => s / shape.s));
+  // Absorption per stone unit; the shader scales it by each piece's own step scale.
+  gl.uniform3fv(U.uSig, sig);
   gl.uniform3fv(U.uFloor, lin(st.floor)); gl.uniform3fv(U.uFloorP, st.floorP); gl.uniform3fv(U.uL, L); gl.uniform1f(U.uDisp, 0.24);
   gl.uniform2f(U.uOrigin, ox, oy); gl.uniform2f(U.uCen, ccx, ccy); gl.uniform2f(U.uSh, shx, shy);
   gl.uniform1f(U.uUnit, u); gl.uniform1f(U.uZ, z); gl.uniform1f(U.uH, Math.max(0, st.lift));
