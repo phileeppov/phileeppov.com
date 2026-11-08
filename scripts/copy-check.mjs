@@ -29,9 +29,10 @@ const norm = (s) =>
     .trim();
 
 // Section by number: "1.1" → from "### 1.1 — …" to the next heading of the same or higher level.
+// Where a note repeats a number, the id can carry the start of the title.
 function section(md, id) {
   const lines = md.split(/\r?\n/);
-  const start = lines.findIndex((l) => new RegExp(`^#{2,4} ${id.replace(".", "\\.")} — `).test(l));
+  const start = lines.findIndex((l) => new RegExp(`^#{2,4} ${id.replace(".", "\\.")}\\s`).test(l));
   if (start < 0) throw new Error(`Section ${id} not found`);
   const level = lines[start].match(/^#+/)[0].length;
   const end = lines.findIndex((l, i) => i > start && /^#+ /.test(l) && l.match(/^#+/)[0].length <= level);

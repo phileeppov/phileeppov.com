@@ -20,7 +20,7 @@ const PRESTO = {
 
 // Selected work: each case as its card shot, name and description. A card's columns on a wide screen give its image
 // sizes; a shot is never shown wider than its design size (half its pixels: the exports are @2x).
-const SPANS = [3, 8, 7, 4];
+const SPANS = [3, 8, 7, 4, 9];
 const cards = cases.map((c, i) => {
   const src = shot(c.slug, c.card);
   const span = SPANS[i] ?? 6;
@@ -46,7 +46,7 @@ const cards = cases.map((c, i) => {
       </div>
     </section>
 
-    <!-- Selected work: four cards, large next to small, not an equal grid; on a phone, a list. The whole card is the
+    <!-- Selected work: the case cards, large next to small, not an equal grid; on a phone, a list. The whole card is the
          link; the emerald comes out after the name. -->
     <section class="part work grid" id="work" aria-labelledby="work-label">
       <h2 class="label" id="work-label">SELECTED WORK</h2>
@@ -60,7 +60,7 @@ const cards = cases.map((c, i) => {
         ))
       }
       <!-- Presto: the video plays only while the card is in view, never with reduced motion (script below). -->
-      <div class="card k5 wip">
+      <div class="card k6 wip">
         <video src="/media/presto-2026.mp4" poster="/media/presto-2026.jpg" width="1280" height="720" muted loop playsinline preload="none"></video>
         <h3 class="name">{PRESTO.name}</h3>
         <p class="line">{PRESTO.line}</p>
@@ -175,8 +175,9 @@ const cards = cases.map((c, i) => {
     margin-top: 48px;
   }
 
-  /* Selected work: on a wide screen two rows, a large card next to a small one in each, the pair flipped in the second
-     (Medal small and SPORTS CLUB large, then Ailekmed large and Mavatars small, low against it). On a phone, a list.
+  /* Selected work: on a wide screen two rows of a large card next to a small one, the pair flipped in the second (Medal
+     small and SPORTS CLUB large, then Ailekmed large and Mavatars small, low against it), then a wide card and a note
+     on rows of their own. On a phone, a list.
      Cards are prints on the wall, not panels: the shot with its 0.5px edge, the name in weight, the description
      quieter under it. */
   .work {
@@ -243,10 +244,15 @@ const cards = cases.map((c, i) => {
     grid-row: 3;
     align-self: end;
   }
-  /* Presto, not written up yet: alone in the last row, hung from the caption column, like a note on the wall. */
+  /* Patch Wallet: a wide print, alone in its row, off the left edge. */
   .k5 {
-    grid-column: 7 / span 5;
+    grid-column: 4 / span 9;
     grid-row: 4;
+  }
+  /* Presto, not written up yet: alone in the last row, hung from the caption column, like a note on the wall. */
+  .k6 {
+    grid-column: 7 / span 5;
+    grid-row: 5;
   }
   .wip video {
     grid-area: 1 / 1;
@@ -364,6 +370,9 @@ const cards = cases.map((c, i) => {
       grid-column: 8 / span 5;
     }
     .k5 {
+      grid-column: 3 / span 10;
+    }
+    .k6 {
       grid-column: 5 / span 7;
     }
   }
@@ -378,7 +387,8 @@ const cards = cases.map((c, i) => {
     .k2,
     .k3,
     .k4,
-    .k5 {
+    .k5,
+    .k6 {
       grid-column: 1 / -1;
       grid-row: auto;
     }

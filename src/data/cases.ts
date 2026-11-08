@@ -2,7 +2,8 @@
 // Shots come from each case's shot folder; each shot is placed by the shot map in the same note.
 // Each paragraph string matches the source, with source line breaks replaced by spaces. Check: npm run copy-check.
 
-export type Shot = { img: string; caption?: string };
+// below: starts a row of its own. round: a corner radius of its own, for a crop that is itself a rounded control.
+export type Shot = { img: string; caption?: string; below?: boolean; round?: number };
 export type Block = string | Shot[];
 
 export interface Case {
@@ -11,18 +12,31 @@ export interface Case {
   principle: string;
   description: string;
   mark: string;
+  credit?: string; // a line over the mark: role, employer, year
   hero: Shot[];
+  heroCaption?: string; // one line under the hero visual, when it isn't the shipped work
   card: string;
   tension: Block[];
   thesis: string;
+  productThesis?: boolean; // the thesis is the product's own idea, not the designer's call: no "What I decided" over it
   role: string;
   decisions: { title: string; blocks: Block[] }[];
   happened: Block[];
   artifacts: { caption?: string; shots: Shot[] };
   notes?: string[];
+  // A later concept set beside the shipped work, labelled as one, with a link to the thing itself.
+  now?: { label: string; title: string; blocks: Block[]; source: { text: string; link: string; href: string } };
 }
 
 const s = (...ids: string[]): Shot[] => ids.map((img) => ({ img }));
+
+// Short words keep to the word after them, so no line ends on a preposition or an article. Only whitespace changes.
+const tie = <T,>(v: T): T => {
+  if (typeof v === "string") return v.replace(/(?<![\p{L}\p{N}'’.-])(a|an|the|to|of|in|on|at|by|for|with|from|into|my|I)\s+/giu, "$1 ") as unknown as T;
+  if (Array.isArray(v)) return v.map(tie) as unknown as T;
+  if (v && typeof v === "object") return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, tie(x)])) as unknown as T;
+  return v;
+};
 
 export const cases: Case[] = [
   {
@@ -203,6 +217,68 @@ export const cases: Case[] = [
     ],
     artifacts: { shots: s("IMG-06", "IMG-04", "IMG-05") },
   },
+  tie({
+    slug: "patch-wallet",
+    name: "Patch Wallet",
+    principle: "01 — Every decision has an author",
+    description:
+      "A smart wallet that already exists for every Twitter account, email and phone number. No seed phrase, no app to download. Launched at ETHDenver 2023.",
+    credit: "Product Designer · Premium Studios · 2023",
+    mark: "phil 05 ppov · NF · 2023",
+    hero: s("IMG-06a", "IMG-06b"),
+    heroCaption: "2026 concept",
+    card: "IMG-01",
+    tension: [
+      "A new wallet starts with homework. Install an app and hide a list of words somewhere safe. Only then can anyone send you anything.",
+      "Patch starts from the other end. Every Twitter handle, email and phone number has a wallet from day one, and anyone can send tokens or NFTs to it. The owner signs in with that account only when they want to take something out.",
+      [{ img: "IMG-01", caption: "2023" }],
+    ],
+    thesis: "The wallet gets there before you do.",
+    productThesis: true,
+    role: "The wallet's design at launch is mine, and so is the identity. I also designed Patch Pay, Donate, SocialDrop and the design system. I worked out the UX and the flows with the PM, about half each.",
+    decisions: [
+      {
+        title: "01. Status stays on the button",
+        blocks: [
+          "Wallets usually send you to a review screen, then to a progress screen.",
+          "I put the status on the button you pressed. In a withdrawal, Send tokens to address turns into Transaction pending. When an NFT claim fails, the same button reads \"Failed. Click to try again.\"",
+          [
+            { img: "IMG-02a", round: 12 },
+            { img: "IMG-02b", round: 12, below: true },
+            { img: "IMG-02c", round: 12, below: true },
+          ],
+          "There's no review screen. You check the address and the amount on the same form you typed them in, and the button sends them right away.",
+          s("IMG-03"),
+        ],
+      },
+      {
+        title: "02. One picker for three flows",
+        blocks: [
+          "On deadline day I was still putting the design system together, and a lot of it didn't match. People said it was fine.",
+          "I redrew those parts so they'd fit together. Withdraw, Donate and Patch Pay now use the same token picker.",
+          s("IMG-04a", "IMG-04b", "IMG-04c"),
+          "Taking Add all out of Donate would have split the picker in two, so I kept it. In a donation, one tap adds every token you hold.",
+        ],
+      },
+    ],
+    happened: [
+      "The site reports over 300k users. In one campaign with Linea, 110k+ people airdropped over 150k NFTs to Twitter accounts.",
+      "Numbers from patchwallet.com, checked October 2026.",
+    ],
+    artifacts: { shots: s("IMG-05") },
+    notes: ["Screens are from the original Figma file, with sample data under my own handle."],
+    now: {
+      label: "2023 → now",
+      title: "How I'd build Send today",
+      blocks: [
+        "In 2023 the withdrawal showed no network fee and had no review screen.",
+        "You choose where it goes: an X handle, an email, a phone number or a wallet, and see the address behind it. Then you pick the network and see the fee and the total before you confirm. If the person isn't on Patch yet, you can still send and share an invite.",
+        "A review screen shows the full address and the amount before anything leaves. When a transfer fails, it says why. It also confirms the tokens never left and no fee was taken.",
+        s("IMG-06c"),
+      ],
+      source: { text: "A 2026 concept. Prototype built with Claude Code:", link: "phileeppov.com/send", href: "/send/" },
+    },
+  }),
 ];
 
 // Shot sizes from the shot maps, as a share of a shot's design size (half its pixel width: the exports are @2x).
@@ -218,6 +294,12 @@ export const shotScale: Record<string, number> = {
   "ailekmed/IMG-09": 0.6, // the empty search, a narrow column
   "ailekmed/IMG-10": 0.5, // all reservations, small
   "mavatars/IMG-05": 0.5, // the inventory, small under the feed
+  // Button crops: past their design size, so they read as the detail.
+  "patch-wallet/IMG-02a": 1.5,
+  "patch-wallet/IMG-02b": 1.5,
+  "patch-wallet/IMG-02c": 1.5,
+  "patch-wallet/IMG-03": 0.6, // the whole window, small under the detail
+  "patch-wallet/IMG-05": 0.75, // the wallet page, within a screen and a bit
 };
 
 // Shots: src/assets/cases/<slug>/<ID>.png.

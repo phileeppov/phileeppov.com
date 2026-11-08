@@ -17,7 +17,7 @@ export function getStaticPaths() {
 }
 
 const { c, prev, next } = Astro.props;
-const og = await getImage({ src: shot(c.slug, c.hero[0].img), width: 1200, format: "jpg" });
+const og = await getImage({ src: shot(c.slug, c.card), width: 1200, format: "jpg" });
 
 // The thesis breaks where its sentences do.
 const thesis = c.thesis.split(/(?<=\.)\s+/);
@@ -41,18 +41,34 @@ const titled = c.decisions.map((d) => {
       <h1 class="statement">{c.name}</h1>
       <div class="cap">
         <p>{c.description}</p>
+        {c.credit && <p class="label">{c.credit}</p>}
         <p class="label mark">{c.mark}</p>
       </div>
+      {c.heroCaption && <p class="label over">{c.heroCaption}</p>}
       <Shots slug={c.slug} shots={c.hero} eager hero />
     </section>
+
+    {/* A later concept comes first: the page opens on the current way of working, then goes back to the shipped work. */}
+    {
+      c.now && (
+        <section class="part flow decision grid">
+          <h2 class="label">{c.now.label}</h2>
+          <h3 class="statement">{c.now.title}</h3>
+          {c.now.blocks.map((b) => (typeof b === "string" ? <p class="cap">{b}</p> : <Shots slug={c.slug} shots={b} />))}
+          <p class="cap">
+            {c.now.source.text} <a class="link" href={c.now.source.href}>{c.now.source.link}</a>
+          </p>
+        </section>
+      )
+    }
 
     <section class="part flow grid">
       <h2 class="label side">What was broken before</h2>
       {c.tension.map((b) => (typeof b === "string" ? <p class="cap">{b}</p> : <Shots slug={c.slug} shots={b} />))}
     </section>
 
-    <section class="part grid">
-      <h2 class="label">What I decided</h2>
+    <section class:list={["part grid", { bare: c.productThesis }]}>
+      {!c.productThesis && <h2 class="label">What I decided</h2>}
       <p class="statement">
         <span class="ph">{thesis.map((t, i) => <><span>{t}</span>{i < thesis.length - 1 && " "}</>)}</span>
       </p>
@@ -129,6 +145,13 @@ const titled = c.decisions.map((d) => {
   .intro :global(.shots) {
     margin-top: 72px;
   }
+  /* A line over the hero visual when it isn't the shipped work: it has to be read before the shots are. */
+  .intro > .over {
+    margin-top: 72px;
+  }
+  .intro > .over + :global(.shots) {
+    margin-top: 10px;
+  }
 
   /* Parts: the statement 72px under the hairline (or under the label), its caption 48px under it. Words run in the
      caption half, a paragraph to a step; shots stand 56px off the words around them. */
@@ -145,6 +168,10 @@ const titled = c.decisions.map((d) => {
   }
   .part > .statement + .cap {
     margin-top: 48px;
+  }
+  /* A thesis with no label over it stands at the label's line. */
+  .part.bare > .statement {
+    margin-top: 0;
   }
   .flow > .cap + .cap {
     margin-top: 20px;
@@ -259,8 +286,12 @@ const titled = c.decisions.map((d) => {
     .intro > .cap {
       margin-top: 32px;
     }
-    .intro :global(.shots) {
+    .intro :global(.shots),
+    .intro > .over {
       margin-top: 48px;
+    }
+    .intro > .over + :global(.shots) {
+      margin-top: 10px;
     }
     .part {
       padding-bottom: 104px;

@@ -58,6 +58,13 @@
           "02"
         ],
         "allow": true
+      },
+      {
+        "file": "cases/Patch Wallet.md",
+        "sections": [
+          "02 — Текст кейса"
+        ],
+        "allow": true
       }
     ]
   },
@@ -219,6 +226,42 @@
       ],
       "ignore": [
         "← Previous: Ailekmed",
+        "Back to all work",
+        "Next: Patch Wallet →"
+      ]
+    },
+    "/work/patch-wallet/": {
+      "sources": [
+        {
+          "file": "cases/Patch Wallet.md",
+          "sections": [
+            "02 — Текст кейса"
+          ],
+          "skip": [
+            "phil 01 ppov",
+            "01. You choose what goes out",
+            "A basic withdrawal moves everything",
+            "I let people put the withdrawal together",
+            "A token row is a long number",
+            "03. A patch over the problem",
+            "A patch is a sticker",
+            "It's a direct read"
+          ]
+        },
+        {
+          "use": "caseTemplate"
+        },
+        {
+          "sections": [
+            "1.7"
+          ]
+        }
+      ],
+      "ignore": [
+        "01 — Every decision has an author",
+        "phil 05 ppov · NF · 2023",
+        "Screens are from the original Figma file, with sample data under my own handle.",
+        "← Previous: Mavatars",
         "Back to all work"
       ]
     },

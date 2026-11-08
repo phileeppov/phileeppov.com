@@ -33,7 +33,13 @@ const items = shots.map((h) => {
 type Item = (typeof items)[number];
 const span = (row: Item[]) => row.reduce((sum, i) => sum + i.w, 0) + GAP * (row.length - 1);
 const lead = items.length > 1 && items[0].w >= 1000 && span(items) > MEASURE;
-const rows = lead ? [items.slice(0, 1), items.slice(1)] : [items];
+// A shot marked below starts a row of its own. Shots stacked this way keep their sizes against each other on a narrow
+// screen too: each is held to its share of the widest.
+const rows = lead
+  ? [items.slice(0, 1), items.slice(1)]
+  : items.reduce<Item[][]>((all, i) => (i.below || !all.length ? all.push([i]) : all[all.length - 1].push(i), all), []);
+const widest = Math.max(...items.map((i) => i.w));
+const fit = (i: Item) => (items.some((x) => x.below) ? `; --fit: ${((i.w / widest) * 100).toFixed(2)}%` : "");
 ---
 
 <div class:list={["shots", { hero }]}>
@@ -41,7 +47,7 @@ const rows = lead ? [items.slice(0, 1), items.slice(1)] : [items];
     rows.map((row) => (
       <div class:list={["row", { hang: !hero && span(row) <= HALF }]}>
         {row.map((h, i) => (
-          <figure style={`--w: ${h.w}px`}>
+          <figure style={`--w: ${h.w}px${h.round ? `; --r: ${h.round}px` : ""}${fit(h)}`}>
             <Image
               src={h.src}
               alt=""
@@ -76,13 +82,14 @@ const rows = lead ? [items.slice(0, 1), items.slice(1)] : [items];
   figure {
     flex: 0 1 var(--w);
     min-width: 0;
+    max-width: var(--fit, none);
     margin: 0;
   }
   figure :global(img) {
     display: block;
     width: 100%;
     height: auto;
-    border-radius: 4px;
+    border-radius: var(--r, 4px);
     box-shadow: 0 0 0 0.5px color-mix(in srgb, var(--color-black) 16%, transparent);
   }
   figcaption {
