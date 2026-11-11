@@ -1,0 +1,98 @@
+---
+// The first lines of the facts view: who, the format of work and how to write, on the left; the summary on the caption
+// axis. On a phone, in reading order.
+import CopyEmail from "./CopyEmail.astro";
+import { person } from "../data/facts";
+---
+
+<section class="who grid">
+  <div class="id">
+    <h1><span>{person.name}</span> <span class="quiet">{person.role}</span></h1>
+    <p class="quiet">{person.format}</p>
+    <p><CopyEmail gem /></p>
+    <p class="more"><a class="link" href={person.cv} download data-count="work:cv">Download CV</a> <span class="quiet">·</span> <a class="link" href={person.linkedin} data-count="work:linkedin">LinkedIn</a></p>
+  </div>
+  <p class="sum">{person.summary}</p>
+</section>
+
+<style>
+  .who {
+    padding-bottom: 48px;
+    line-height: 1.45;
+  }
+  h1,
+  p {
+    margin: 0;
+    font: inherit;
+  }
+  /* 0.7 keeps the quiet text above 4.5:1 on the paper. */
+  .quiet {
+    opacity: 0.7;
+  }
+  .id {
+    grid-column: 1 / span 6;
+    display: grid;
+    justify-items: start;
+    align-content: start;
+  }
+  h1 {
+    display: grid;
+    font-weight: 500;
+  }
+  h1 .quiet {
+    font-weight: 400;
+  }
+  .sum {
+    grid-column: 7 / span 6;
+    max-width: var(--cap);
+    text-wrap: pretty;
+  }
+  /* The header has them on a wide window; on a phone, where the header holds only the name, they're here. */
+  .more {
+    display: none;
+  }
+  /* On a mid window the text axis is the 6th column, as in the rows under it. */
+  @media (max-width: 1199px) {
+    .id {
+      grid-column: 1 / span 5;
+    }
+    .sum {
+      grid-column: 6 / -1;
+    }
+  }
+  @media (max-width: 767px) {
+    .who {
+      padding-bottom: 32px;
+      row-gap: 16px;
+    }
+    .id,
+    .sum {
+      grid-column: 1 / -1;
+    }
+    .id {
+      display: contents;
+    }
+    h1 {
+      grid-column: 1 / -1;
+      grid-row: 1;
+    }
+    .sum {
+      grid-row: 2;
+    }
+    .id > p {
+      grid-column: 1 / -1;
+      margin-top: -12px;
+    }
+    .id > p:nth-of-type(1) {
+      grid-row: 3;
+      margin-top: 0;
+    }
+    .id > p:nth-of-type(2) {
+      grid-row: 4;
+    }
+    .more {
+      display: block;
+      grid-row: 5;
+    }
+  }
+</style>

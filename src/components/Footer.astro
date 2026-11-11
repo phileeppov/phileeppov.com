@@ -17,6 +17,12 @@
     margin-top: 64px;
     font-size: var(--text-meta);
   }
+  /* Under a wall page it stands on the wall's grid: on a very wide window, 1392px in the middle. */
+  :global(body:has(> main.wall)) footer {
+    width: 100%;
+    max-width: 1392px;
+    margin-inline: auto;
+  }
   p {
     margin: 0;
   }

@@ -1,10 +1,13 @@
-// Link previews (Open Graph, 1200×630) for the home page, /manifesto/ and /about/: one HTML card per page, drawn with
-// the site's own tokens and Onest, saved as public/<name>-og.png (.jpg for the card with the photo). The words are
+// Link previews (Open Graph, 1200×630) for the home page, /manifesto/, /about/ and /work/: one HTML card per page, drawn
+// with the site's own tokens and Onest, saved as public/<name>-og.png (.jpg for the card with the photo). The words are
 // copied verbatim from the pages (src/pages/*.astro); when a page's copy changes, change it here too and run:
 // node scripts/og.mjs
+// The /work card is the exception: its words are read from the built page, dist/work/index.html, so they are the
+// page's own to the letter, its ties included. After a line in src/data/facts.ts changes: astro build, then
+// node scripts/og.mjs work
 // Same family as public/review-og.png and public/glass-og.png: paper, a raised object on the left, the words on the
 // right, the address under them. The home card is the exception: the hero alone, too long to share the width.
-import { readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { extname, join } from "node:path";
 import sharp from "sharp";
 import { ROOT, launchBrowser } from "./lib/site.mjs";
@@ -25,6 +28,38 @@ const TYPES = {
 const JPEG = new Set(["about"]);
 // The About photo: the first image in src/assets/about, the one the page shows.
 const PHOTO = readdirSync(join(ROOT, "src/assets/about")).find((file) => /\.(jpe?g|png|webp)$/i.test(file));
+
+// The /work card's words, read from the built page: the person's first lines, name, role and format. The build has to
+// be newer than facts.ts, the page's source, or the card would carry the old lines.
+const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+async function workWords(browser) {
+  const built = join(ROOT, "dist/work/index.html");
+  if (!existsSync(built)) throw new Error("No dist/work/index.html: run astro build first");
+  if (statSync(built).mtimeMs < statSync(join(ROOT, "src/data/facts.ts")).mtimeMs)
+    throw new Error("dist/work/index.html is older than src/data/facts.ts: run astro build first");
+  const context = await browser.newContext({ javaScriptEnabled: false });
+  const page = await context.newPage();
+  await page.setContent(readFileSync(built, "utf8"));
+  const words = await page.evaluate(() => {
+    // Ordinary white space only: the page's no-break spaces are part of its words.
+    const text = (el) => (el ? el.textContent.replace(/[ \t\r\n]+/g, " ").trim() : "");
+    const id = document.querySelector(".who .id");
+    return {
+      name: text(id?.querySelector("h1 > span:first-child")),
+      role: text(id?.querySelector("h1 > span.quiet")),
+      format: text(id?.querySelector(":scope > p.quiet")),
+    };
+  });
+  await context.close();
+  if (!words.name || !words.role || !words.format) throw new Error("dist/work: no name, role or format line");
+  return words;
+}
+// The format line breaks only between its items, and the dot goes down with the item after it, as on the page.
+const formatLine = (s) =>
+  s
+    .split(/\s*·\s*/)
+    .map((item, i) => `<span class="item">${i ? "·&nbsp;" : ""}${esc(item)}</span>`)
+    .join(" ");
 
 const STYLE = `
   html {
@@ -180,6 +215,44 @@ const CARDS = {
         <p class="where">phileeppov.com/about</p>
       </div>
     </main>`,
+
+  // work/index.astro: the person as the page's first lines have it, the address under them. Words only, as at home.
+  // The format line is quiet as on the page, 0.7, not 0.5 like the address: it's what a recruiter sorts by.
+  work: (w) => `
+    <style>
+      .work {
+        display: grid;
+        align-content: center;
+        gap: 52px;
+        height: 100%;
+        padding: 60px;
+        box-sizing: border-box;
+      }
+      .work .title {
+        font-size: 128px;
+      }
+      .work .lead {
+        margin-top: 20px;
+        font-size: 60px;
+      }
+      .work .format {
+        margin-top: 28px;
+        font-size: 36px;
+        line-height: 1.15;
+        opacity: 0.7;
+      }
+      .item {
+        white-space: nowrap;
+      }
+    </style>
+    <main class="work">
+      <div>
+        <p class="title">${esc(w.name)}</p>
+        <p class="lead">${esc(w.role)}</p>
+        <p class="format">${formatLine(w.format)}</p>
+      </div>
+      <p class="where">phileeppov.com/work</p>
+    </main>`,
 };
 
 const html = (body) => `<!doctype html>
@@ -195,13 +268,17 @@ const html = (body) => `<!doctype html>
 
 const only = process.argv.slice(2);
 const names = only.length ? only : Object.keys(CARDS);
+for (const name of names) if (!CARDS[name]) throw new Error(`No card "${name}"`);
 const browser = await launchBrowser();
 try {
+  // A card drawn from a page's words reads them only when it's asked for, so the others don't need a build.
+  const words = names.some((name) => typeof CARDS[name] === "function") ? await workWords(browser) : null;
+  const bodies = Object.fromEntries(names.map((name) => [name, typeof CARDS[name] === "function" ? CARDS[name](words) : CARDS[name]]));
   const page = await browser.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: 1 });
   await page.route(`${ORIGIN}/**`, (route) => {
     const path = decodeURIComponent(new URL(route.request().url()).pathname);
     const name = path.slice(1);
-    if (CARDS[name]) return route.fulfill({ contentType: "text/html", body: html(CARDS[name]) });
+    if (bodies[name]) return route.fulfill({ contentType: "text/html", body: html(bodies[name]) });
     // /src/... from the repo, everything else (the fonts) from public/, as the site serves it.
     const file = path.startsWith("/src/") ? join(ROOT, path) : join(ROOT, "public", path);
     try {
@@ -212,7 +289,6 @@ try {
   });
 
   for (const name of names) {
-    if (!CARDS[name]) throw new Error(`No card "${name}"`);
     await page.goto(`${ORIGIN}/${name}`, { waitUntil: "load" });
     // The font is fetched only once text asks for it, so ask for it outright: fonts.ready alone can resolve before that.
     const check = await page.evaluate(async () => {

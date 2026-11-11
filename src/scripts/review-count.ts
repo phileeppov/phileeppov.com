@@ -5,7 +5,10 @@
 //   product yet" tab (a click, a tap or picking it up); review:send:product, review:send:scratch — a request went
 //   through, and which kind it was.
 // The site pages use it too (Site.astro, index.astro): site:view — the home page opened; site:hero, site:end,
-//   site:chefkiss, site:glass, site:manifesto, site:about, site:x, site:pill — which link out was followed.
+//   site:chefkiss, site:glass, site:manifesto, site:about, site:x, site:pill — which link out was followed;
+//   site:switch-facts, site:switch-story — the switch between the two versions used, and which way.
+// The short version (/work): work:view — it opened; work:cv, work:linkedin, work:email, work:copy, work:github,
+//   work:case — which way out was taken.
 // The /chefkiss page: chefkiss:view — it opened; chefkiss:copy — the install line copied; chefkiss:repo,
 //   chefkiss:review — the repository or the review followed.
 

@@ -1,0 +1,306 @@
+---
+// Facts, work first: a catalogue. The ruler answers "how long, and where" before anything is read; then each case is a
+// row: the shot on the left at its own proportions, its fields on the caption axis next to it, so the picture and the
+// facts are read together. A case shows dates only when they are its own.
+import { Image } from "astro:assets";
+import Site from "../../layouts/Site.astro";
+import FactsWho from "../../components/FactsWho.astro";
+import CareerRuler from "../../components/CareerRuler.astro";
+import CopyEmail from "../../components/CopyEmail.astro";
+import { person, places, skills, education, languages } from "../../data/facts";
+import { cases, shot, tie } from "../../data/cases";
+
+const withPlace = places.flatMap((p) => p.work.map((w) => ({ ...w, place: p })));
+const seen = new Set<string>();
+const sheet = withPlace.filter((w) => w.slug).map((w) => {
+  const c = cases.find((x) => x.slug === w.slug)!;
+  const src = shot(c.slug, c.card);
+  const top = Math.min(src.width, 1368);
+  const widths = [...new Set([480, 800, 1200].filter((x) => x < top).concat(top))];
+  const first = !seen.has(w.place.id);
+  seen.add(w.place.id);
+  return { ...w, title: c.name, src, widths, design: Math.round(src.width / 2), anchor: first ? w.place.id : undefined };
+});
+const others = withPlace.filter((w) => !w.slug);
+const hasFreelance = !seen.has("freelance");
+// The case named after the place takes the place's dates; other cases only name the place, its dates aren't theirs.
+// A line break never leaves the separator at a line's end: it goes down with what follows it.
+const keepDots = (s: string) => s.replace(/ · /g, " · ");
+const whereLine = (w: (typeof withPlace)[number]) => keepDots(whereRaw(w));
+const whereRaw = (w: (typeof withPlace)[number]) => {
+  if (w.meta) return w.meta;
+  if (w.term) return `${w.term} · ${w.place.id === "independent" ? "Independent" : w.place.name}`;
+  if (w.slug === "medal") return `${w.place.term} · ${w.place.meta}`;
+  return `${w.place.name} · ${w.place.meta}`;
+};
+---
+
+<Site passage view="facts" title={`${person.name}, ${person.role}`} description={person.summary} image="/work-og.png">
+  <main class="wall facts">
+    <FactsWho />
+
+    <div class="career" id="work">
+      <CareerRuler lines />
+      <div class="rowsN">
+        {
+          places.map((p) => (
+            <p class="placeN"><span class="name">{p.name}</span> <span class="quiet term">{p.term}</span></p>
+          ))
+        }
+      </div>
+    </div>
+
+    {
+      sheet.map((w) => (
+        <article class="part case grid" id={w.anchor}>
+          <div class="print" style={`--d: ${w.design}px`}>
+            <a class="shot" href={`/work/${w.slug}/`} data-count="work:case" tabindex="-1" aria-hidden="true">
+              <Image src={w.src} alt="" widths={w.widths} sizes="(max-width: 767px) calc(100vw - 48px), 684px" loading="lazy" />
+            </a>
+            {w.shotNote && <p class="note quiet">{w.shotNote}</p>}
+          </div>
+          <div class="fields">
+            <h2><a class="link" href={`/work/${w.slug}/`} data-gem data-count="work:case">{w.title} <span class="arw">→</span></a></h2>
+            <p class="quiet">{w.what ?? w.place.note}</p>
+            <p class="quiet term">{whereLine(w)}</p>
+            {w.did?.map((d) => <p class="gap quiet">{d}</p>)}
+            {w.result && <p class="gap">{w.result}</p>}
+          </div>
+        </article>
+      ))
+    }
+
+    <section class="part tail grid" id={hasFreelance ? "freelance" : undefined}>
+      <div class="side">
+        <h2>Also</h2>
+      </div>
+      <div class="rows">
+        {
+          others.map((w) => (
+            <div class="other">
+              <h3>{w.name}</h3>
+              {w.what && <p class="quiet">{w.what}</p>}
+              {w.did?.map((d) => <p class="quiet">{d}</p>)}
+              {w.result && <p>{w.result}</p>}
+              <p class="quiet term">{whereLine(w)}</p>
+            </div>
+          ))
+        }
+      </div>
+    </section>
+
+    <section class="part tail end grid">
+      <div class="side">
+        <h2>Skills</h2>
+      </div>
+      <div class="rows tight">
+        {skills.map((s) => (
+          <p class="tr"><span class="quiet">{s.label}</span> <span>{s.text}</span></p>
+        ))}
+        <p class="tr"><span class="quiet">Education</span> <span>{education.school}. {education.degree}</span></p>
+        <p class="tr"><span class="quiet">Languages</span> <span>{languages}</span></p>
+      </div>
+    </section>
+
+    <!-- The end of the page: how to reach me, and one line for someone with a product, with no free work offered. -->
+    <section class="part close grid" id="contact">
+      <div class="side">
+        <h2>Contact</h2>
+        <p class="gap"><CopyEmail /></p>
+        <p><a class="link" href={person.linkedin} data-count="work:linkedin">LinkedIn</a></p>
+        <p><a class="link" href="https://github.com/phileeppov" data-count="work:github">GitHub</a></p>
+        <p><a class="link" href={person.cv} download data-count="work:cv">Download CV</a></p>
+      </div>
+      <div class="fin">
+        <h2>Have a product?</h2>
+        <p class="gap quiet">{tie("Email me a link and what's stuck. I'll reply with a few questions and a way to work together.")}</p>
+      </div>
+    </section>
+  </main>
+</Site>
+
+<script>
+  import { count } from "../../scripts/review-count";
+
+  // The short version opened (worker/index.js keeps the list of names).
+  count("work:view");
+</script>
+
+<style>
+  .facts {
+    line-height: 1.45;
+  }
+  p,
+  h2,
+  h3 {
+    margin: 0;
+    font: inherit;
+  }
+  /* 0.7 keeps the quiet text above 4.5:1 on the paper: the rows' "what I did" is set in it. */
+  .quiet {
+    opacity: 0.7;
+  }
+  .fields p,
+  .fields h2,
+  .rows p,
+  .other h3,
+  .fin p {
+    text-wrap: pretty;
+  }
+  .term {
+    font-variant-numeric: tabular-nums;
+  }
+  /* The ruler and its lines stand between the who and the first case. "Back to all work" from a case lands here, below
+     the pinned switch rather than under it. */
+  .career {
+    margin-top: -16px;
+    padding-bottom: 28px;
+    padding-inline: max(0px, (100% - 1392px) / 2);
+    scroll-margin-top: 56px;
+  }
+  .rowsN {
+    display: none;
+  }
+  .case {
+    padding-bottom: 48px;
+    align-items: start;
+    scroll-margin-top: 16px;
+  }
+  /* A print at its own proportions, never wider than its design size or taller than most of a screen. */
+  .print {
+    grid-column: 1 / span 6;
+  }
+  .shot {
+    display: block;
+    max-width: min(100%, var(--d));
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: 0 0 0 0.5px color-mix(in srgb, var(--color-black) 16%, transparent);
+  }
+  .shot :global(img) {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 440px;
+    object-fit: cover;
+    object-position: left top;
+  }
+  /* What was changed in the screens for the case, under the print and no wider than it. */
+  .note {
+    max-width: min(100%, var(--d), 40ch);
+    margin-top: 8px;
+    font-size: var(--text-meta);
+    text-wrap: pretty;
+  }
+  .fields {
+    grid-column: 7 / span 6;
+    max-width: var(--cap);
+  }
+  .fields h2,
+  .other h3,
+  .side h2,
+  .placeN .name {
+    font-weight: 500;
+  }
+  .gap {
+    margin-top: 10px;
+  }
+  .tail {
+    padding-bottom: 40px;
+    scroll-margin-top: 16px;
+  }
+  .tail.end {
+    padding-bottom: 56px;
+  }
+  .side {
+    grid-column: 1 / span 6;
+  }
+  .rows {
+    grid-column: 7 / span 6;
+    display: grid;
+    gap: 18px;
+    max-width: 34em;
+  }
+  /* Also reads as the rows above; only the Skills table needs the wider measure. */
+  .rows:not(.tight) {
+    max-width: var(--cap);
+  }
+  .rows.tight {
+    gap: 6px;
+  }
+  .tr {
+    display: grid;
+    grid-template-columns: 88px 1fr;
+    gap: 12px;
+  }
+  .close {
+    padding-bottom: 8px;
+    scroll-margin-top: 16px;
+  }
+  .close .side p {
+    margin-top: 2px;
+  }
+  .fin {
+    grid-column: 7 / span 6;
+    max-width: var(--cap);
+  }
+  .close h2 {
+    font-weight: 500;
+  }
+  /* Without the ruler the places are lines, in the caption column on a mid window, on their own on a phone. */
+  @media (max-width: 1199px) {
+    .career {
+      display: grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      column-gap: var(--gutter);
+      margin-top: 0;
+    }
+    .rowsN {
+      grid-column: 6 / -1;
+      display: grid;
+      gap: 8px;
+    }
+    .placeN span {
+      display: block;
+    }
+    .print,
+    .side {
+      grid-column: 1 / span 5;
+    }
+    .fields,
+    .rows,
+    .fin {
+      grid-column: 6 / -1;
+    }
+  }
+  @media (max-width: 767px) {
+    .career {
+      padding-bottom: 32px;
+    }
+    .rowsN,
+    .print,
+    .fields,
+    .side,
+    .rows,
+    .fin {
+      grid-column: 1 / -1;
+    }
+    .fin {
+      margin-top: 28px;
+    }
+    .fields {
+      margin-top: 16px;
+    }
+    .rows {
+      margin-top: 16px;
+    }
+    .tr {
+      grid-template-columns: 1fr;
+      gap: 0;
+      margin-bottom: 8px;
+    }
+    .case {
+      padding-bottom: 40px;
+    }
+  }
+</style>

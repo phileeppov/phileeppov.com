@@ -43,8 +43,14 @@ const EVENT = new RegExp(
 const REVIEW_EVENT = /^review:(view|start|scratch|send:(product|scratch))$/;
 
 // Site counter (src/layouts/Site.astro, src/pages/index.astro), once per visit each: the home page opened, and which way
-// out was taken — the two review buttons, the tools, the manifesto and about links, the X handle and the pill up top.
-const SITE_EVENT = /^site:(view|hero|end|chefkiss|glass|manifesto|about|x|pill)$/;
+// out was taken — the two review buttons, the tools, the manifesto and about links, the X handle and the pill up top —
+// and the switch between the home page's two versions, each way (src/components/SlotSwitch.astro).
+const SITE_EVENT = /^site:(view|hero|end|chefkiss|glass|manifesto|about|x|pill|switch-story|switch-facts)$/;
+
+// The short version (src/pages/work/index.astro, src/layouts/Site.astro, src/components/FactsWho.astro,
+// src/components/CopyEmail.astro), once per visit each: the page opened, the CV, LinkedIn, the email followed or copied,
+// GitHub, a case opened.
+const WORK_EVENT = /^work:(view|cv|linkedin|email|copy|github|case)$/;
 
 // The /chefkiss page (src/pages/chefkiss.astro), once per visit each: the page opened, the install line copied, the
 // repository and the review followed.
@@ -53,7 +59,7 @@ const CHEFKISS_EVENT = /^chefkiss:(view|copy|repo|review)$/;
 async function track(request, env) {
   if (request.method !== "POST") return new Response(null, { status: 405, headers: { Allow: "POST" } });
   const name = (await request.text()).trim().slice(0, 40);
-  if (!EVENT.test(name) && !REVIEW_EVENT.test(name) && !SITE_EVENT.test(name) && !CHEFKISS_EVENT.test(name)) return new Response(null, { status: 400 });
+  if (!EVENT.test(name) && !REVIEW_EVENT.test(name) && !SITE_EVENT.test(name) && !WORK_EVENT.test(name) && !CHEFKISS_EVENT.test(name)) return new Response(null, { status: 400 });
   const day = new Date().toISOString().slice(0, 10);
   try {
     await env.EVENTS.batch([

@@ -9,6 +9,8 @@
 import Base from "./Base.astro";
 import Footer from "../components/Footer.astro";
 import Passage from "../components/Passage.astro";
+import SlotSwitch from "../components/SlotSwitch.astro";
+import { person } from "../data/facts";
 import "../styles/onest.css";
 import "../styles/site.css";
 
@@ -18,9 +20,10 @@ interface Props {
   image?: string;
   imageSize?: [number, number]; // the preview image's size when it isn't 1200×630 (the case pages)
   passage?: boolean; // the page opens and closes as a disc of glass from the pressed arrow (Passage.astro)
+  view?: "story" | "facts"; // a view of the home page: the wordmark's slot holds the switch between the two
 }
 
-const { title, description, image, imageSize, passage = false } = Astro.props;
+const { title, description, image, imageSize, passage = false, view } = Astro.props;
 const aside = Astro.slots.has("aside");
 ---
 
@@ -37,21 +40,42 @@ const aside = Astro.slots.has("aside");
       </Fragment>
     )
   }
-  <header class="top">
-    <a class="mark" href="/" aria-label="phileeppov, home">phil<i>ee</i>ppov</a>
-    {
-      aside ? (
-        <slot name="aside" />
-      ) : (
-        <nav>
-          <a class="handle" href="https://x.com/phileeppov" data-count="site:x">@phileeppov</a>
-          <a class="work" href="/review/" data-count="site:pill">Work with me</a>
-        </nav>
-      )
-    }
-  </header>
+  {
+    view ? (
+      <Fragment>
+        {/* The two views of the home page: the wordmark is split around its slot, and the slot holds the switch. The
+            switch is a child of the page rather than of the header, so it can stay pinned while the word scrolls away. */}
+        <SlotSwitch current={view} />
+        <header class="top2">
+          <div class="side l">
+            {view === "facts" ? <a class="handle" href={person.linkedin} data-count="work:linkedin">LinkedIn</a> : <a class="handle" href="https://x.com/phileeppov" data-count="site:x">@phileeppov</a>}
+            <a class="w" href="/" aria-label="phileeppov, home">phil</a>
+          </div>
+          <span class="gap" aria-hidden="true"></span>
+          <div class="side r">
+            <a class="w" href="/" tabindex="-1" aria-hidden="true">ppov</a>
+            {view === "facts" ? <a class="work" href={person.cv} download data-count="work:cv">Download CV</a> : <a class="work" href="/review/" data-count="site:pill">Work with me</a>}
+          </div>
+        </header>
+      </Fragment>
+    ) : (
+      <header class="top">
+        <a class="mark" href="/" aria-label="phileeppov, home">phil<i>ee</i>ppov</a>
+        {
+          aside ? (
+            <slot name="aside" />
+          ) : (
+            <nav>
+              <a class="handle" href="https://x.com/phileeppov" data-count="site:x">@phileeppov</a>
+              <a class="work" href="/review/" data-count="site:pill">Work with me</a>
+            </nav>
+          )
+        }
+      </header>
+    )
+  }
   <slot />
-  <Footer />
+  {view !== "facts" && <Footer />}
   <!-- No one-letter word (and no "an") left hanging at the end of a line: the space after it becomes non-breaking.
        Inline, so it runs as the page is parsed, before the first paint. Only on the wall pages: /review sets its
        breaks by hand. -->
@@ -126,6 +150,14 @@ const aside = Astro.slots.has("aside");
     margin-bottom: 40px;
     font-size: var(--text-meta);
   }
+  /* On a window wider than the wall, the header stops with the wall's grid, 1392px in the middle, as on the home page,
+     so the links on the right stand over the grid's edge on every wall page. /review centres its own page and keeps
+     the full width. */
+  :global(body:has(> main.wall)) .top {
+    width: 100%;
+    max-width: 1392px;
+    margin-inline: auto;
+  }
   .top a {
     color: inherit;
     text-decoration: none;
@@ -178,6 +210,95 @@ const aside = Astro.slots.has("aside");
   @media (max-width: 560px) {
     .top {
       margin-bottom: 32px;
+    }
+  }
+
+  /* The home page's header: the wordmark split around the slot on the wall's middle, the same height as the header above,
+     so the page under it stands where it did. The slot's width comes from the switch (SlotSwitch.astro). */
+  .top2 {
+    --slot-gap: 44px;
+    display: grid;
+    grid-template-columns: 1fr var(--slot-gap) 1fr;
+    align-items: center;
+    width: 100%;
+    max-width: 1392px;
+    margin-inline: auto;
+    height: 29px;
+    margin-bottom: 40px;
+    font-size: var(--text-meta);
+  }
+  .top2 a {
+    color: inherit;
+    text-decoration: none;
+    transition: opacity 120ms ease-out, filter 120ms ease-out;
+  }
+  .side {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-width: 0;
+  }
+  .w {
+    font-size: 22px;
+    font-weight: 500;
+  }
+  .top2 .w {
+    transition: opacity 120ms ease-out, transform 240ms cubic-bezier(0.3, 0.7, 0.2, 1);
+  }
+  /* The p of "ppov" starts further from its edge than the l of "phil" ends: this evens the two gaps to the switch. */
+  .top2 .side.r .w {
+    margin-left: -0.7px;
+  }
+  /* The switch opens under a hand with both names in it: the word parts to let it through and closes after. */
+  :global(html[data-slot-open]) .top2 .side.l .w {
+    transform: translateX(calc(var(--part, 0px) * -1));
+  }
+  :global(html[data-slot-open]) .top2 .side.r .w {
+    transform: translateX(var(--part, 0px));
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .top2 .w {
+      transition: none;
+    }
+  }
+  .top2 .work {
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: var(--surface);
+    box-shadow: var(--raise);
+    font-weight: 500;
+  }
+  .top2 .handle:hover,
+  .top2 .w:hover {
+    opacity: 0.6;
+  }
+  .top2 .work:hover {
+    filter: brightness(1.03);
+  }
+  .top2 a:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 2px;
+    border-radius: 999px;
+  }
+  /* The halves of the word stand 2px from the switch: their ring sits tight, so it doesn't run over it. */
+  .top2 .w:focus-visible {
+    outline-offset: 0;
+    border-radius: 4px;
+  }
+  /* On a phone the header holds only the name and the switch: the rest is on the page under it. */
+  @media (max-width: 767px) {
+    .top2 {
+      margin-bottom: 32px;
+    }
+    .top2 .handle,
+    .top2 .work {
+      display: none;
+    }
+    .side.l {
+      justify-content: flex-end;
+    }
+    .side.r {
+      justify-content: flex-start;
     }
   }
 </style>

@@ -1,0 +1,533 @@
+---
+// The switch between the home page's two versions, standing in the wordmark's slot. In the word: two letters in a
+// recessed tray, the dark thumb under the current version's letter. Long's letter is the anomaly's italic and Short's
+// is the frame's type: the slot's two natures (brand §07), one to each version, and the names follow. Open under a
+// hand, a tap or the keyboard: a capsule with both names, while the word parts to let it through. Pinned once the word
+// has scrolled away: the same tray on a white backing. It's a child of the page, not of the header, so position:
+// sticky keeps it in place as the word leaves, with no script following the scroll.
+interface Props {
+  current: "story" | "facts";
+}
+const { current } = Astro.props;
+const SHORT = "/work/";
+---
+
+<div class="slot-anchor" data-slot-anchor>
+  <nav class="slot" data-slot-nav data-current={current} aria-label="Version of this page">
+    <span class="puck" aria-hidden="true"></span>
+    <span class="tray" aria-hidden="true"></span>
+    <span class="knob" aria-hidden="true"></span>
+    <span class="key k1" aria-hidden="true"><span class="let">e</span></span>
+    <span class="key k2" aria-hidden="true"><span class="let">e</span></span>
+    <a class="opt a" href="/" data-view="story" aria-current={current === "story" ? "page" : undefined}><span>long</span></a>
+    <a class="opt b" href={SHORT} data-view="facts" aria-current={current === "facts" ? "page" : undefined}><span>short</span></a>
+  </nav>
+</div>
+
+<script is:inline>
+  // The version last read is remembered: whoever was last on the short one and comes back to the address gets it
+  // again. Only a fresh visit (typed, bookmarked, followed) is sent on, never a reload or the back button, and never
+  // inside a frame.
+  try {
+    if (self === top && location.pathname === "/" && localStorage.getItem("slot-view") === "facts") {
+      const nav = performance.getEntriesByType("navigation")[0];
+      if (!nav || nav.type === "navigate") location.replace("/work/" + location.search + location.hash);
+    }
+  } catch {}
+</script>
+
+<script>
+  import { count } from "../scripts/review-count";
+
+  const html = document.documentElement;
+  const nav = document.querySelector<HTMLElement>("[data-slot-nav]");
+  if (nav) {
+    const PIN_AT = 8;
+    const REST = 40;
+    let timer = 0;
+    let leaving = false;
+    // Once a hand or a key has been here, the first visit's hint has nothing left to show.
+    let touched = false;
+    addEventListener("pointerdown", () => (touched = true), { once: true, capture: true });
+    addEventListener("keydown", () => (touched = true), { once: true, capture: true });
+    // While a page transition runs over a page that came in open, the pointer seems to leave it; that isn't a hand.
+    let guard = 0;
+    const guarded = () => performance.now() < guard;
+
+    // The version on screen is the one to come back to, however the visitor got here: the switch, a link from the CV,
+    // the back button.
+    const remember = () => {
+      try {
+        if (self === top) localStorage.setItem("slot-view", nav.dataset.current!);
+      } catch {}
+    };
+    remember();
+
+    // The capsule takes its widths from the names, so a longer name just opens wider. The word parts by half of what
+    // the switch grows on each side, so the gaps to it stay the same. Its width stays even: centred, an odd one would
+    // put every edge on half a pixel.
+    const measure = () => {
+      const pad = 16;
+      const wa = Math.ceil(nav.querySelector<HTMLElement>(".a span")!.getBoundingClientRect().width) + pad;
+      let wb = Math.ceil(nav.querySelector<HTMLElement>(".b span")!.getBoundingClientRect().width) + pad;
+      if ((wa + wb) % 2) wb += 1;
+      nav.style.setProperty("--wa", `${wa}px`);
+      nav.style.setProperty("--wb", `${wb}px`);
+      html.style.setProperty("--part", `${(wa + wb + 4 - REST) / 2}px`);
+    };
+    measure();
+    document.fonts?.ready.then(measure);
+
+    const isPinned = () => nav.classList.contains("pinned");
+    const hasFocus = () => !!nav.querySelector(":focus-visible");
+    const setOpen = (on: boolean) => {
+      nav.classList.toggle("open", on);
+      if (on && !isPinned()) html.dataset.slotOpen = "";
+      else delete html.dataset.slotOpen;
+    };
+
+    // Pinned as soon as the word starts to leave, so the tray never stands on the page without its backing. Pinning
+    // folds it, unless the keyboard is on it.
+    const pin = () => {
+      const now = scrollY > PIN_AT;
+      if (now === isPinned()) return;
+      nav.classList.toggle("pinned", now);
+      setOpen(hasFocus());
+    };
+    addEventListener("scroll", pin, { passive: true });
+    pin();
+
+    // A hand opens it after a beat, so a pointer crossing the header doesn't make the word jump; leaving folds it.
+    const byHand = (e: PointerEvent) => e.pointerType === "mouse" || e.pointerType === "pen";
+    nav.addEventListener("pointerenter", (e) => {
+      if (!byHand(e)) return;
+      touched = true;
+      clearTimeout(timer);
+      timer = window.setTimeout(() => setOpen(true), 100);
+    });
+    nav.addEventListener("pointerleave", (e) => {
+      if (!byHand(e) || guarded()) return;
+      clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        if (!hasFocus()) setOpen(false);
+      }, 120);
+    });
+    nav.addEventListener("focusin", () => {
+      if (hasFocus()) setOpen(true);
+    });
+    nav.addEventListener("focusout", (e) => {
+      if (!nav.contains(e.relatedTarget as Node)) setOpen(false);
+    });
+    nav.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape") return;
+      setOpen(false);
+      (document.activeElement as HTMLElement | null)?.blur();
+    });
+
+    // A tap or a click on the folded switch opens it first, so both names are read before anything changes. A click
+    // with no pointer behind it (a screen reader, voice control) goes straight through. Open, the other name takes you
+    // there; the current one, or a press anywhere else, folds it.
+    nav.addEventListener("click", (e) => {
+      if (leaving) {
+        e.preventDefault();
+        return;
+      }
+      const a = (e.target as Element).closest<HTMLAnchorElement>("a[data-view]");
+      if (!nav.classList.contains("open") && e.detail > 0) {
+        e.preventDefault();
+        clearTimeout(timer);
+        setOpen(true);
+        return;
+      }
+      if (!a) return;
+      if (a.hasAttribute("aria-current")) {
+        e.preventDefault();
+        if (!matchMedia("(hover: hover)").matches) setOpen(false);
+        return;
+      }
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      e.preventDefault();
+      go(a);
+    });
+    // A press rather than a click: iOS sends no click from plain text.
+    document.addEventListener("pointerdown", (e) => {
+      if (!nav.contains(e.target as Node)) setOpen(false);
+    });
+
+    // The thumb goes over, then the page changes; the next page starts open, as the hand left it. Counted here, once
+    // the switch is really used, not when a tap only opens it.
+    const go = (a: HTMLAnchorElement) => {
+      leaving = true;
+      nav.dataset.current = a.dataset.view;
+      count(a.dataset.view === "facts" ? "site:switch-facts" : "site:switch-story");
+      // Stored before leaving too: the long version's address would otherwise send the visitor straight back.
+      try {
+        if (self === top) localStorage.setItem("slot-view", a.dataset.view!);
+        sessionStorage.setItem("slot-carry", "1");
+      } catch {}
+      window.setTimeout(() => location.assign(a.pathname + location.search), 200);
+    };
+
+    // Back to this page from the browser's cache: it comes back as it was left, mid-switch. Put it right.
+    addEventListener("pageshow", (e) => {
+      if (!e.persisted) return;
+      leaving = false;
+      nav.classList.remove("instant");
+      nav.dataset.current = nav.querySelector<HTMLAnchorElement>("a[aria-current]")?.dataset.view ?? nav.dataset.current;
+      remember();
+      setOpen(false);
+    });
+
+    // Came in open from the other version: folds once the hand moves away, or after a while if it doesn't move. Not
+    // while the page transition runs over it.
+    try {
+      if (sessionStorage.getItem("slot-carry") && !isPinned()) {
+        sessionStorage.removeItem("slot-carry");
+        nav.classList.add("instant");
+        setOpen(true);
+        requestAnimationFrame(() => requestAnimationFrame(() => nav.classList.remove("instant")));
+        guard = performance.now() + 900;
+        addEventListener(
+          "pagereveal",
+          (e) => {
+            const vt = (e as Event & { viewTransition?: { finished: Promise<void> } }).viewTransition;
+            if (!vt) return;
+            guard = Infinity;
+            vt.finished.finally(() => (guard = 0));
+          },
+          { once: true },
+        );
+        const fold = () => {
+          if (guarded()) return void window.setTimeout(fold, 120);
+          if (!nav.matches(":hover") && !hasFocus()) setOpen(false);
+        };
+        const away = window.setTimeout(fold, 2500);
+        const onMove = (e: PointerEvent) => {
+          if (guarded()) return;
+          removeEventListener("pointermove", onMove);
+          clearTimeout(away);
+          if (!nav.contains(e.target as Node)) window.setTimeout(fold, 120);
+        };
+        addEventListener("pointermove", onMove);
+      } else sessionStorage.removeItem("slot-carry");
+    } catch {}
+
+    // Once a visit, a second after the page is seen, it opens by itself for a moment, so the names are seen once
+    // without a hand. Not if the visitor has already touched the page, and not in a tab nobody is looking at.
+    const hint = () => {
+      setOpen(true);
+      window.setTimeout(() => {
+        if (!nav.matches(":hover") && !hasFocus()) setOpen(false);
+      }, 1500);
+    };
+    try {
+      const framed = self !== top;
+      if ((framed || !sessionStorage.getItem("slot-hint")) && scrollY <= PIN_AT) {
+        const start = () =>
+          window.setTimeout(() => {
+            if (touched || isPinned() || nav.classList.contains("open")) return;
+            try {
+              if (!framed) sessionStorage.setItem("slot-hint", "1");
+            } catch {}
+            hint();
+          }, 1100);
+        if (!document.hidden) start();
+        else {
+          const seen = () => {
+            if (document.hidden) return;
+            removeEventListener("visibilitychange", seen);
+            start();
+          };
+          addEventListener("visibilitychange", seen);
+        }
+      }
+    } catch {}
+  }
+</script>
+
+<style>
+  .slot-anchor {
+    position: sticky;
+    top: 14px;
+    align-self: flex-start;
+    width: 0;
+    height: 0;
+    margin-left: 50%;
+    z-index: 40;
+  }
+
+  /* One object, its parts placed by variables per state: the box (W×H), the two letter cells (x, width; a shared top
+     and height), the dark thumb. Transitions on the parts make the morph. Centred on the word's lowercase letters. */
+  .slot {
+    --ease: cubic-bezier(0.3, 0.7, 0.2, 1);
+    --top: 5px;
+    --W: 40px;
+    --H: 22px;
+    --x1: 2px;
+    --w1: 18px;
+    --x2: 20px;
+    --w2: 18px;
+    --ky: 2px;
+    --kh: 18px;
+    --tx: 2px;
+    --ty: 2px;
+    --tw: 18px;
+    --th: 18px;
+    --tr: 9px;
+    --wa: 46px;
+    --wb: 47px;
+    position: absolute;
+    left: 0;
+    top: var(--top);
+    width: var(--W);
+    height: var(--H);
+    translate: -50% 0;
+    transition: width 240ms var(--ease), height 240ms var(--ease), top 240ms var(--ease), translate 240ms var(--ease);
+  }
+  .slot[data-current="facts"] {
+    --tx: 20px;
+  }
+  /* A hand needs more than the tray's height: the hit area reaches 44px, and sideways only up to the word. */
+  .slot::before {
+    content: "";
+    position: absolute;
+    inset: -11px -2px;
+  }
+  .puck {
+    position: absolute;
+    inset: 0;
+    border-radius: 14px;
+    background: var(--surface);
+    box-shadow: var(--float);
+    opacity: 0;
+    transition: opacity 200ms ease-out, inset 240ms var(--ease), border-radius 240ms var(--ease);
+  }
+  .tray {
+    position: absolute;
+    inset: 0;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--color-black) 6%, var(--color-off-white));
+    box-shadow: var(--recess), 0 0.5px 0 rgb(255 255 255 / 0.7);
+  }
+  .knob {
+    position: absolute;
+    left: var(--tx);
+    top: var(--ty);
+    width: var(--tw);
+    height: var(--th);
+    border-radius: var(--tr);
+    background: var(--btn-dark);
+    box-shadow: var(--btn-edge);
+    transition: left 160ms var(--ease), top 240ms var(--ease), width 240ms var(--ease), height 240ms var(--ease), border-radius 240ms var(--ease);
+  }
+  .key {
+    position: absolute;
+    left: var(--x);
+    top: var(--ky);
+    width: var(--w);
+    height: var(--kh);
+    transition: left 240ms var(--ease), top 240ms var(--ease), width 240ms var(--ease), height 240ms var(--ease);
+  }
+  .k1 {
+    --x: var(--x1);
+    --w: var(--w1);
+  }
+  .k2 {
+    --x: var(--x2);
+    --w: var(--w2);
+  }
+  /* The letters: the same height of lowercase in both faces (Georgia sits lower, so it's set larger), both on the word's
+     baseline. Each line box stands at a measured offset from its cell's top; if the typefaces change, measure again
+     (the baseline of "phil" against the letter's). */
+  .let {
+    position: absolute;
+    left: 0;
+    right: 0;
+    z-index: 1;
+    color: var(--ink);
+    letter-spacing: 0;
+    text-align: center;
+    transition: opacity 140ms ease-out 40ms, color 160ms var(--ease);
+  }
+  .k1 .let {
+    top: -5.5px;
+    height: 24px;
+    font-family: var(--font-anomaly);
+    font-size: 24px;
+    font-style: italic;
+    font-weight: 400;
+    line-height: 24px;
+  }
+  .k2 .let {
+    top: -2.5px;
+    height: 21px;
+    font-family: var(--font-ui);
+    font-size: 21px;
+    font-weight: 500;
+    line-height: 21px;
+  }
+  .slot[data-current="story"] .k1 .let,
+  .slot[data-current="facts"] .k2 .let {
+    color: var(--color-off-white);
+  }
+
+  /* The names: always there for a screen reader and the keyboard, seen once it's open. Lowercase, like the word they
+     stand in; long in the italic, short in the frame's type, matched by the height of their lowercase. Each sits a
+     little up in its half: Georgia lies 1px lower in its line than Onest, so long rises 2px and short 1px, and the two
+     share a baseline with both words centred on the thumb. Measured; if the typefaces change, measure again. */
+  .opt {
+    position: absolute;
+    top: var(--ky);
+    height: var(--kh);
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    color: var(--ink);
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1;
+    text-decoration: none;
+    white-space: nowrap;
+    opacity: 0;
+    -webkit-tap-highlight-color: transparent;
+    transition: left 240ms var(--ease), width 240ms var(--ease), top 240ms var(--ease), height 240ms var(--ease), opacity 70ms ease-out, color 160ms var(--ease);
+  }
+  .opt.a {
+    left: var(--x1);
+    width: var(--w1);
+    font-family: var(--font-anomaly);
+    font-size: 15px;
+    font-style: italic;
+    font-weight: 400;
+    letter-spacing: 0;
+  }
+  .opt.b {
+    left: var(--x2);
+    width: var(--w2);
+  }
+  .opt span {
+    position: relative;
+  }
+  .opt.a span {
+    top: -2px;
+  }
+  .opt.b span {
+    top: -1px;
+  }
+  .opt[aria-current] {
+    cursor: default;
+  }
+  .slot[data-current="story"] .opt.a,
+  .slot[data-current="facts"] .opt.b {
+    color: var(--color-off-white);
+  }
+  .slot .opt:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 1px;
+    border-radius: 10px;
+  }
+
+  /* Open: the tray widens into a capsule with the names, the thumb stays under the current one. */
+  .slot.open {
+    --top: 4px;
+    --W: calc(var(--wa) + var(--wb) + 4px);
+    --H: 24px;
+    --x1: 2px;
+    --w1: var(--wa);
+    --x2: calc(var(--wa) + 2px);
+    --w2: var(--wb);
+    --ky: 2px;
+    --kh: 20px;
+    --tx: 2px;
+    --ty: 2px;
+    --tw: var(--wa);
+    --th: 20px;
+    --tr: 10px;
+  }
+  .slot.open[data-current="facts"] {
+    --tx: calc(var(--wa) + 2px);
+    --tw: var(--wb);
+  }
+  .slot.open .tray {
+    background: color-mix(in srgb, white 30%, var(--tray));
+    box-shadow: var(--recess), 0 10px 28px -14px color-mix(in srgb, var(--color-black) 30%, transparent);
+  }
+  .slot.open .opt {
+    opacity: 1;
+    transition: left 240ms var(--ease), width 240ms var(--ease), top 240ms var(--ease), height 240ms var(--ease), opacity 140ms ease-out 60ms, color 160ms var(--ease);
+  }
+  /* The other name, quieter. The italic's strokes are thinner, so at the same strength long reads paler than short and
+     the hook of its g fades at 1x: long keeps more. */
+  .slot.open .opt:not([aria-current]) {
+    opacity: 0.7;
+  }
+  .slot.open .opt.a:not([aria-current]) {
+    opacity: 0.85;
+  }
+  .slot.open .opt:not([aria-current]):hover {
+    opacity: 1;
+  }
+  .slot.open .let {
+    opacity: 0;
+    transition: opacity 70ms ease-out, color 160ms var(--ease);
+  }
+  /* Open, a finger above or below a name still gets the name. */
+  .slot.open .opt::before {
+    content: "";
+    position: absolute;
+    inset: -11px 0;
+  }
+
+  /* Pinned: the same tray floating over the page, on a white backing so it reads over pictures and text. On a wide
+     window it stands just left of the caption axis. */
+  .slot.pinned {
+    --top: 4px;
+  }
+  .slot.pinned.open {
+    --top: 3px;
+  }
+  .slot.pinned .puck {
+    opacity: 1;
+    inset: -3px;
+  }
+  .slot.pinned.open .puck {
+    border-radius: 15px;
+  }
+  @media (min-width: 1200px) {
+    .slot.pinned {
+      translate: calc(-50% - 13px) 0;
+    }
+  }
+
+  /* High contrast: the thumb and the current letter or name keep the system's highlight, so the current version shows. */
+  @media (forced-colors: active) {
+    .tray {
+      border: 1px solid CanvasText;
+    }
+    .knob {
+      forced-color-adjust: none;
+      background: Highlight;
+      box-shadow: none;
+    }
+    .slot[data-current="story"] .k1 .let,
+    .slot[data-current="facts"] .k2 .let,
+    .slot[data-current="story"] .opt.a,
+    .slot[data-current="facts"] .opt.b {
+      forced-color-adjust: none;
+      color: HighlightText;
+    }
+  }
+
+  .slot.instant,
+  .slot.instant * {
+    transition: none !important;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .slot,
+    .slot *,
+    .slot *::before {
+      transition: none !important;
+      animation: none !important;
+    }
+  }
+</style>

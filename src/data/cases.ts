@@ -31,7 +31,7 @@ export interface Case {
 const s = (...ids: string[]): Shot[] => ids.map((img) => ({ img }));
 
 // Short words keep to the word after them, so no line ends on a preposition or an article. Only whitespace changes.
-const tie = <T,>(v: T): T => {
+export const tie = <T,>(v: T): T => {
   if (typeof v === "string") return v.replace(/(?<![\p{L}\p{N}'’.-])(a|an|the|to|of|in|on|at|by|for|with|from|into|my|I)\s+/giu, "$1 ") as unknown as T;
   if (Array.isArray(v)) return v.map(tie) as unknown as T;
   if (v && typeof v === "object") return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, tie(x)])) as unknown as T;

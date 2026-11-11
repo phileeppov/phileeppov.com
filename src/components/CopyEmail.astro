@@ -1,0 +1,77 @@
+---
+// The address as text: a link to write, and a quiet button that copies it, for a reader on a machine with no mail app.
+// One script for every copy button on the page (Astro bundles a component's script once).
+import { person } from "../data/facts";
+
+interface Props {
+  gem?: boolean;
+}
+const { gem = false } = Astro.props;
+---
+
+<span class="ce"><a class="link" href={`mailto:${person.email}`} data-gem={gem ? "" : undefined} data-count="work:email">{person.email}</a><button type="button" class="copy" data-copy={person.email} data-count="work:copy" aria-label="Copy the email address">Copy</button><span class="said" role="status"></span></span>
+
+<script>
+  for (const button of document.querySelectorAll<HTMLButtonElement>("button[data-copy]")) {
+    let timer = 0;
+    button.addEventListener("click", async () => {
+      const text = button.dataset.copy ?? "";
+      let ok = false;
+      try {
+        await navigator.clipboard.writeText(text);
+        ok = true;
+      } catch {
+        // No clipboard here: the address is selected instead, ready for the keyboard.
+        const link = button.previousElementSibling;
+        if (link) getSelection()?.selectAllChildren(link);
+      }
+      if (!ok) return;
+      button.textContent = "Copied";
+      // Said aloud too: the button's label doesn't change for a screen reader.
+      const said = button.nextElementSibling;
+      if (said) {
+        said.textContent = "";
+        window.setTimeout(() => (said.textContent = "Email address copied"), 50);
+      }
+      clearTimeout(timer);
+      timer = window.setTimeout(() => (button.textContent = "Copy"), 1600);
+    });
+  }
+</script>
+
+<style>
+  .ce {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    column-gap: 10px;
+  }
+  .copy {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    font-size: var(--text-meta);
+    letter-spacing: inherit;
+    opacity: 0.6;
+    cursor: pointer;
+    transition: opacity 120ms ease-out;
+  }
+  .copy:hover {
+    opacity: 1;
+  }
+  .said {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .copy:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+</style>

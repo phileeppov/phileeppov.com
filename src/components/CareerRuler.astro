@@ -1,0 +1,114 @@
+---
+// The record to scale, newest on the left: a capsule's width is the time spent there. The same material as the view
+// switch, a tray with raised capsules, one per place; a capsule is a link to that place on the page. Wide windows only:
+// on a narrower one the capsules can't hold their names, and the place lines take over.
+import { places, months, years } from "../data/facts";
+
+interface Props {
+  lines?: boolean; // under each capsule, what and when
+}
+const { lines = false } = Astro.props;
+const cols = places.map((p) => ({ ...p, m: months(p.from, p.to) }));
+const template = cols.map((c) => `${c.m}fr`).join(" ");
+const ys = years();
+---
+
+<div class="scale">
+  <div class="years" style={`grid-template-columns: ${ys.map((y) => `${y.months}fr`).join(" ")}`} aria-hidden="true">
+    {ys.map((y) => <span>{y.months > 2 ? y.year : ""}</span>)}
+  </div>
+  <nav class="ruler" style={`grid-template-columns: ${template}`} aria-label="Experience, newest first, to scale">
+    {cols.map((c) => <a href={`#${c.id}`}>{c.name}</a>)}
+  </nav>
+  {
+    lines && (
+      <div class="lines" style={`grid-template-columns: ${template}`}>
+        {cols.map((c) => (
+          <p>
+            <span class="term">{c.term}</span>
+            <br />
+            {c.meta}
+            {c.id === "premium" && c.note && (
+              <>
+                <br />
+                {c.note}
+              </>
+            )}
+          </p>
+        ))}
+      </div>
+    )
+  }
+</div>
+
+<style>
+  .scale {
+    --small: var(--text-meta);
+  }
+  .years {
+    display: grid;
+    gap: 2px;
+    padding-inline: 3px;
+    margin-bottom: 6px;
+    font-size: var(--text-meta);
+    line-height: 1.4;
+    font-variant-numeric: tabular-nums;
+    opacity: 0.6;
+  }
+  .years span {
+    padding-left: 12px;
+  }
+  .ruler {
+    display: grid;
+    gap: 2px;
+    padding: 3px;
+    border-radius: 999px;
+    background: var(--tray);
+    box-shadow: var(--recess);
+    font-size: var(--text-meta);
+    font-weight: 500;
+    line-height: 1;
+  }
+  .ruler a {
+    padding: 9px 12px;
+    border-radius: 999px;
+    background: var(--surface);
+    box-shadow: var(--raise);
+    color: inherit;
+    text-decoration: none;
+    white-space: nowrap;
+    overflow: hidden;
+    transition: filter 120ms ease-out, transform 120ms ease-out;
+  }
+  .ruler a:hover {
+    filter: brightness(1.03);
+  }
+  .ruler a:active {
+    transform: scale(0.995);
+  }
+  .ruler a:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 2px;
+  }
+  .lines {
+    display: grid;
+    gap: 2px;
+    padding-inline: 3px;
+    margin-top: 10px;
+    font-size: var(--text-meta);
+    line-height: 1.45;
+  }
+  .lines p {
+    margin: 0;
+    padding-inline: 12px 16px;
+    opacity: 0.6;
+  }
+  .term {
+    font-variant-numeric: tabular-nums;
+  }
+  @media (max-width: 1199px) {
+    .scale {
+      display: none;
+    }
+  }
+</style>

@@ -30,19 +30,19 @@ main.wall {
   max-width: none;
 }
 
-/* The grid: twelve columns, one gutter. On a very wide window it stops at 1392px and the space stays on the right
-   (as padding, so a part's hairline and the dark band still run the full width). */
+/* The grid: twelve columns, one gutter. On a very wide window it stops at 1392px in the middle, the space shared by
+   the two sides (as padding, so a part's hairline and the dark band still run the full width). */
 .grid {
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
   column-gap: var(--gutter);
-  padding-right: max(0px, 100% - 1392px);
+  padding-inline: max(0px, (100% - 1392px) / 2);
 }
 
 /* A part of the wall: a full-width hairline on top, the label 24px under it. */
 .part {
   margin-inline: calc(var(--bleed) * -1);
-  padding: 24px max(var(--bleed), 100% + var(--bleed) - 1392px) 0 var(--bleed);
+  padding: 24px max(var(--bleed), (100% + 2 * var(--bleed) - 1392px) / 2) 0;
   border-top: 0.5px solid var(--hair);
 }
 
