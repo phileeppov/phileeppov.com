@@ -49,11 +49,11 @@ const aside = Astro.slots.has("aside");
         <header class="top2" data-gem-off={view === "facts" ? "" : undefined}>
           <div class="side l">
             {view === "facts" ? <a class="handle" href={person.linkedin} data-count="work:linkedin">LinkedIn</a> : <a class="handle" href="https://x.com/phileeppov" data-count="site:x">@phileeppov</a>}
-            <a class="w" href="/" aria-label="phileeppov, home">phil</a>
+            <a class="w" href="/" aria-label="phileeppov, home" data-gem-off data-home={view === "facts" ? "" : undefined}>phil</a>
           </div>
           <span class="gap" aria-hidden="true"></span>
           <div class="side r">
-            <a class="w" href="/" tabindex="-1" aria-hidden="true">ppov</a>
+            <a class="w" href="/" tabindex="-1" aria-hidden="true" data-gem-off data-home={view === "facts" ? "" : undefined}>ppov</a>
             {view === "facts" ? <a class="work" href={person.cv} download data-count="work:cv">Download CV</a> : <a class="work" href="/review/" data-count="site:pill">Work with me</a>}
           </div>
         </header>
@@ -94,6 +94,15 @@ const aside = Astro.slots.has("aside");
 
 <script>
   import { count } from "../scripts/review-count";
+
+  // On the short version the wordmark is the way home, to the long one: it says so to the remembered version first,
+  // or the home page would send it straight back to /work (SlotSwitch.astro).
+  for (const a of document.querySelectorAll("a[data-home]"))
+    a.addEventListener("click", () => {
+      try {
+        localStorage.setItem("slot-view", "story");
+      } catch {}
+    });
 
   // Which way out was taken: each name once a visit, nothing else sent.
   document.addEventListener("click", (event) => {

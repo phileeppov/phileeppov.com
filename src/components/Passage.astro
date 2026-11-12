@@ -117,7 +117,7 @@
       else if (o && !closing && act && act.from && new URL(act.from.url).pathname === o.from) { x = o.x; y = o.y; }
       else {
         // No pressed point (a page reached another way): from the wordmark's slot.
-        const i = document.querySelector(".mark i");
+        const i = document.querySelector(".mark i") || document.querySelector("[data-slot-nav]");
         const r = i ? i.getBoundingClientRect() : { left: 24, top: 16, width: 16, height: 18 };
         x = r.left + r.width / 2; y = r.top + r.height * 0.54;
       }

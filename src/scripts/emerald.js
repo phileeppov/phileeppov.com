@@ -619,7 +619,7 @@ addEventListener('pointermove', (e) => {
 }, { passive: true });
 addEventListener('pointerdown', (e) => {
   lastInput = 'pointer'; ptr.real = true;
-  const el = gemOf(e.target);
+  const el = TOUCH ? e.target.closest('[data-gem]') : gemOf(e.target);
   if (TOUCH) held = null;
   if (!el) return;
   ptr.x = e.clientX; ptr.y = e.clientY;

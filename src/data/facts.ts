@@ -20,9 +20,6 @@ export interface Place {
   meta: string;
   term: string;
   note?: string;
-  // The CV's line on personal projects under the place, cut where a field starts: what they are, then each project,
-  // linked to its page here.
-  personal?: { title: string; lead: string; items: { name: string; href: string; text: string }[] };
   from: [number, number];
   to?: [number, number]; // none: to the present
   work: Entry[];
@@ -33,7 +30,7 @@ export const person = tie({
   role: "Product Designer",
   format: "Remote · Tbilisi, Georgia (UTC+4) · CET hours or US overlap · open to contract or full-time · available now",
   summary:
-    "Product designer, five years, mostly 0→1. Designed a pharmacy website from a spec I wrote, and product and visual identity for a crypto wallet and a fantasy sports game. Before that, worked on game recording in Medal.tv, a desktop app with 3M daily users.",
+    "Product designer, five years, mostly 0→1. Designed a pharmacy website from a spec I wrote, and product and visual identity for a crypto wallet and a fantasy sports game. Before that, worked on game recording at Medal.tv, a desktop app with 3M daily users.",
   email: "nikita@phileeppov.com",
   linkedin: "https://linkedin.com/in/phileeppov",
   cv: "/Nikita-Filippov-Product-Designer-CV.pdf",
@@ -46,15 +43,6 @@ export const places: Place[] = tie([
     meta: "Remote",
     term: "Nov 2025 – present",
     from: [2025, 11],
-    // The CV ends the line with phileeppov.com: on phileeppov.com itself that would be a link to the page you're on.
-    personal: {
-      title: "Personal projects",
-      lead: "since Aug 2026, designed by me, built with Claude Code",
-      items: [
-        { name: "Glass", href: "/glass/", text: "which turns a logo into a glass app icon" },
-        { name: "chefkiss", href: "/chefkiss/", text: "reaction buttons for Claude's answers" },
-      ],
-    },
     work: [
       {
         name: "Ailekmed",
@@ -63,10 +51,10 @@ export const places: Place[] = tie([
         meta: "May – Jul 2026 · Independent · six weeks, with one developer",
         slug: "ailekmed",
         did: [
-          "Proposed building the site around a loyalty program to win a new pharmacy its first regulars. Designed the program, signup and a digital card that turns into a barcode at the counter.",
-          "Designed catalog, search, pickup reservations and account from scratch and wrote all interface copy.",
+          "Proposed building the site around a loyalty program to help a new pharmacy win its first regulars. Designed the program, signup and a digital card that turns into a barcode at the counter.",
+          "Designed the catalog, search, pickup reservations and account area from scratch and wrote all interface copy.",
         ],
-        result: "Live; 160 loyalty sign-ups in the first 10 weeks with no online ads, and customers use the card at the counter.",
+        result: "Live; 160 loyalty sign-ups in the first 10 weeks with no online ads, and customers use the card at the counter.",
         shotNote: "The site is live. For this case I translated the screens and made up a US address.",
       },
       {
@@ -75,7 +63,7 @@ export const places: Place[] = tie([
         term: "Nov 2025 – Apr 2026",
         slug: "sports-club",
         did: ["Owned the visual identity and carried it into the product: landing page, cards and packs, dashboard, market. Defined the visual system and UI states that a second designer applied to the rest of the product."],
-        result: "Launched publicly; ran tournaments with real ETH stakes. PlayMini reports a $1M+ token market cap after fair launch and 86 ETH raised in a community round.",
+        result: "Launched publicly; ran tournaments with real ETH stakes.",
       },
     ],
   },
@@ -84,7 +72,7 @@ export const places: Place[] = tie([
     name: "Premium Studios",
     meta: "Product Designer",
     term: "Dec 2022 – Oct 2025",
-    note: "US product studio. Mostly the only designer on each project.",
+    note: "US product studio. Usually the sole designer on each project.",
     from: [2022, 12],
     to: [2025, 10],
     work: [
@@ -109,7 +97,7 @@ export const places: Place[] = tie([
         name: "Presto",
         what: "A client of the studio: a blockchain explorer for people new to crypto",
         term: "May 2023 – Oct 2024",
-        did: ["Designed the product and visual identity from scratch. For part of the project, a studio colleague and I worked for Presto directly."],
+        did: ["Designed the product and visual identity from scratch. For part of the project, Presto hired a studio colleague and me directly."],
       },
     ],
   },
@@ -126,14 +114,14 @@ export const places: Place[] = tie([
         name: "Recording flow",
         slug: "medal",
         did: ["Reworked how recording starts: new users couldn't tell how to start or control it, and support kept getting the question. The only designer on the flow, from the PM's direction to the final spec."],
-        result: "Shipped after I left. Two redesigns later, the core is still there: a separate recording control, the active game next to Add Game, on-screen hotkeys and a manual pick if detection fails.",
+        result: "Shipped after I left. Two redesigns later, the core is still there: a separate recording control, the active game next to Add Game, on-screen hotkeys and manual game selection if detection fails.",
       },
       {
         name: "Mavatars",
         what: "Avatars and rewards for Medal",
         meta: "Medal.tv · with a PM, a 3D artist and engineers",
         slug: "mavatars",
-        did: ["Designed it end to end, from the profile, feed and pins to item grades and quests."],
+        did: ["Designed the product end to end, from the profile, feed and pins to item grades and quests."],
       },
     ],
   },
@@ -154,10 +142,15 @@ export const places: Place[] = tie([
   },
 ]);
 
+// The CV's "Projects" line, cut where a field starts (the name, what it is, who made it), linked to its page here.
+export const projects = tie([
+  { name: "Glass", href: "/glass/", what: "Turns a logo into a glass app icon", did: "I designed it myself and built it with Claude Code." },
+]);
+
 export const skills = tie([
-  { label: "Design", text: "product design 0→1, interaction design, visual identity, design systems, UX writing, prototyping" },
-  { label: "Tools", text: "Figma, Framer, Cinema 4D, ComfyUI, Claude Code, Notion, Linear" },
-  { label: "Domains", text: "gaming, crypto, pharmacy retail" },
+  { label: "Design", text: "product design 0→1, interaction design, visual identity, design systems, UX writing, prototyping" },
+  { label: "Tools", text: "Figma, Framer, Cinema 4D, ComfyUI, Claude Code, Notion, Linear" },
+  { label: "Domains", text: "gaming, social, crypto, pharmacy retail" },
 ]);
 
 export const education = tie({

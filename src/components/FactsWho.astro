@@ -33,7 +33,7 @@ const lines = two.map((l) => (join(l).length === longest ? halves(l) : [l]));
               {parts.map((p, j) => (
                 <Fragment>
                   {j > 0 && <span class="sep"> · </span>}
-                  <span class="it">{p.map((x, k) => <Fragment>{k > 0 && " · "}<span class="w">{x}</span></Fragment>)}</span>
+                  <span class="it">{p.map((x, k) => <Fragment>{k > 0 && " · "}<span class="w">{x}</span></Fragment>)}</span>
                 </Fragment>
               ))}
             </span>

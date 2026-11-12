@@ -7,7 +7,7 @@ import Site from "../../layouts/Site.astro";
 import FactsWho from "../../components/FactsWho.astro";
 import CareerRuler from "../../components/CareerRuler.astro";
 import CopyEmail from "../../components/CopyEmail.astro";
-import { person, places, skills, education, languages } from "../../data/facts";
+import { person, places, projects, skills, education, languages } from "../../data/facts";
 import { cases, shot, tie } from "../../data/cases";
 
 const withPlace = places.flatMap((p) => p.work.map((w) => ({ ...w, place: p })));
@@ -29,8 +29,8 @@ const sheet = withPlace.filter((w) => w.slug).map((w) => {
   return { ...w, title: c.name, src, twin, widths: widthsOf(src), design, anchor: first ? w.place.id : undefined };
 });
 const others = withPlace.filter((w) => !w.slug);
-const personal = places.find((p) => p.personal)?.personal;
-const hasFreelance = !seen.has("freelance");
+// A place with no case of its own: the ruler's capsule lands on its first row in Also.
+const anchorOf = (w: (typeof withPlace)[number]) => (!seen.has(w.place.id) && w.place.work.find((x) => !x.slug)?.name === w.name ? w.place.id : undefined);
 // The case named after the place takes the place's dates; other cases only name the place, its dates aren't theirs.
 // The only work of a place takes the place's dates too: they are its own.
 // A line break never leaves the separator at a line's end: it goes down with what follows it.
@@ -53,7 +53,6 @@ const where = (w: (typeof withPlace)[number]) => {
   for (let k = 2; k < xs.length; k++) if (worst(k) < worst(best)) best = k;
   return [keepDots(join(xs.slice(0, best))), keepDots(join(xs.slice(best)))];
 };
-const upFirst = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 ---
 
 <Site passage view="facts" title={`${person.name}, ${person.role}`} description={person.summary} image="/work-og.png">
@@ -66,14 +65,14 @@ const upFirst = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
       <div class="rowsN">
         {
           places.map((p) => (
-            <p class="placeN"><span class="name">{p.name}</span> <span class="quiet term">{p.term}</span></p>
+            <p class="placeN"><span class="name">{p.name}</span> <span class="quiet term">{p.term}</span>{p.id === "premium" && p.note && <span class="quiet note2">{p.note}</span>}</p>
           ))
         }
       </div>
     </div>
 
     {
-      sheet.map((w) => (
+      sheet.map((w, n) => (
         <article class="part case grid" id={w.anchor}>
           <div class="print" style={`--d: ${w.design}px`}>
             <a class:list={["shot", w.twin && "pair"]} href={`/work/${w.slug}/`} data-count="work:case" data-gem-to={`case-${w.slug}`} tabindex="-1" aria-hidden="true">
@@ -84,14 +83,14 @@ const upFirst = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
                     <Image src={w.twin} alt="" widths={widthsOf(w.twin)} sizes="(max-width: 767px) calc(50vw - 30px), 296px" loading="lazy" />
                   </Fragment>
                 ) : (
-                  <Image src={w.src} alt="" widths={w.widths} sizes="(max-width: 767px) calc(100vw - 48px), 684px" loading="lazy" />
+                  <Image src={w.src} alt="" widths={w.widths} sizes="(max-width: 767px) calc(100vw - 48px), 684px" loading={n === 0 ? "eager" : "lazy"} />
                 )
               }
             </a>
             {w.shotNote && <p class="note quiet">{w.shotNote}</p>}
           </div>
           <div class="fields">
-            <h2><a class="link" id={`case-${w.slug}`} href={`/work/${w.slug}/`} data-gem data-count="work:case">{w.title} <span class="arw">→</span></a></h2>
+            <h2><a class="link" id={`case-${w.slug}`} href={`/work/${w.slug}/`} data-gem data-count="work:case">{w.title} <span class="arw" aria-hidden="true">→</span></a></h2>
             <p class="quiet what">{w.what ?? w.place.note}</p>
             <p class="quiet term">{where(w).map((h, i) => <Fragment>{i > 0 && <span class="sep"> · </span>}<span class="half">{h}</span></Fragment>)}</p>
             {w.did?.map((d) => <p class="gap quiet">{d}</p>)}
@@ -101,27 +100,24 @@ const upFirst = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
       ))
     }
 
-    <section class="part tail grid" id={hasFreelance ? "freelance" : undefined}>
+    <section class="part tail grid">
       <div class="side">
         <h2>Also</h2>
       </div>
       <div class="rows">
         {
-          personal && (
+          projects.map((x) => (
             <div class="other">
-              <h3>{personal.title}</h3>
-              <p class="quiet what">{upFirst(personal.lead)}</p>
-              {personal.items.map((x) => (
-                <p>
-                  <a class="link" href={x.href}>{x.name}</a>, {x.text}
-                </p>
-              ))}
+              <h3><a class="link" href={x.href}>{x.name}</a></h3>
+              <p class="quiet what">{x.what}</p>
+              <p class="quiet">{x.did}</p>
+              <p class="quiet term">Personal project</p>
             </div>
-          )
+          ))
         }
         {
           others.map((w) => (
-            <div class="other">
+            <div class="other" id={anchorOf(w)}>
               <h3>{w.name}</h3>
               {w.what && <p class="quiet what">{w.what}</p>}
               {w.did?.map((d) => <p class="quiet">{d}</p>)}
@@ -148,6 +144,7 @@ const upFirst = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
     <!-- The end of the page: how to reach me, and one line for someone with a product, with no free work offered. -->
     <section class="part close grid" id="contact">
+      <span id="site-end" hidden></span>
       <div class="side">
         <h2>Contact</h2>
         <p class="gap"><CopyEmail /></p>
@@ -309,6 +306,25 @@ const upFirst = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
   .rows.tight {
     gap: 6px;
   }
+  /* Its rule as long as the others: the table is wider than a caption, the line isn't. */
+  .part > .rows.tight {
+    position: relative;
+    border-top: 0;
+  }
+  .part > .rows.tight::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: min(100%, var(--cap));
+    border-top: 0.5px solid var(--rule);
+  }
+  .other {
+    scroll-margin-top: 56px;
+  }
+  .placeN .note2 {
+    display: block;
+  }
   .tr {
     display: grid;
     grid-template-columns: 88px 1fr;
@@ -389,8 +405,12 @@ const upFirst = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
       clip-path: inset(50%);
       white-space: nowrap;
     }
-    .tail {
+    .tail,
+    .tail.end {
       padding-bottom: 64px;
+    }
+    .part > .rows.tight::before {
+      content: none;
     }
     .rowsN,
     .print,
