@@ -141,7 +141,7 @@ const CARDS = {
       }
     </style>
     <main class="home">
-      <p class="title"><span>Nikita Filippov, product designer.</span> <span>I&nbsp;redesigned game recording in&nbsp;Medal.tv, an&nbsp;app with 3M daily&nbsp;users.</span></p>
+      <p class="title"><span>Nikita Filippov, product designer.</span> <span>I&nbsp;redesigned game recording at&nbsp;Medal.tv, an&nbsp;app with 3M daily&nbsp;users.</span></p>
       <p class="where">phileeppov.com</p>
     </main>`,
 
