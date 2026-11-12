@@ -65,7 +65,7 @@ const where = (w: (typeof withPlace)[number]) => {
       <div class="rowsN">
         {
           places.map((p) => (
-            <p class="placeN"><span class="name">{p.name}</span> <span class="quiet term">{p.term}</span>{p.id === "premium" && p.note && <span class="quiet note2">{p.note}</span>}</p>
+            <p class="placeN"><span class="name">{p.name}</span> <span class="quiet term">{p.term}</span>{p.id !== "medal" && p.note && <span class="quiet note2">{p.note}</span>}</p>
           ))
         }
       </div>
@@ -108,7 +108,7 @@ const where = (w: (typeof withPlace)[number]) => {
         {
           projects.map((x) => (
             <div class="other">
-              <h3><a class="link" href={x.href}>{x.name}</a></h3>
+              <h3><a class="link" href={x.href} data-gem>{x.name} <span class="arw" aria-hidden="true">→</span></a></h3>
               <p class="quiet what">{x.what}</p>
               <p class="quiet">{x.did}</p>
               <p class="quiet term">Personal project</p>
@@ -144,7 +144,6 @@ const where = (w: (typeof withPlace)[number]) => {
 
     <!-- The end of the page: how to reach me, and one line for someone with a product, with no free work offered. -->
     <section class="part close grid" id="contact">
-      <span id="site-end" hidden></span>
       <div class="side">
         <h2>Contact</h2>
         <p class="gap"><CopyEmail /></p>
@@ -157,6 +156,7 @@ const where = (w: (typeof withPlace)[number]) => {
         <p class="gap quiet">{tie("Email me a link and what's stuck. I'll reply with a few questions and a way to work together.")}</p>
       </div>
     </section>
+    <span id="site-end" hidden></span>
   </main>
 </Site>
 
@@ -324,6 +324,7 @@ const where = (w: (typeof withPlace)[number]) => {
   }
   .placeN .note2 {
     display: block;
+    text-wrap: pretty;
   }
   .tr {
     display: grid;

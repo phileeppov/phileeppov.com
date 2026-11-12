@@ -28,7 +28,7 @@ const ys = years();
             <span class="term">{c.term}</span>
             <br />
             {c.meta}
-            {c.id === "premium" && c.note && (
+            {c.id !== "medal" && c.note && (
               <>
                 <br />
                 {c.note}

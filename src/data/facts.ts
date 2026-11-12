@@ -42,6 +42,7 @@ export const places: Place[] = tie([
     name: "Independent Product Designer",
     meta: "Remote",
     term: "Nov 2025 – present",
+    note: "Client work through Jul 2026, personal projects since then.",
     from: [2025, 11],
     work: [
       {
