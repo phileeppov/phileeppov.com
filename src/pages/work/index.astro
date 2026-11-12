@@ -142,7 +142,8 @@ const where = (w: (typeof withPlace)[number]) => {
       </div>
     </section>
 
-    <!-- The end of the page: how to reach me, and one line for someone with a product, with no free work offered. -->
+    <!-- The end of the page: how to reach me, and one line for whoever is hiring. The line for a founder with a product
+         lives on the long version; the switch is the second door. No free work offered. -->
     <section class="part close grid" id="contact">
       <div class="side">
         <h2>Contact</h2>
@@ -152,8 +153,8 @@ const where = (w: (typeof withPlace)[number]) => {
         <p><a class="link" href={person.cv} download data-count="work:cv">Download CV</a></p>
       </div>
       <div class="fin">
-        <h2>Have a product?</h2>
-        <p class="gap quiet">{tie("Email me a link and what's stuck. I'll reply with a few questions and a way to work together.")}</p>
+        <h2>Hiring?</h2>
+        <p class="gap quiet">{tie("Tell me about the role and who I'd work with.")}</p>
       </div>
     </section>
     <span id="site-end" hidden></span>
