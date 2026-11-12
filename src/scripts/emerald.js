@@ -555,7 +555,14 @@ function landing(s) {
 }
 
 // ---------- input ----------
-function hit(x, y) { const e = document.elementFromPoint(x, y); return e && e.closest('[data-gem]'); }
+// The stone an element answers with: its own, or, where it lends itself to another link to the same place
+// (data-gem-to, the id of that link: a case's picture and its title), that link's.
+function gemOf(e) {
+  if (!e || !e.closest) return null;
+  const to = e.closest('[data-gem-to]');
+  return to ? document.getElementById(to.dataset.gemTo) : e.closest('[data-gem]');
+}
+function hit(x, y) { return gemOf(document.elementFromPoint(x, y)); }
 function setHover(el) {
   if (ptr.el === el) return;
   if (ptr.el) { ptr.el.classList.remove('hov'); ptr.lastEl = ptr.el; ptr.leftT = performance.now(); }
@@ -612,7 +619,7 @@ addEventListener('pointermove', (e) => {
 }, { passive: true });
 addEventListener('pointerdown', (e) => {
   lastInput = 'pointer'; ptr.real = true;
-  const el = e.target.closest('[data-gem]');
+  const el = gemOf(e.target);
   if (TOUCH) held = null;
   if (!el) return;
   ptr.x = e.clientX; ptr.y = e.clientY;
@@ -646,7 +653,7 @@ if (TOUCH) {
   // The tap is followed: the stone stays while the next page loads, until pagehide. A link that leads nowhere new
   // (a hash on this page, a new tab, a script that took the click) lets it go as a press does.
   addEventListener('click', (e) => {
-    const el = e.target.closest && e.target.closest('a[data-gem][href]');
+    const g = gemOf(e.target), el = g && g.matches('a[data-gem][href]') ? g : null;
     if (!el || e.defaultPrevented || el.target === '_blank' || el.hasAttribute('download')) return;
     const u = new URL(el.href, location.href);
     // mailto: and the like open another app: the page stays, so the stone goes as after any press.

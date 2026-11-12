@@ -478,8 +478,8 @@ const SHORT = "/work/";
     inset: -11px 0;
   }
 
-  /* Pinned: the same tray floating over the page, on a white backing so it reads over pictures and text. On a wide
-     window it stands just left of the caption axis. */
+  /* Pinned: the same tray floating over the page, on a white backing so it reads over pictures and text. It stays where
+     it stood in the word, in the middle of the window: pinning doesn't move it sideways. */
   .slot.pinned {
     --top: 4px;
   }
@@ -493,12 +493,6 @@ const SHORT = "/work/";
   .slot.pinned.open .puck {
     border-radius: 15px;
   }
-  @media (min-width: 1200px) {
-    .slot.pinned {
-      translate: calc(-50% - 13px) 0;
-    }
-  }
-
   /* High contrast: the thumb and the current letter or name keep the system's highlight, so the current version shows. */
   @media (forced-colors: active) {
     .tray {

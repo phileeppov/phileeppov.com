@@ -11,32 +11,54 @@ import { person, places, skills, education, languages } from "../../data/facts";
 import { cases, shot, tie } from "../../data/cases";
 
 const withPlace = places.flatMap((p) => p.work.map((w) => ({ ...w, place: p })));
+// A second tile beside a case's card, from the same case: Medal's card is narrow, and its red twin, the recorder off,
+// is the case's call (recording is green) made visible.
+const beside: Record<string, string> = { medal: "IMG-00b" };
+const widthsOf = (src: ImageMetadata) => {
+  const top = Math.min(src.width, 1368);
+  return [...new Set([480, 800, 1200].filter((x) => x < top).concat(top))];
+};
 const seen = new Set<string>();
 const sheet = withPlace.filter((w) => w.slug).map((w) => {
   const c = cases.find((x) => x.slug === w.slug)!;
   const src = shot(c.slug, c.card);
-  const top = Math.min(src.width, 1368);
-  const widths = [...new Set([480, 800, 1200].filter((x) => x < top).concat(top))];
+  const twin = beside[c.slug] ? shot(c.slug, beside[c.slug]) : undefined;
   const first = !seen.has(w.place.id);
   seen.add(w.place.id);
-  return { ...w, title: c.name, src, widths, design: Math.round(src.width / 2), anchor: first ? w.place.id : undefined };
+  const design = Math.round(src.width / 2) + (twin ? Math.round(twin.width / 2) + 20 : 0);
+  return { ...w, title: c.name, src, twin, widths: widthsOf(src), design, anchor: first ? w.place.id : undefined };
 });
 const others = withPlace.filter((w) => !w.slug);
+const personal = places.find((p) => p.personal)?.personal;
 const hasFreelance = !seen.has("freelance");
 // The case named after the place takes the place's dates; other cases only name the place, its dates aren't theirs.
+// The only work of a place takes the place's dates too: they are its own.
 // A line break never leaves the separator at a line's end: it goes down with what follows it.
 const keepDots = (s: string) => s.replace(/ · /g, " · ");
-const whereLine = (w: (typeof withPlace)[number]) => keepDots(whereRaw(w));
 const whereRaw = (w: (typeof withPlace)[number]) => {
   if (w.meta) return w.meta;
   if (w.term) return `${w.term} · ${w.place.id === "independent" ? "Independent" : w.place.name}`;
   if (w.slug === "medal") return `${w.place.term} · ${w.place.meta}`;
+  if (w.place.work.length === 1) return `${w.place.term} · ${w.place.name}`;
   return `${w.place.name} · ${w.place.meta}`;
 };
+// A line of three items or more, in two halves as even as can be: on a phone each half takes a line, so no line starts
+// with a dot and an item or two (the format line under the name does the same, FactsWho.astro).
+const where = (w: (typeof withPlace)[number]) => {
+  const xs = whereRaw(w).split(" · ");
+  if (xs.length < 3) return [keepDots(xs.join(" · "))];
+  const join = (a: string[]) => a.join(" · ");
+  let best = 1;
+  const worst = (k: number) => Math.max(join(xs.slice(0, k)).length, join(xs.slice(k)).length);
+  for (let k = 2; k < xs.length; k++) if (worst(k) < worst(best)) best = k;
+  return [keepDots(join(xs.slice(0, best))), keepDots(join(xs.slice(best)))];
+};
+const upFirst = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 ---
 
 <Site passage view="facts" title={`${person.name}, ${person.role}`} description={person.summary} image="/work-og.png">
-  <main class="wall facts">
+  <!-- Stones only where the arrow is, on the cases' titles; a case's picture lights its title's (emerald.js). -->
+  <main class="wall facts" data-gem-off>
     <FactsWho />
 
     <div class="career" id="work">
@@ -54,15 +76,24 @@ const whereRaw = (w: (typeof withPlace)[number]) => {
       sheet.map((w) => (
         <article class="part case grid" id={w.anchor}>
           <div class="print" style={`--d: ${w.design}px`}>
-            <a class="shot" href={`/work/${w.slug}/`} data-count="work:case" tabindex="-1" aria-hidden="true">
-              <Image src={w.src} alt="" widths={w.widths} sizes="(max-width: 767px) calc(100vw - 48px), 684px" loading="lazy" />
+            <a class:list={["shot", w.twin && "pair"]} href={`/work/${w.slug}/`} data-count="work:case" data-gem-to={`case-${w.slug}`} tabindex="-1" aria-hidden="true">
+              {
+                w.twin ? (
+                  <Fragment>
+                    <Image src={w.src} alt="" widths={w.widths} sizes="(max-width: 767px) calc(50vw - 30px), 296px" loading="lazy" />
+                    <Image src={w.twin} alt="" widths={widthsOf(w.twin)} sizes="(max-width: 767px) calc(50vw - 30px), 296px" loading="lazy" />
+                  </Fragment>
+                ) : (
+                  <Image src={w.src} alt="" widths={w.widths} sizes="(max-width: 767px) calc(100vw - 48px), 684px" loading="lazy" />
+                )
+              }
             </a>
             {w.shotNote && <p class="note quiet">{w.shotNote}</p>}
           </div>
           <div class="fields">
-            <h2><a class="link" href={`/work/${w.slug}/`} data-gem data-count="work:case">{w.title} <span class="arw">→</span></a></h2>
-            <p class="quiet">{w.what ?? w.place.note}</p>
-            <p class="quiet term">{whereLine(w)}</p>
+            <h2><a class="link" id={`case-${w.slug}`} href={`/work/${w.slug}/`} data-gem data-count="work:case">{w.title} <span class="arw">→</span></a></h2>
+            <p class="quiet what">{w.what ?? w.place.note}</p>
+            <p class="quiet term">{where(w).map((h, i) => <Fragment>{i > 0 && <span class="sep"> · </span>}<span class="half">{h}</span></Fragment>)}</p>
             {w.did?.map((d) => <p class="gap quiet">{d}</p>)}
             {w.result && <p class="gap">{w.result}</p>}
           </div>
@@ -76,13 +107,26 @@ const whereRaw = (w: (typeof withPlace)[number]) => {
       </div>
       <div class="rows">
         {
+          personal && (
+            <div class="other">
+              <h3>{personal.title}</h3>
+              <p class="quiet what">{upFirst(personal.lead)}</p>
+              {personal.items.map((x) => (
+                <p>
+                  <a class="link" href={x.href}>{x.name}</a>, {x.text}
+                </p>
+              ))}
+            </div>
+          )
+        }
+        {
           others.map((w) => (
             <div class="other">
               <h3>{w.name}</h3>
-              {w.what && <p class="quiet">{w.what}</p>}
+              {w.what && <p class="quiet what">{w.what}</p>}
               {w.did?.map((d) => <p class="quiet">{d}</p>)}
               {w.result && <p>{w.result}</p>}
-              <p class="quiet term">{whereLine(w)}</p>
+              <p class="quiet term">{where(w).map((h, i) => <Fragment>{i > 0 && <span class="sep"> · </span>}<span class="half">{h}</span></Fragment>)}</p>
             </div>
           ))
         }
@@ -150,11 +194,34 @@ const whereRaw = (w: (typeof withPlace)[number]) => {
   .term {
     font-variant-numeric: tabular-nums;
   }
+  /* A short "what it is" line keeps its lines even, with no word or two left alone on the last. */
+  .fields .what,
+  .other .what {
+    text-wrap: balance;
+  }
+  /* Lines: one over the text column only, from each title down, like a rule in a ledger; the pictures stand free. Quieter
+     than the site's hairline. The header stands further from the name, so the first lines get air. */
+  .facts {
+    --rule: color-mix(in srgb, var(--hair) 55%, transparent);
+  }
+  :global(body:has(> main.facts) > .top2) {
+    margin-bottom: 64px;
+  }
+  .part {
+    padding-top: 0;
+    border-top: 0;
+  }
+  .part > :is(.fields, .rows, .fin) {
+    padding-top: 14px;
+    border-top: 0.5px solid var(--rule);
+  }
+  .part > :is(.print, .side) {
+    padding-top: 15px;
+  }
   /* The ruler and its lines stand between the who and the first case. "Back to all work" from a case lands here, below
      the pinned switch rather than under it. */
   .career {
-    margin-top: -16px;
-    padding-bottom: 28px;
+    padding-bottom: 88px;
     padding-inline: max(0px, (100% - 1392px) / 2);
     scroll-margin-top: 56px;
   }
@@ -162,7 +229,7 @@ const whereRaw = (w: (typeof withPlace)[number]) => {
     display: none;
   }
   .case {
-    padding-bottom: 48px;
+    padding-bottom: 88px;
     align-items: start;
     scroll-margin-top: 16px;
   }
@@ -185,12 +252,26 @@ const whereRaw = (w: (typeof withPlace)[number]) => {
     object-fit: cover;
     object-position: left top;
   }
+  /* Two tiles side by side, each with its own edge. */
+  .shot.pair {
+    display: flex;
+    gap: 20px;
+    border-radius: 0;
+    overflow: visible;
+    box-shadow: none;
+  }
+  .shot.pair :global(img) {
+    flex: 1 1 0;
+    min-width: 0;
+    border-radius: 4px;
+    box-shadow: 0 0 0 0.5px color-mix(in srgb, var(--color-black) 16%, transparent);
+  }
   /* What was changed in the screens for the case, under the print and no wider than it. */
   .note {
     max-width: min(100%, var(--d), 40ch);
     margin-top: 8px;
     font-size: var(--text-meta);
-    text-wrap: pretty;
+    text-wrap: balance;
   }
   .fields {
     grid-column: 7 / span 6;
@@ -206,11 +287,11 @@ const whereRaw = (w: (typeof withPlace)[number]) => {
     margin-top: 10px;
   }
   .tail {
-    padding-bottom: 40px;
+    padding-bottom: 80px;
     scroll-margin-top: 16px;
   }
   .tail.end {
-    padding-bottom: 56px;
+    padding-bottom: 96px;
   }
   .side {
     grid-column: 1 / span 6;
@@ -274,8 +355,42 @@ const whereRaw = (w: (typeof withPlace)[number]) => {
     }
   }
   @media (max-width: 767px) {
+    :global(body:has(> main.facts) > .top2) {
+      margin-bottom: 40px;
+    }
     .career {
-      padding-bottom: 32px;
+      padding-bottom: 56px;
+    }
+    /* On a phone the text sits under its picture: the line goes over the whole row, in the column's width. */
+    .part {
+      margin-inline: 0;
+      padding-inline: 0;
+      padding-top: 14px;
+      border-top: 0.5px solid var(--rule);
+    }
+    .part > :is(.fields, .rows, .fin) {
+      padding-top: 0;
+      border-top: 0;
+    }
+    .part > :is(.print, .side) {
+      padding-top: 0;
+    }
+    .shot.pair {
+      gap: 12px;
+    }
+    .term .half {
+      display: block;
+    }
+    .term .sep {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+    .tail {
+      padding-bottom: 64px;
     }
     .rowsN,
     .print,
@@ -300,7 +415,7 @@ const whereRaw = (w: (typeof withPlace)[number]) => {
       margin-bottom: 8px;
     }
     .case {
-      padding-bottom: 40px;
+      padding-bottom: 64px;
     }
   }
 </style>

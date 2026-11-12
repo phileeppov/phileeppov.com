@@ -46,7 +46,7 @@ const aside = Astro.slots.has("aside");
         {/* The two views of the home page: the wordmark is split around its slot, and the slot holds the switch. The
             switch is a child of the page rather than of the header, so it can stay pinned while the word scrolls away. */}
         <SlotSwitch current={view} />
-        <header class="top2">
+        <header class="top2" data-gem-off={view === "facts" ? "" : undefined}>
           <div class="side l">
             {view === "facts" ? <a class="handle" href={person.linkedin} data-count="work:linkedin">LinkedIn</a> : <a class="handle" href="https://x.com/phileeppov" data-count="site:x">@phileeppov</a>}
             <a class="w" href="/" aria-label="phileeppov, home">phil</a>

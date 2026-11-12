@@ -54,12 +54,15 @@ async function workWords(browser) {
   if (!words.name || !words.role || !words.format) throw new Error("dist/work: no name, role or format line");
   return words;
 }
-// The format line breaks only between its items, and the dot goes down with the item after it, as on the page.
-const formatLine = (s) =>
-  s
-    .split(/\s*·\s*/)
-    .map((item, i) => `<span class="item">${i ? "·&nbsp;" : ""}${esc(item)}</span>`)
-    .join(" ");
+// The format line in two lines as even as can be, each item whole, as on the page (FactsWho.astro): the dot where it
+// breaks isn't shown.
+const formatLine = (s) => {
+  const xs = s.split(/\s*·\s*/), join = (a) => a.join(" · ");
+  let best = 1;
+  const worst = (k) => Math.max(join(xs.slice(0, k)).length, join(xs.slice(k)).length);
+  for (let k = 2; k < xs.length; k++) if (worst(k) < worst(best)) best = k;
+  return [xs.slice(0, best), xs.slice(best)].filter((a) => a.length).map((a) => `<span class="item">${esc(join(a))}</span>`).join("<br />");
+};
 
 const STYLE = `
   html {

@@ -489,7 +489,7 @@ const st = { x: -100, y: -100, yaw: 0.36, pitch: 0, roll: 0, lift: 0.2, scale: 1
 function step(dt, c, dvx, dvy) {
   // The tip is the pointer, always: weight lives in how the body swings from it, not in lagging behind.
   st.x = ptr.x; st.y = ptr.y;
-  const text = c.kind === 'text', link = c.kind === 'link', gem = link && c.el.matches('[data-gem]');
+  const text = c.kind === 'text', link = c.kind === 'link', gem = link && c.el.matches('[data-gem], [data-gem-to]');
   // The cut changes only once the pointer has stayed over text (or off it) for a beat: crossing a word gap or a line
   // gap doesn't flip it back and forth.
   if (text !== st.wantText) { st.wantText = text; st.since = 0; }

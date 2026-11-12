@@ -3,13 +3,45 @@
 // axis. On a phone, in reading order.
 import CopyEmail from "./CopyEmail.astro";
 import { person } from "../data/facts";
+
+// The format line in two lines as even as can be, each item whole, so no line ends with an item or two on their own
+// (the CV breaks it at the same place). On a narrow column the longer of the two breaks once more. Where a line breaks,
+// its dot is kept for a screen reader and for the link preview's script (scripts/og.mjs), and not shown.
+const items = person.format.split(" · ");
+const join = (xs: string[]) => xs.join(" · ");
+function halves(xs: string[]): string[][] {
+  if (xs.length < 2) return [xs];
+  let best = 1;
+  const worst = (k: number) => Math.max(join(xs.slice(0, k)).length, join(xs.slice(k)).length);
+  for (let k = 2; k < xs.length; k++) if (worst(k) < worst(best)) best = k;
+  return [xs.slice(0, best), xs.slice(best)];
+}
+const two = halves(items);
+const longest = Math.max(...two.map((l) => join(l).length));
+const lines = two.map((l) => (join(l).length === longest ? halves(l) : [l]));
 ---
 
 <section class="who grid">
   <div class="id">
     <h1><span>{person.name}</span> <span class="quiet">{person.role}</span></h1>
-    <p class="quiet">{person.format}</p>
-    <p><CopyEmail gem /></p>
+    <p class="quiet fmt">
+      {
+        lines.map((parts, i) => (
+          <Fragment>
+            {i > 0 && <span class="cut"> · </span>}
+            <span class="ln">
+              {parts.map((p, j) => (
+                <Fragment>
+                  {j > 0 && <span class="sep"> · </span>}
+                  <span class="it">{p.map((x, k) => <Fragment>{k > 0 && " · "}<span class="w">{x}</span></Fragment>)}</span>
+                </Fragment>
+              ))}
+            </span>
+          </Fragment>
+        ))
+      }
+    </p>
+    <p><CopyEmail /></p>
     <p class="more"><a class="link" href={person.cv} download data-count="work:cv">Download CV</a> <span class="quiet">·</span> <a class="link" href={person.linkedin} data-count="work:linkedin">LinkedIn</a></p>
   </div>
   <p class="sum">{person.summary}</p>
@@ -17,7 +49,7 @@ import { person } from "../data/facts";
 
 <style>
   .who {
-    padding-bottom: 48px;
+    padding-bottom: 96px;
     line-height: 1.45;
   }
   h1,
@@ -47,6 +79,35 @@ import { person } from "../data/facts";
     max-width: var(--cap);
     text-wrap: pretty;
   }
+  .fmt .ln {
+    display: block;
+  }
+  /* An item never breaks inside; a part too long for a narrow column breaks between its items. */
+  .fmt .w {
+    white-space: nowrap;
+  }
+  .fmt .cut {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  /* Narrower than a wide window's half, the longer line breaks between its two parts too. */
+  @media (max-width: 1199px) {
+    .fmt .sep {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+    .fmt .it {
+      display: block;
+    }
+  }
   /* The header has them on a wide window; on a phone, where the header holds only the name, they're here. */
   .more {
     display: none;
@@ -62,7 +123,7 @@ import { person } from "../data/facts";
   }
   @media (max-width: 767px) {
     .who {
-      padding-bottom: 32px;
+      padding-bottom: 56px;
       row-gap: 16px;
     }
     .id,

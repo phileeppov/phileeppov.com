@@ -61,8 +61,10 @@
 
     // ---------- the page being left: where the link was pressed ----------
     let origin = null;
-    // The point the disc grows from: the arrow, where the emerald stone stands; on the wordmark, its slot.
+    // The point the disc grows from: the arrow, where the emerald stone stands; on the wordmark, its slot. A link that
+    // lends itself to another's stone (data-gem-to: a case's picture) opens from that link's arrow.
     const pointOf = (a, e) => {
+      if (a.dataset.gemTo) a = document.getElementById(a.dataset.gemTo) || a;
       const g = a.querySelector(".arw") || (a.classList.contains("mark") && a.querySelector("i"));
       if (g) { const r = g.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height * 0.54]; }
       const r = a.getBoundingClientRect();

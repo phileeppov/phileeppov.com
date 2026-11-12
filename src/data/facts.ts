@@ -1,5 +1,5 @@
 // The work view's facts. Words come from the one-page CV kept outside this repo; nothing here is written fresh.
-// A line keeps the CV's wording, cut only where a field starts. A note under a shot comes from the portfolio PDF.
+// A line keeps the CV's wording, cut only where a field starts. A note under a shot is the site's own (site.md §10).
 // Short words are kept with the next one (tie, as in the case texts), so no line ends on "the" or "to".
 import { tie } from "./cases";
 
@@ -20,6 +20,9 @@ export interface Place {
   meta: string;
   term: string;
   note?: string;
+  // The CV's line on personal projects under the place, cut where a field starts: what they are, then each project,
+  // linked to its page here.
+  personal?: { title: string; lead: string; items: { name: string; href: string; text: string }[] };
   from: [number, number];
   to?: [number, number]; // none: to the present
   work: Entry[];
@@ -43,6 +46,15 @@ export const places: Place[] = tie([
     meta: "Remote",
     term: "Nov 2025 – present",
     from: [2025, 11],
+    // The CV ends the line with phileeppov.com: on phileeppov.com itself that would be a link to the page you're on.
+    personal: {
+      title: "Personal projects",
+      lead: "since Aug 2026, designed by me, built with Claude Code",
+      items: [
+        { name: "Glass", href: "/glass/", text: "which turns a logo into a glass app icon" },
+        { name: "chefkiss", href: "/chefkiss/", text: "reaction buttons for Claude's answers" },
+      ],
+    },
     work: [
       {
         name: "Ailekmed",
@@ -55,7 +67,7 @@ export const places: Place[] = tie([
           "Designed catalog, search, pickup reservations and account from scratch and wrote all interface copy.",
         ],
         result: "Live; 160 loyalty sign-ups in the first 10 weeks with no online ads, and customers use the card at the counter.",
-        shotNote: "The site is live. For this case I translated the screens and swapped in US products, a made-up address and customer, and an AI-generated storefront photo.",
+        shotNote: "The site is live. For this case I translated the screens and made up a US address.",
       },
       {
         name: "SPORTS CLUB",

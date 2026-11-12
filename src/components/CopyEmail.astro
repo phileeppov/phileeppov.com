@@ -2,14 +2,9 @@
 // The address as text: a link to write, and a quiet button that copies it, for a reader on a machine with no mail app.
 // One script for every copy button on the page (Astro bundles a component's script once).
 import { person } from "../data/facts";
-
-interface Props {
-  gem?: boolean;
-}
-const { gem = false } = Astro.props;
 ---
 
-<span class="ce"><a class="link" href={`mailto:${person.email}`} data-gem={gem ? "" : undefined} data-count="work:email">{person.email}</a><button type="button" class="copy" data-copy={person.email} data-count="work:copy" aria-label="Copy the email address">Copy</button><span class="said" role="status"></span></span>
+<span class="ce"><a class="link" href={`mailto:${person.email}`} data-count="work:email">{person.email}</a><button type="button" class="copy" data-copy={person.email} data-count="work:copy" aria-label="Copy the email address">Copy</button><span class="said" role="status"></span></span>
 
 <script>
   for (const button of document.querySelectorAll<HTMLButtonElement>("button[data-copy]")) {
