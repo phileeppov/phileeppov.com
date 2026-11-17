@@ -17,9 +17,33 @@
   .stage { position: fixed; inset: 0; }
   .stage .cut-skin { aspect-ratio: auto; height: 100%; }
   .head, .foot { position: fixed; z-index: 5; left: var(--side, 6%); right: var(--side, 6%); margin: 0; pointer-events: none; }
-  :fullscreen ~ .head, :fullscreen ~ .foot, .stage:has(:fullscreen) ~ .foot { display: none; }
-  /* The player lying over its picture (a phone on its side, a short window) takes the whole screen. */
-  body:has(.cut-skin[data-overlay]) .head, body:has(.cut-skin[data-overlay]) .foot { display: none; }
+  /* The player lying over its picture (full screen, a phone on its side, a short window) takes the whole screen; the
+     header and credits step back but keep their size, so the page can measure them again on the way back. */
+  body:has(.cut-skin[data-overlay]) .head, body:has(.cut-skin[data-overlay]) .foot { visibility: hidden; }
+  /* While it loads: the play stone's outline with light running round it, then the page. */
+  .preload {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    display: grid;
+    place-items: center;
+    background: #0b0c0e;
+    transition: opacity 520ms ease-out, visibility 0s linear 520ms;
+  }
+  html[data-shown] .preload { opacity: 0; visibility: hidden; }
+  .preload svg { width: 72px; height: 72px; overflow: visible; }
+  .preload .pl-stone { fill: rgb(20 90 60 / 0.35); stroke: rgb(99 224 166 / 0.28); stroke-width: 1.2; }
+  .preload .pl-table { fill: none; stroke: rgb(99 224 166 / 0.2); stroke-width: 1; }
+  .preload .pl-run {
+    fill: none;
+    stroke: #9dffd0;
+    stroke-width: 2.2;
+    stroke-linejoin: round;
+    stroke-dasharray: 46 254;
+    filter: drop-shadow(0 0 4px rgb(90 240 170 / 0.85));
+    animation: cut-wait-run 1.1s linear infinite;
+  }
+  @media (prefers-reduced-motion: reduce) { .preload .pl-run { animation: none; stroke-dasharray: none; opacity: 0.7; } .preload { transition: none; } }
   .head { top: clamp(16px, 5.5vh, 64px); display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
   .head h1 { margin: 0; font-family: "Instrument Serif", Georgia, serif; font-size: clamp(36px, 5vw, 84px); line-height: 0.95; font-weight: 400; letter-spacing: -0.01em; color: #eef1f3; }
   .head p { margin: 0.45em 0 0; font-size: clamp(15px, 1.5vw, 24px); line-height: 1.25; letter-spacing: -0.01em; color: #8f979e; }
@@ -125,6 +149,7 @@
   cutAll();
   note.hidden = !shown;
   addEventListener("resize", fit);
+  document.addEventListener("fullscreenchange", () => setTimeout(fit, 80));
   v.addEventListener("loadedmetadata", () => requestAnimationFrame(fit));   // the film's own shape moves the picture
   setTimeout(fit, 300);
   note.querySelector(".fresh").addEventListener("click", () => {
@@ -136,9 +161,16 @@
   await Promise.race([document.fonts.ready, new Promise((r) => setTimeout(r, 2500))]);
   fit();
   document.documentElement.dataset.ready = "";
+  // The page shows once the film's shape is known and the stones have been drawn: no jumps on the way in.
+  const media = v.nativeEl ?? v;
+  if (!(media.readyState >= 1)) await Promise.race([new Promise((r) => v.addEventListener("loadedmetadata", r, { once: true })), new Promise((r) => setTimeout(r, 6000))]);
+  fit();
+  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, 250))));
+  document.documentElement.dataset.shown = "";
 </script>
 </head>
 <body>
+<div class="preload" aria-hidden="true"><svg viewBox="0 0 100 100"><polygon class="pl-stone" points="22.1,5 77.9,5 95,22.1 95,77.9 77.9,95 22.1,95 5,77.9 5,22.1"/><polygon class="pl-table" points="31,20 69,20 80,31 80,69 69,80 31,80 20,69 20,31"/><polygon class="pl-run" points="22.1,5 77.9,5 95,22.1 95,77.9 77.9,95 22.1,95 5,77.9 5,22.1" pathLength="300"/></svg></div>
 <header class="head">
   <div><h1>Emerald cut</h1><p>Watching <b>cuts the stone</b>. What you skip stays raw.</p></div>
   <small>A Video.js v10 skin</small>

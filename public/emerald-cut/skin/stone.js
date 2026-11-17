@@ -25,6 +25,7 @@ uniform vec4 uSpan;     // time runs from x = uSpan.x to uSpan.y; uSpan.z = now 
 uniform vec3 uLight;    // pointer x, y (css px) and how present it is
 uniform float uTime;
 uniform vec2 uPress;     // the play key: pressed (0..1), the hand over it (0..1)
+uniform float uIdle;     // over the picture, the controls stepping aside (0..1)
 uniform vec2 uOverlay;   // over the picture (1/0), and where the dark band at its foot begins (css px)
 uniform float uGemMode;  // the play key: 0 a square step cut, 1 an emerald cabochon, 2 a seal in the setting's metal
 uniform float uRawMode;  // what the unwatched stone is: 0 natural beryl, 1 crystal still in its rock
@@ -362,8 +363,10 @@ void main() {
     col *= 1.0 - (0.5 + 0.3 * below) * exp(-fo / (3.0 + 5.0 * below));
   }
   if (dv < 0.0) col = pic(pv, 0.0);                                // under the <video>; covers any seam
+  vec3 bare = col;
   if (uOverlay.x > 0.5) {                                          // over the picture: black round it, a dark band at its foot
     if (dv >= 0.0) col = vec3(0.0015);
+    bare = col;
     float band = smoothstep(uOverlay.y - 40.0, uOverlay.y + 36.0, px.y);
     col *= 1.0 - 0.84 * band;
   }
@@ -514,6 +517,7 @@ void main() {
     }
   }
   col = volBar(px, gem(px, col));
+  if (uOverlay.x > 0.5) col = mix(col, bare, uIdle);                 // stepped aside: only the picture
   col = pow(max(col, 0.0), vec3(1.0 / 2.2));
   col += (hash(gl_FragCoord.xy + fract(uTime)) - 0.5) / 255.0;
   o = vec4(col, 1.0);
@@ -567,7 +571,7 @@ export class Stone {
     gl.enableVertexAttribArray(loc);
     gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
     this.u = {};
-    for (const k of ["uRes", "uDpr", "uC", "uH", "uBar", "uK", "uS", "uWheel", "uSmear", "uVol", "uVolLevel", "uSpan", "uLight", "uTime", "uCalm", "uRawMode", "uGemMode", "uPress", "uOverlay", "uHas", "uCut", "uFlash", "uCh", "uChN", "uVid", "uSeen", "uAtlas", "uAtlasInfo", "uAtlasOn"]) this.u[k] = gl.getUniformLocation(pr, k);
+    for (const k of ["uRes", "uDpr", "uC", "uH", "uBar", "uK", "uS", "uWheel", "uSmear", "uVol", "uVolLevel", "uSpan", "uLight", "uTime", "uCalm", "uRawMode", "uGemMode", "uPress", "uOverlay", "uIdle", "uHas", "uCut", "uFlash", "uCh", "uChN", "uVid", "uSeen", "uAtlas", "uAtlasInfo", "uAtlasOn"]) this.u[k] = gl.getUniformLocation(pr, k);
     const tex = (unit) => {
       const t = gl.createTexture();
       gl.activeTexture(gl.TEXTURE0 + unit);
@@ -676,6 +680,7 @@ export class Stone {
     gl.uniform1f(u.uGemMode, this.gemMode || 0);
     gl.uniform2f(u.uPress, ...(this.press || [0, 0]));
     gl.uniform2f(u.uOverlay, g.overlay ? 1 : 0, g.bandTop || 0);
+    gl.uniform1f(u.uIdle, g.overlay ? this.idle || 0 : 0);
     gl.uniform1f(u.uHas, this.has);
     gl.uniform1f(u.uCut, this.cut);
     gl.uniform3f(u.uFlash, ...this.flash);

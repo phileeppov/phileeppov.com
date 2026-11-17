@@ -106,7 +106,11 @@
   inset: 0;
   z-index: 2;
   pointer-events: none;
+  transition: opacity 320ms ease-out;
 }
+.cut-skin[data-idle] .cut-controls { opacity: 0; }
+.cut-skin[data-idle] .cut-controls > * { pointer-events: none; }
+.cut-skin[data-idle], .cut-skin[data-idle] .cut-table { cursor: none; }
 .cut-controls > * { pointer-events: auto; }
 
 /* The time: the lower crown of the stone is the slider. 44px to aim at; the colour is drawn by the canvas. */
@@ -167,8 +171,8 @@
   --_tw: clamp(128px, calc(var(--cut-w, 800px) * 0.15), 224px);
   min-width: var(--_tw);
   max-width: var(--_tw);
-  min-height: calc(var(--_tw) * 9 / 16);
-  max-height: calc(var(--_tw) * 9 / 16);
+  min-height: calc(var(--_tw) / var(--cut-aspect, 1.7778));
+  max-height: calc(var(--_tw) / var(--cut-aspect, 1.7778));
   overflow: hidden;
   --_pk: 9px;
   clip-path: polygon(var(--_pk) 0, calc(100% - var(--_pk)) 0, 100% var(--_pk), 100% calc(100% - var(--_pk)),
@@ -313,6 +317,10 @@
   gap: 24px;
 }
 .cut-left, .cut-keys { display: flex; align-items: center; gap: 6px; min-width: 0; }
+/* One baseline for the row: the time is the largest text, the rest sit on its line, not on their own boxes' middles. */
+.cut-left { align-items: baseline; }
+.cut-keys { position: relative; top: 3px; }
+.cut-key.cut-rate { translate: 0 3px; }
 .cut-left { gap: 18px; }
 
 .cut-clock, .cut-key > span, .cut-now-t {
@@ -485,7 +493,7 @@
 
 
 @media (prefers-reduced-motion: reduce) {
-  .cut-key, .cut-preview, .cut-wheel .g { transition: none; }
+  .cut-key, .cut-preview, .cut-wheel .g, .cut-controls { transition: none; }
   .cut-mark .cut-mark-in { animation: none; }
   .cut-wait polygon { animation: none; stroke-dasharray: none; opacity: 0.8; }
 }
@@ -540,10 +548,10 @@
 
 /* While the error card is up, the picture keeps square corners: the card covers them, nothing of the poster peeks out. */
 .cut-skin:has(.cut-err-card[data-open]) .cut-table { clip-path: none; }
-.cut-skin[data-compact] .cut-key.cut-rate { left: auto; right: calc(100% - var(--cut-end-x)); top: var(--cut-row-y); width: 56px; height: 44px; padding: 0; }
+.cut-skin[data-compact] .cut-key.cut-rate { left: calc(var(--cut-wheel-x) - 28px); right: auto; top: var(--cut-row-y); width: 56px; height: 44px; padding: 0; }
+.cut-skin[data-compact] .cut-left { padding-left: calc(var(--cut-girdle-x) - var(--cut-x)); }
 .cut-skin[data-compact] .cut-left { min-height: 44px; }
 .cut-skin[data-compact] .cut-keys { margin-inline-start: -11px; }
-[dir="rtl"] .cut-skin[data-compact] .cut-key.cut-rate { right: auto; left: var(--cut-x); }
 
 /* Over the picture: the canvas draws the picture, so the media element only plays; the captions rise above the band;
    the mark under the stone's end has no room and goes. */
@@ -552,3 +560,5 @@
 .cut-skin[data-overlay] .cut-table hls-video { opacity: 0; }
 .cut-skin[data-overlay] .cut-subs { bottom: auto; top: calc(var(--cut-band-top) - var(--cut-y) - 3.4em); }
 .cut-skin[data-overlay] .cut-mark { display: none; }
+.cut-skin[data-compact] .cut-left { align-items: center; }
+.cut-skin[data-compact] .cut-key.cut-rate { translate: none; }

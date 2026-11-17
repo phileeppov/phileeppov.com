@@ -101,6 +101,7 @@ export function cut(root) {
       const set = (n, x) => root.style.setProperty(n, `${x}px`);
       set("--cut-x", vx); set("--cut-y", vy); set("--cut-w", vw); set("--cut-h", vh); set("--cut-k", over ? 0 : Math.round(Math.min(10, vh * 0.014)));
       set("--cut-band-top", geo.bandTop ?? 0);
+      root.style.setProperty("--cut-aspect", String(+aspect.toFixed(4)));   // the preview frame takes the film's own shape
       root.toggleAttribute("data-overlay", !!over);
       set("--cut-s", bh); set("--cut-girdle-x", x0); set("--cut-girdle-w", x1 - x0); set("--cut-end-x", x1);
       set("--cut-band-y", by); set("--cut-row-y", rowY); set("--cut-row-h", row);
@@ -127,9 +128,17 @@ export function cut(root) {
   root.cutRelayout = place;                                           // for a page whose title or credits change size
   host?.addEventListener("loadedmetadata", place);
 
+  // ---- Over the picture, while the reel plays, the controls step aside after a moment without input; any input
+  // brings them back. A tap that only wakes them doesn't also play or pause.
+  let lastInput = performance.now(), idle = 0, tapWhileIdle = false;
+  const poke = () => { lastInput = performance.now(); wake(); };
+  for (const ev of ["pointermove", "keydown", "focusin", "wheel"]) root.addEventListener(ev, poke, { passive: true });
+  root.addEventListener("pointerdown", () => { tapWhileIdle = root.hasAttribute("data-idle"); poke(); }, true);
+
   // ---- The picture is a key: a press plays or pauses.
   root.querySelector(".cut-table")?.addEventListener("click", (e) => {
     if (e.target.closest(".cut-err-card")) return;
+    if (tapWhileIdle) { tapWhileIdle = false; return; }
     const v = media();
     if (v) v.paused ? v.play().catch(() => {}) : v.pause();
   });
@@ -502,6 +511,12 @@ export function cut(root) {
     const target = hand.on ? 1 : 0;
     hand.p += (target - hand.p) * (reduced.matches ? 1 : 0.09);
     stone.calm = reduced.matches;
+    const wantIdle = geo.overlay && playing && !dragging && performance.now() - lastInput > 2500 && !root.querySelector(".cut-err-card[data-open]") ? 1 : 0;
+    idle += (wantIdle - idle) * (reduced.matches ? 1 : 0.1);
+    if (Math.abs(idle - wantIdle) < 0.003) idle = wantIdle;
+    root.toggleAttribute("data-idle", wantIdle === 1);
+    stone.idle = idle;
+    if (geo.overlay && playing && !wantIdle) setTimeout(wake, 2600);   // look again when the moment is up
     press.x += (press.tx - press.x) * (press.tx > press.x ? 0.5 : 0.14);
     press.y += (press.ty - press.y) * 0.18;
     if (press.x < 0.002) press.x = 0;
@@ -520,7 +535,7 @@ export function cut(root) {
     stone.draw();
     chapter(v?.currentTime || 0);
 
-    const moving = Math.abs(hand.p - target) > 0.003 || Math.abs(tx - lx) + Math.abs(ty - ly) > 0.3 || stone.cut > 0.002 || wheel.w > 0 || press.x > 0.002 || Math.abs(press.y - press.ty) > 0.003;
+    const moving = Math.abs(hand.p - target) > 0.003 || Math.abs(tx - lx) + Math.abs(ty - ly) > 0.3 || stone.cut > 0.002 || wheel.w > 0 || press.x > 0.002 || Math.abs(press.y - press.ty) > 0.003 || idle !== (root.hasAttribute("data-idle") ? 1 : 0);
     if (playing || dragging || moving || dirty || flashing) wake();
   }
   for (const ev of ["play", "pause", "seeking", "seeked", "timeupdate", "ended", "loadedmetadata", "durationchange", "volumechange", "ratechange", "waiting", "playing"]) host?.addEventListener(ev, wake);
