@@ -214,6 +214,8 @@
 }
 .cut-preview-line media-time-slider-chapter-title { color: var(--_engrave); }
 .cut-preview-line media-time-slider-chapter-title:empty { display: none; }
+/* Leaving the stone, the window fades with the time it showed; the chapter name would already say where now is. */
+.cut-rule:not([data-pointing]):not([data-dragging]) .cut-preview-line media-time-slider-chapter-title { visibility: hidden; }
 
 /* The play key: the canvas draws the small emerald-cut stone under it; the key holds only the glyph, engraved on its
    table: silver while it stands, emerald light while it plays. */

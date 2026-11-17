@@ -132,7 +132,9 @@ export function cut(root) {
     stone.vol = vr && vr.width > 0 ? [vr.x - rr.x + vr.width / 2, vr.y - rr.y + vr.height / 2, vr.width / 2 - 3, geo.compact ? 6 : 8.5] : [0, 0, 0, 0];
     stone.geo = geo;
     stone.size(W, H, Math.min(devicePixelRatio || 1, 2));
-    wake();
+    // A resized canvas is blank until drawn, and lying over the picture it is the picture: draw now, not next frame.
+    // A failure in that frame must not stop whoever laid the player out (the page's start, a restored context).
+    if (!inTick && visible) { if (raf) cancelAnimationFrame(raf); raf = 0; try { tick(); } catch (e) { console.error(e); } } else wake();
   };
   new ResizeObserver(place).observe(root);
   document.addEventListener("fullscreenchange", () => requestAnimationFrame(place));
@@ -453,7 +455,7 @@ export function cut(root) {
   root.addEventListener("pointerleave", () => { hand.on = false; wake(); });
 
   // ---- The frame loop runs only while something moves: the reel, the hand, a drag. Off screen, nothing runs.
-  let raf = 0, visible = true, lx = 0, ly = 0, settle = 0;
+  let raf = 0, inTick = false, visible = true, lx = 0, ly = 0, settle = 0;
   const wheel = { a: 0.6, w: 0, t: 0 };
   const press = { x: 0, y: 0, tx: 0, ty: 0 };
   const key = root.querySelector(".cut-wheel");
@@ -471,6 +473,10 @@ export function cut(root) {
   function tick() {
     raf = 0;
     if (!geo) return;
+    inTick = true;                                                  // a place() from inside the frame only asks for the next one
+    try { drawFrame(); } finally { inTick = false; }
+  }
+  function drawFrame() {
     const v = media();
     const playing = v && !v.paused && !v.ended && v.readyState > 2;
     if (geo.overlay !== drawnOver) { drawnOver = geo.overlay; dirty = true; }   // lying over the picture or not: the poster or the frame
