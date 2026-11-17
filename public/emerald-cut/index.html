@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Emerald cut, a Video.js skin</title>
+<meta name="description" content="A Video.js v10 skin. Watching cuts the stone. What you skip stays raw.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Cpath d=%22M10 4h12l6 6v12l-6 6H10l-6-6V10z%22 fill=%22%231f9a68%22/%3E%3Cpath d=%22M13 9h6l4 4v6l-4 4h-6l-4-4v-6z%22 fill=%22%235fe0a6%22/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif&display=swap">
+<link rel="stylesheet" href="skin/cut.css">
+<style>
+  @font-face { font-family: "Onest"; font-style: normal; font-weight: 400 600; font-display: swap; src: url(skin/fonts/onest-latin.woff2) format("woff2"); }
+  html, body { margin: 0; height: 100%; background: #0b0c0e; }
+  body { overflow: hidden; font-family: "Onest", "Helvetica Neue", Arial, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  .stage { position: fixed; inset: 0; }
+  .stage .cut-skin { aspect-ratio: auto; height: 100%; }
+  .head, .foot { position: fixed; z-index: 5; left: var(--side, 6%); right: var(--side, 6%); margin: 0; pointer-events: none; }
+  :fullscreen ~ .head, :fullscreen ~ .foot, .stage:has(:fullscreen) ~ .foot { display: none; }
+  .head { top: clamp(16px, 5.5vh, 64px); display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+  .head h1 { margin: 0; font-family: "Instrument Serif", Georgia, serif; font-size: clamp(36px, 5vw, 84px); line-height: 0.95; font-weight: 400; letter-spacing: -0.01em; color: #eef1f3; }
+  .head p { margin: 0.45em 0 0; font-size: clamp(15px, 1.5vw, 24px); line-height: 1.25; letter-spacing: -0.01em; color: #8f979e; }
+  .head p b { font-weight: 500; color: #63e0a6; }
+  .head small { flex: none; margin-top: 0.6em; font-size: 12px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: #6f767d; }
+  .foot { bottom: 14px; display: flex; justify-content: space-between; align-items: baseline; gap: 8px 24px; flex-wrap: wrap; font-size: 12px; line-height: 1.4; color: #6f767d; }
+  .foot p { margin: 0; }
+  .foot a { color: #9aa1a7; text-decoration: none; pointer-events: auto; }
+  .foot a:hover { color: #dfe4e7; }
+  .foot a:focus-visible, .fresh:focus-visible { outline: 2px solid #63e0a6; outline-offset: 2px; border-radius: 4px; }
+  .sample[hidden] { display: none; }
+  .sample { color: #9aa1a7; }
+  .fresh {
+    pointer-events: auto;
+    margin-left: 10px;
+    padding: 6px 12px;
+    border: 0;
+    border-radius: 8px;
+    background: rgb(255 255 255 / 0.06);
+    color: #dfe4e7;
+    font: inherit;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .fresh:hover { background: rgb(255 255 255 / 0.1); }
+  @media (max-width: 640px) {
+    .head { flex-direction: column; gap: 6px; }
+    .head small { margin-top: 0; }
+  }
+  /* A short screen (a phone on its side, a small window): the name and one line of credits, nothing else. */
+  @media (max-height: 520px) {
+    .head { top: 10px; }
+    .head h1 { font-size: 30px; }
+    .head p, .head small, .sample { display: none !important; }
+    .foot { bottom: 6px; font-size: 11px; }
+  }
+</style>
+<script type="module">
+  const CDN = "https://cdn.jsdelivr.net/npm/@videojs/cdn@10.3.0/";
+  const MUX = "moEh2ayHegaciJgSiVfLbcq6ggz3WI00AxsgM1T011X004";                 // the Mux playback ID; empty plays the local file (development only)
+  const LOCAL = "/media/tos.mp4";
+  const UI = ["container", "controls", "controls-group", "play-button", "time-slider", "time-slider-chapter-title",
+    "slider-track", "slider-fill", "slider-thumb", "slider-preview", "slider-thumbnail", "slider-value", "time",
+    "mute-button", "volume-slider", "playback-rate-button", "captions-button", "fullscreen-button", "hotkey",
+    "status-announcer", "buffering-indicator", "error-dialog", "dialog-popup", "dialog-title", "dialog-description", "dialog-close"];
+  const { cutPrepare, cutAll } = await import("./skin/cut.js");
+  cutPrepare();
+  await import(CDN + "video-player.js");
+  await Promise.all(UI.map((n) => import(`${CDN}ui/${n}.js`)));
+  let v = document.querySelector(".cut-skin video");
+  let src;
+  if (MUX) {
+    await import(CDN + "media/mux-video.js");
+    const m = document.createElement("mux-video");
+    for (const a of ["playsinline", "preload", "crossorigin"]) if (v.hasAttribute(a)) m.setAttribute(a, v.getAttribute(a));
+    src = `https://stream.mux.com/${MUX}.m3u8`;
+    m.setAttribute("src", src);
+    v.replaceWith(m);
+    v = m;
+  } else {
+    src = LOCAL;
+    v.src = LOCAL;
+    const th = document.createElement("track");
+    Object.assign(th, { kind: "metadata", label: "thumbnails", src: "/media/tos-thumbs.vtt", default: true });
+    v.append(th);
+  }
+  v.setAttribute("poster", "media/tos.jpg");
+  const ch = document.createElement("track");
+  Object.assign(ch, { kind: "chapters", src: "media/tos-chapters.vtt", srclang: "en", default: true });
+  v.append(ch);
+
+  // A viewing already cut into the stone, so the idea shows before anyone presses play. It says so, and one press
+  // gives a fresh stone.
+  const key = "cut-seen:" + new URL(src, location.href).href.split("?")[0];
+  const note = document.querySelector(".sample");
+  let shown = false;
+  try {
+    const sample = {"r":[[0,220],[316,428]],"f":"111111111111110000000111111100000000000000000000"};
+    if (!localStorage.getItem(key) && !localStorage.getItem(key + ":fresh")) {
+      localStorage.setItem(key, JSON.stringify({ r: sample.r }));
+      localStorage.setItem(key + ":frames", JSON.stringify({ f: sample.f, img: "media/sample-frames.jpg" }));
+      localStorage.setItem(key + ":sample", "1");
+    }
+    shown = !!localStorage.getItem(key + ":sample");
+  } catch {}
+
+  const skin = document.querySelector(".cut-skin");
+  const q = new URLSearchParams(location.search);              // variants for comparing: ?raw=rock, ?gem=1.15
+  if (q.get("raw")) skin.dataset.raw = q.get("raw");
+  if (q.get("gem")) skin.dataset.gem = q.get("gem");
+  if (q.get("play")) skin.dataset.play = q.get("play");
+  // Room for the header and the credits, measured once per window size (never from the player's own layout, which
+  // would feed back into it), capped so the player always keeps most of the screen.
+  const fit = () => {
+    const head = document.querySelector(".head").getBoundingClientRect();
+    const foot = document.querySelector(".foot").getBoundingClientRect();
+    skin.dataset.reserve = String(Math.round(Math.min(head.bottom + 8, innerHeight * 0.28)));
+    skin.dataset.reserveBottom = String(Math.round(Math.min(innerHeight - foot.top + 4, innerHeight * 0.14)));
+    skin.cutRelayout?.();
+    document.documentElement.style.setProperty("--side", getComputedStyle(skin).getPropertyValue("--cut-x") || "6%");
+  };
+  fit();
+  cutAll();
+  note.hidden = !shown;
+  addEventListener("resize", fit);
+  v.addEventListener("loadedmetadata", () => requestAnimationFrame(fit));   // the film's own shape moves the picture
+  setTimeout(fit, 300);
+  note.querySelector(".fresh").addEventListener("click", () => {
+    skin.cutMemory.forget();
+    try { localStorage.setItem(key + ":fresh", "1"); localStorage.removeItem(key + ":sample"); } catch {}
+    note.hidden = true;
+    skin.querySelector(".cut-wheel")?.focus();
+  });
+  await Promise.race([document.fonts.ready, new Promise((r) => setTimeout(r, 2500))]);
+  fit();
+  document.documentElement.dataset.ready = "";
+</script>
+</head>
+<body>
+<header class="head">
+  <div><h1>Emerald cut</h1><p>Watching <b>cuts the stone</b>. What you skip stays raw.</p></div>
+  <small>A Video.js v10 skin</small>
+</header>
+<div class="stage">
+<video-player>
+  <media-container class="cut-skin">
+    <canvas class="cut-light" aria-hidden="true"></canvas>
+    <div class="cut-table">
+      <video playsinline preload="auto" crossorigin="anonymous"></video>
+      <p class="cut-subs" aria-hidden="true"></p>
+      <media-error-dialog class="cut-err">
+        <media-dialog-popup class="cut-err-card">
+          <media-dialog-title class="cut-err-title"></media-dialog-title>
+          <media-dialog-description class="cut-err-text"></media-dialog-description>
+          <media-dialog-close class="cut-key cut-err-close">OK</media-dialog-close>
+        </media-dialog-popup>
+      </media-error-dialog>
+    </div>
+
+    <media-controls visibility="always" class="cut-controls">
+      <media-play-button class="cut-wheel">
+        <svg class="g g-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 5.6v12.8a.6.6 0 0 0 .9.5l10.2-6.4a.6.6 0 0 0 0-1L9.4 5.1a.6.6 0 0 0-.9.5z"/></svg>
+        <svg class="g g-pause" viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="5" width="3.8" height="14" rx="0.8"/><rect x="13.7" y="5" width="3.8" height="14" rx="0.8"/></svg>
+        <svg class="g g-again" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.5a7.5 7.5 0 1 1-7.1 5.1l2 .7A5.4 5.4 0 1 0 12 6.6V9L7.6 5.6 12 2.2z"/></svg>
+      </media-play-button>
+      <media-playback-rate-button class="cut-key cut-rate" rates="0.5 1 1.5 2"></media-playback-rate-button>
+
+      <media-time-slider class="cut-rule">
+        <media-slider-track class="cut-track"><media-slider-fill class="cut-fill"></media-slider-fill></media-slider-track>
+        <media-slider-thumb class="cut-thumb"></media-slider-thumb>
+        <media-slider-preview class="cut-preview" overflow="clamp">
+          <span class="cut-frame"><media-slider-thumbnail class="cut-thumbnail"></media-slider-thumbnail></span>
+          <span class="cut-preview-line"><media-slider-value type="pointer"></media-slider-value><media-time-slider-chapter-title></media-time-slider-chapter-title></span>
+        </media-slider-preview>
+      </media-time-slider>
+      <p class="cut-mark" aria-hidden="true"><span class="cut-mark-in"></span></p>
+
+      <div class="cut-row">
+        <div class="cut-left">
+          <p class="cut-clock"><media-time type="current"></media-time><span class="cut-of" aria-hidden="true">/</span><media-time type="duration" class="cut-of"></media-time></p>
+          <p class="cut-now" aria-hidden="true"><span class="cut-now-n"></span><span class="cut-now-t"></span></p>
+          <p class="cut-fail" aria-hidden="true" data-word="fail">The video didn't load</p>
+        </div>
+        <media-controls-group class="cut-keys" aria-label="Playback controls">
+          <div class="cut-sound">
+            <media-mute-button class="cut-key cut-mute"><span class="w-sound" data-word="sound">Sound</span><span class="w-muted" data-word="muted">Muted</span></media-mute-button>
+            <media-volume-slider class="cut-vol">
+              <media-slider-track class="cut-vol-track"><media-slider-fill class="cut-vol-fill"></media-slider-fill></media-slider-track>
+              <media-slider-thumb class="cut-vol-thumb"></media-slider-thumb>
+            </media-volume-slider>
+          </div>
+          <media-captions-button class="cut-key cut-cc"><span data-word="cc">Captions</span></media-captions-button>
+          <media-fullscreen-button class="cut-key cut-full"><span class="w-full" data-word="full">Full screen</span><span class="w-exit" data-word="exit">Exit</span></media-fullscreen-button>
+        </media-controls-group>
+      </div>
+    </media-controls>
+
+    <media-buffering-indicator class="cut-wait"><svg viewBox="0 0 100 100" aria-hidden="true"><polygon points="22.1,5 77.9,5 95,22.1 95,77.9 77.9,95 22.1,95 5,77.9 5,22.1" pathLength="300"/></svg></media-buffering-indicator>
+    <media-hotkey keys="Space" action="togglePaused"></media-hotkey>
+    <media-hotkey keys="k" action="togglePaused"></media-hotkey>
+    <media-hotkey keys="m" action="toggleMuted"></media-hotkey>
+    <media-hotkey keys="f" action="toggleFullscreen"></media-hotkey>
+    <media-hotkey keys="c" action="toggleCaptions"></media-hotkey>
+    <media-hotkey keys="ArrowLeft" action="seekStep" value="-5"></media-hotkey>
+    <media-hotkey keys="ArrowRight" action="seekStep" value="5"></media-hotkey>
+    <media-hotkey keys="ArrowUp" action="volumeStep" value="0.05"></media-hotkey>
+    <media-hotkey keys="ArrowDown" action="volumeStep" value="-0.05"></media-hotkey>
+    <media-hotkey keys="0-9" action="seekToPercent"></media-hotkey>
+    <media-hotkey keys=">" action="speedUp"></media-hotkey>
+    <media-hotkey keys="<" action="speedDown"></media-hotkey>
+    <media-status-announcer class="cut-sr"></media-status-announcer>
+  </media-container>
+</video-player>
+</div>
+<footer class="foot">
+  <p class="sample" hidden>A sample viewing is already cut into this stone.<button type="button" class="fresh">Start fresh</button></p>
+  <p class="film">Film: <a href="https://mango.blender.org">Tears of Steel</a> &copy; Blender Foundation, <a href="https://creativecommons.org/licenses/by/3.0/">CC BY 3.0</a></p>
+</footer>
+</body>
+</html>

@@ -1,0 +1,546 @@
+/* Emerald cut — a Video.js v10 skin. Watching cuts the stone: under the picture lies a long emerald, the timeline,
+   cut where the reel has been seen and raw where it hasn't. The play key is a small stone of the same cut, light
+   running round its steps while the reel plays; the volume is a small baguette, cut as far as the sound goes; the rest
+   is engraved.
+   Public properties: --media-font-family. The geometry (--cut-*) is written by cut.js. */
+
+@font-face {
+  font-family: "Onest";
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url(fonts/onest-latin-ext.woff2) format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Onest";
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url(fonts/onest-latin.woff2) format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+.cut-skin {
+  --_font: var(--media-font-family, "Onest", "Helvetica Neue", Arial, system-ui, sans-serif);
+  --_metal: #0b0c0e;
+  --_engrave: #a9afb5;
+  --_engrave-hi: #eef1f3;
+  --_lit: #63e0a6;          /* emerald light: focus rings, the lit edge of a key */
+  --_cut-shadow: 0 -1px 0 rgb(0 0 0 / 0.85), 0 1px 0 rgb(255 255 255 / 0.07);
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 10.4;
+  overflow: hidden;
+  isolation: isolate;
+  background: var(--_metal);
+  color: var(--_engrave);
+  font-family: var(--_font);
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+.cut-skin:fullscreen { aspect-ratio: auto; width: 100%; height: 100%; }
+.cut-skin:focus-visible { outline: 2px solid var(--_lit); outline-offset: -2px; }
+
+.cut-light {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  z-index: 0;
+}
+
+/* The table: the picture itself, cut at the corners like the stone. */
+.cut-table {
+  position: absolute;
+  z-index: 1;
+  left: var(--cut-x, 10%);
+  top: var(--cut-y, 8%);
+  width: var(--cut-w, 80%);
+  height: var(--cut-h, 70%);
+  --_k: var(--cut-k, 0px);
+  clip-path: polygon(var(--_k) 0, calc(100% - var(--_k)) 0, 100% var(--_k), 100% calc(100% - var(--_k)),
+    calc(100% - var(--_k)) 100%, var(--_k) 100%, 0 calc(100% - var(--_k)), 0 var(--_k));
+  cursor: pointer;
+}
+.cut-table video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #000;
+}
+.cut-table video::cue { color: transparent; background: transparent; }
+.cut-table mux-video, .cut-table hls-video { display: block; width: 100%; height: 100%; background: #000; }
+
+/* Captions: a line at the foot of the picture, on a plate of the setting's own dark. */
+.cut-subs {
+  position: absolute;
+  inset-inline: 8%;
+  bottom: 5%;
+  margin: 0;
+  text-align: center;
+  pointer-events: none;
+}
+.cut-subs:empty { display: none; }
+.cut-subs span,
+.cut-subs {
+  font-size: clamp(14px, calc(var(--cut-h, 400px) * 0.045), 26px);
+  line-height: 1.35;
+  color: #f4f6f7;
+}
+.cut-subs:not(:empty) {
+  width: fit-content;
+  margin-inline: auto;
+  padding: 0.25em 0.6em;
+  border-radius: 6px;
+  background: rgb(8 9 10 / 0.78);
+}
+
+/* Controls sit on the setting: the time along the lower crown, the engraved row under the girdle. */
+.cut-controls {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+.cut-controls > * { pointer-events: auto; }
+
+/* The time: the lower crown of the stone is the slider. 44px to aim at; the colour is drawn by the canvas. */
+.cut-rule {
+  position: absolute;
+  left: var(--cut-girdle-x);
+  width: var(--cut-girdle-w);
+  top: calc(var(--cut-band-y) - max(22px, var(--cut-s) / 2 + 4px));
+  height: max(44px, var(--cut-s) + 8px);
+  display: block;
+  cursor: pointer;
+  touch-action: none;
+  outline: none;
+}
+.cut-track { position: absolute; inset: 0; background: none; }
+.cut-fill { display: none; }
+.cut-thumb {
+  position: absolute;
+  top: 50%;
+  left: var(--media-slider-fill);
+  width: 44px;
+  height: 100%;
+  translate: -50% -50%;
+  opacity: 0;
+  outline: none;
+}
+/* Focus: a ring of emerald light around the cut of now, the height of the crown. */
+.cut-rule:has(.cut-thumb:focus-visible)::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: var(--media-slider-fill);
+  width: 10px;
+  height: calc(var(--cut-s) + 10px);
+  translate: -50% -50%;
+  border-radius: 6px;
+  box-shadow: 0 0 0 2px var(--_lit), 0 0 14px 2px rgb(99 224 166 / 0.35);
+  pointer-events: none;
+}
+
+/* Aiming at the stone: a window cut like the stone's table, with the frame, the time and the chapter you'd land on.
+   Video.js centres it on the pointer and keeps it inside the stone (overflow="clamp"). */
+.cut-preview {
+  position: absolute;
+  bottom: calc(50% + var(--cut-s) / 2 + 8px);
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 140ms ease-out, transform 200ms ease-out;
+  pointer-events: none;
+}
+.cut-rule[data-pointing] .cut-preview,
+.cut-rule[data-dragging] .cut-preview { opacity: 1; transform: none; }
+.cut-thumbnail {
+  display: block;
+  --_tw: clamp(128px, calc(var(--cut-w, 800px) * 0.15), 224px);
+  min-width: var(--_tw);
+  max-width: var(--_tw);
+  min-height: calc(var(--_tw) * 9 / 16);
+  max-height: calc(var(--_tw) * 9 / 16);
+  overflow: hidden;
+  --_pk: 9px;
+  clip-path: polygon(var(--_pk) 0, calc(100% - var(--_pk)) 0, 100% var(--_pk), 100% calc(100% - var(--_pk)),
+    calc(100% - var(--_pk)) 100%, var(--_pk) 100%, 0 calc(100% - var(--_pk)), 0 var(--_pk));
+  background: #000;
+}
+.cut-frame {
+  --_pk: 11px;
+  display: block;
+  padding: 3px;
+  clip-path: polygon(var(--_pk) 0, calc(100% - var(--_pk)) 0, 100% var(--_pk), 100% calc(100% - var(--_pk)),
+    calc(100% - var(--_pk)) 100%, var(--_pk) 100%, 0 calc(100% - var(--_pk)), 0 var(--_pk));
+  background:
+    linear-gradient(135deg, #b9ffe0 0%, #3fcf8e 14%, #0c4f35 38%, #1f8f5f 58%, #062b1d 82%, #57e0a2 100%);
+  filter: drop-shadow(0 10px 18px rgb(0 0 0 / 0.7));
+}
+.cut-preview-line {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  padding: 5px 9px;
+  border-radius: 7px;
+  background: rgb(8 9 10 / 0.86);
+  box-shadow: 0 0 0 0.5px rgb(255 255 255 / 0.1);
+  color: var(--_engrave-hi);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.cut-preview-line media-time-slider-chapter-title { color: var(--_engrave); }
+.cut-preview-line media-time-slider-chapter-title:empty { display: none; }
+
+/* The play key: the canvas draws the small emerald-cut stone under it; the key holds only the glyph, engraved on its
+   table: silver while it stands, emerald light while it plays. */
+.cut-wheel {
+  position: absolute;
+  left: calc(var(--cut-wheel-x) - var(--cut-wheel-d) / 2);
+  top: calc(var(--cut-band-y) - var(--cut-wheel-d) / 2);
+  width: var(--cut-wheel-d);
+  height: var(--cut-wheel-d);
+  display: grid;
+  place-items: center;
+  border-radius: 24%;
+  cursor: pointer;
+  outline: none;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.cut-wheel .g {
+  grid-area: 1 / 1;
+  width: calc(var(--cut-wheel-d) * 0.25);
+  height: calc(var(--cut-wheel-d) * 0.25);
+  fill: #c9d0d4;
+  filter: drop-shadow(0 -0.5px 0 rgb(0 0 0 / 0.9)) drop-shadow(0 0.5px 0 rgb(255 255 255 / 0.25));
+  transition: fill 200ms ease-out, filter 200ms ease-out, opacity 140ms ease-out, transform 260ms cubic-bezier(0.2, 0.9, 0.3, 1.25);
+}
+.cut-wheel:not([data-paused]) .g { fill: #7cf0bb; filter: drop-shadow(0 0 4px rgb(80 230 160 / 0.6)) drop-shadow(0 0.5px 0 rgb(0 0 0 / 0.6)); }
+.cut-wheel[data-paused] .g-pause,
+.cut-wheel:not([data-paused]) .g-play,
+.cut-wheel[data-ended] .g-play,
+.cut-wheel[data-ended] .g-pause,
+.cut-wheel:not([data-ended]) .g-again { opacity: 0; transform: scale(0.6); }
+.cut-wheel:active .g { transform: scale(0.92); }
+.cut-wheel:hover .g { fill: #f2f5f6; }
+.cut-wheel:not([data-paused]):hover .g { fill: #a8ffd6; }
+.cut-wheel:focus-visible { outline: 2px solid var(--_lit); outline-offset: 2px; }
+.cut-skin[data-play="seal"] .cut-wheel[data-paused] .g {
+  fill: #23272a;
+  filter: drop-shadow(0 1px 0 rgb(255 255 255 / 0.45)) drop-shadow(0 -0.5px 0 rgb(0 0 0 / 0.6));
+}
+.cut-skin[data-play="seal"] .cut-wheel[data-paused]:hover .g { fill: #0f1113; }
+
+/* Speed: an engraved word under the play stone, 0.5× to 2×; the stone turns as fast. */
+.cut-key.cut-rate {
+  position: absolute;
+  left: calc(var(--cut-wheel-x) - 30px);
+  top: calc(var(--cut-row-y) + var(--cut-row-h) / 2 - 20px);
+  width: 60px;
+  padding: 0;
+}
+.cut-rate::before { content: attr(data-rate) "\00D7"; font-size: 13px; letter-spacing: 0.02em; text-transform: none; font-variant-numeric: tabular-nums; }
+
+/* Waiting for data: light runs round the play stone's girdle; with reduced motion the girdle just stays lit. */
+.cut-wait {
+  position: absolute;
+  z-index: 3;
+  left: calc(var(--cut-wheel-x) - var(--cut-wheel-d) / 2);
+  top: calc(var(--cut-band-y) - var(--cut-wheel-d) / 2);
+  width: var(--cut-wheel-d);
+  height: var(--cut-wheel-d);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 200ms ease-out 250ms;
+}
+.cut-wait[data-visible] { opacity: 1; }
+.cut-wait svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.cut-wait polygon {
+  fill: none;
+  stroke: #9dffd0;
+  stroke-width: 2.2;
+  stroke-linejoin: round;
+  stroke-dasharray: 46 254;
+  filter: drop-shadow(0 0 3px rgb(90 240 170 / 0.9));
+  animation: cut-wait-run 1.1s linear infinite;
+}
+@keyframes cut-wait-run { to { stroke-dashoffset: -300; } }
+
+/* Cut in full: the mark under the stone's end, engraved. Written once by a point of light. */
+.cut-mark {
+  position: absolute;
+  right: calc(100% - var(--cut-end-x));
+  top: calc(var(--cut-band-y) + var(--cut-s) / 2 + 6px);
+  margin: 0;
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: #5fd3a0;
+  text-shadow: 0 -1px 0 rgb(0 0 0 / 0.9), 0 0 10px rgb(60 210 140 / 0.35);
+  pointer-events: none;
+  visibility: hidden;
+}
+.cut-mark[data-on] { visibility: visible; }
+.cut-mark[data-fresh] .cut-mark-in { display: inline-block; animation: cut-write 1.4s 0.9s cubic-bezier(0.4, 0, 0.2, 1) backwards; }
+@keyframes cut-write {
+  from { clip-path: inset(0 100% 0 0); filter: brightness(2.2); }
+  80% { filter: brightness(1.6); }
+  to { clip-path: inset(0 0 0 0); filter: none; }
+}
+
+/* The engraved row. */
+.cut-row {
+  position: absolute;
+  left: var(--cut-girdle-x);
+  width: var(--cut-girdle-w);
+  top: var(--cut-row-y);
+  height: var(--cut-row-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+.cut-left, .cut-keys { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.cut-left { gap: 18px; }
+
+.cut-clock, .cut-key > span, .cut-now-t {
+  background: linear-gradient(180deg, #f4f6f8 0%, #c9ced3 55%, #aab1b7 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+.cut-key > span, .cut-now-t { color: transparent; text-shadow: none; filter: drop-shadow(0 1px 0 rgb(255 255 255 / 0.05)) drop-shadow(0 -1px 0 rgb(0 0 0 / 0.85)); }
+.cut-key:hover > span { background-image: linear-gradient(180deg, #ffffff 0%, #e8ecef 55%, #cfd5da 100%); }
+.cut-clock {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  color: transparent;
+  filter: drop-shadow(0 1px 0 rgb(255 255 255 / 0.06)) drop-shadow(0 -1px 0 rgb(0 0 0 / 0.85));
+  white-space: nowrap;
+  direction: ltr;
+}
+.cut-clock .cut-of { -webkit-text-fill-color: #8f979e; }
+.cut-of { color: #8f979e; font-size: 15px; }
+.cut-now {
+  margin: 0;
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7d848b;
+  text-shadow: var(--_cut-shadow);
+  white-space: nowrap;
+}
+.cut-now-n { color: #4fb68a; }
+.cut-now-t { overflow: hidden; text-overflow: ellipsis; unicode-bidi: plaintext; color: transparent; }
+
+/* Keys: words engraved straight into the setting, no plates. Quiet: the wheel and the stone carry the player. */
+.cut-key {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 8px;
+  background: none;
+  color: var(--_engrave);
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-shadow: var(--_cut-shadow);
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  touch-action: manipulation;
+  transition: color 140ms ease-out, background 140ms ease-out, box-shadow 140ms ease-out, transform 100ms ease-out;
+}
+.cut-key > * { grid-area: 1 / 1; unicode-bidi: plaintext; }
+.cut-key:hover {
+  color: var(--_engrave-hi);
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.05), rgb(255 255 255 / 0.015));
+  box-shadow: inset 0 0.5px 0 rgb(255 255 255 / 0.08), inset 0 -0.5px 0 rgb(0 0 0 / 0.5), 0 0 0 0.5px rgb(0 0 0 / 0.55);
+}
+.cut-key:active { background: rgb(0 0 0 / 0.28); box-shadow: inset 0 1px 3px rgb(0 0 0 / 0.75), 0 0.5px 0 rgb(255 255 255 / 0.05); transform: translateY(0.5px); }
+.cut-key:focus-visible { outline: 2px solid var(--_lit); outline-offset: 0; }
+.cut-key[data-hidden] { display: none; }
+.cut-mute[data-muted] .w-sound,
+.cut-mute:not([data-muted]) .w-muted,
+.cut-full[data-fullscreen] .w-full,
+.cut-full:not([data-fullscreen]) .w-exit { visibility: hidden; }
+
+/* Sound: the word and its groove. */
+.cut-sound { display: flex; align-items: center; height: 40px; }
+.cut-sound .cut-key { padding-inline-end: 8px; }
+.cut-vol {
+  position: relative;
+  width: 104px;
+  height: 40px;
+  margin-inline-end: 12px;
+  cursor: pointer;
+  touch-action: none;
+  outline: none;
+  border-radius: 6px;
+}
+.cut-vol-track, .cut-vol-thumb { position: absolute; inset: 0; opacity: 0; outline: none; }
+.cut-vol-fill { display: none; }
+.cut-vol:has(.cut-vol-thumb:focus-visible) { outline: 2px solid var(--_lit); outline-offset: 0; }
+
+
+.cut-cc[data-active] { color: var(--_engrave-hi); }
+.cut-cc[data-active]::after {
+  content: "";
+  position: absolute;
+  bottom: 7px;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  translate: -50% 0;
+  border-radius: 50%;
+  background: var(--_lit);
+  box-shadow: 0 0 6px var(--_lit);
+}
+
+.cut-sr {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* No WebGL: the stones are drawn in CSS, flat but whole. The timeline: a groove, watched time in emerald up to now;
+   the play stone: a round emerald with its glyph; the volume: a small groove filled as far as the sound goes. */
+.cut-skin[data-flat] .cut-light {
+  background:
+    radial-gradient(60% 60% at 50% 40%, rgb(30 60 48 / 0.35), transparent 70%),
+    var(--_metal);
+}
+.cut-skin[data-flat] { --_cut-lit: #2fae78; }
+.cut-skin[data-flat] .cut-track {
+  inset: auto 0;
+  top: 50%;
+  height: calc(var(--cut-s) * 0.7);
+  translate: 0 -50%;
+  border-radius: calc(var(--cut-s) * 0.35);
+  background: var(--cut-seen, none), linear-gradient(180deg, #1d4a3a, #12302a);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.12), inset 0 -1px 2px rgb(0 0 0 / 0.5), 0 2px 6px rgb(0 0 0 / 0.5);
+  overflow: hidden;
+}
+.cut-skin[data-flat] .cut-fill {
+  display: block;
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: var(--media-slider-fill);
+  background: none;
+  box-shadow: 2px 0 0 #e7fff3;
+}
+.cut-skin[data-flat] .cut-wheel::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 5%;
+  clip-path: polygon(23% 0, 77% 0, 100% 23%, 100% 77%, 77% 100%, 23% 100%, 0 77%, 0 23%);
+  background: radial-gradient(circle at 38% 32%, #4fd49a 0%, #1c8a5e 38%, #0b4a33 72%, #062a1d 100%);
+}
+.cut-skin[data-flat] .cut-vol-track {
+  inset: auto 0;
+  top: 50%;
+  height: 8px;
+  translate: 0 -50%;
+  opacity: 1;
+  border-radius: 4px;
+  background: #12302a;
+  box-shadow: inset 0 1px 1px rgb(0 0 0 / 0.6);
+  overflow: hidden;
+}
+.cut-skin[data-flat] .cut-vol-fill {
+  display: block;
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: var(--media-slider-fill);
+  background: linear-gradient(180deg, #5fe0a6, #1f9a68);
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+  .cut-key, .cut-preview, .cut-wheel .g { transition: none; }
+  .cut-mark .cut-mark-in { animation: none; }
+  .cut-wait polygon { animation: none; stroke-dasharray: none; opacity: 0.8; }
+}
+@media (forced-colors: active) {
+  .cut-key { border: 1px solid ButtonText; }
+
+  .cut-wheel { border: 2px solid ButtonText; }
+  .cut-wheel .g { fill: ButtonText; filter: none; }
+  .cut-clock, .cut-key > span, .cut-now-t { color: CanvasText; -webkit-text-fill-color: CanvasText; background: none; filter: none; }
+  .cut-wheel:focus-visible, .cut-vol:has(.cut-vol-thumb:focus-visible) { outline-color: Highlight; }
+  .cut-rule:has(.cut-thumb:focus-visible)::after { outline: 2px solid Highlight; }
+  .cut-wait polygon { stroke: Highlight; filter: none; }
+  .cut-key:focus-visible { outline-color: Highlight; }
+}
+
+/* A phone: the row takes the player's whole width in two lines, the time with the speed at its end, then the keys; the
+   chapter line and the volume groove go. */
+.cut-skin[data-compact] .cut-row { left: var(--cut-x); width: calc(var(--cut-end-x) - var(--cut-x)); flex-wrap: wrap; align-content: space-between; row-gap: 8px; gap: 8px; }
+.cut-skin[data-compact] .cut-left { flex-basis: 100%; }
+.cut-skin[data-compact] .cut-now,
+.cut-skin[data-compact] .cut-vol { display: none; }
+.cut-skin[data-compact] .cut-left { gap: 12px; }
+.cut-skin[data-compact] .cut-key { height: 44px; padding: 0 11px; font-size: 10.5px; }
+.cut-skin[data-compact] .cut-sound { height: 44px; }
+.cut-skin[data-compact] .cut-clock { font-size: 16px; }
+.cut-skin[data-compact] .cut-of { font-size: 13px; }
+
+/* The error: a dark plate over the picture, only while there is one. Closed, it takes no room at all. */
+.cut-err { display: contents; }
+.cut-err-card {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 8px;
+  padding: 0 8%;
+  background: rgb(8 9 10 / 0.92);
+  color: var(--_engrave-hi);
+  text-align: center;
+  cursor: default;
+}
+.cut-err-card:not([data-open]) { display: none; }
+.cut-err-title { font-size: clamp(18px, 2.4vw, 28px); font-weight: 500; letter-spacing: -0.02em; }
+.cut-err-text { max-width: 36em; font-size: 14px; color: var(--_engrave); }
+.cut-err-close { margin-top: 10px; }
+.cut-fail { display: none; margin: 0; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: #d9a3a3; text-shadow: var(--_cut-shadow); }
+.cut-skin[data-error] .cut-fail { display: block; }
+.cut-skin[data-error] .cut-now { display: none; }
+.cut-skin[data-error] .cut-light { filter: saturate(0.25) brightness(0.75); }
+
+/* While the error card is up, the picture keeps square corners: the card covers them, nothing of the poster peeks out. */
+.cut-skin:has(.cut-err-card[data-open]) .cut-table { clip-path: none; }
+.cut-skin[data-compact] .cut-key.cut-rate { left: auto; right: calc(100% - var(--cut-end-x)); top: var(--cut-row-y); width: 56px; height: 44px; padding: 0; }
+.cut-skin[data-compact] .cut-left { min-height: 44px; }
+.cut-skin[data-compact] .cut-keys { margin-inline-start: -11px; }
+[dir="rtl"] .cut-skin[data-compact] .cut-key.cut-rate { right: auto; left: var(--cut-x); }
