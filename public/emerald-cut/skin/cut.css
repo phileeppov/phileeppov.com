@@ -43,6 +43,15 @@
 }
 .cut-skin:fullscreen { aspect-ratio: auto; width: 100%; height: 100%; }
 .cut-skin:focus-visible { outline: 2px solid var(--_lit); outline-offset: -2px; }
+/* The canvas covers the player's own outline: the ring goes over it. */
+.cut-skin:focus-visible::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 2px var(--_lit);
+}
 
 .cut-light {
   position: absolute;
@@ -136,6 +145,7 @@
   translate: -50% -50%;
   opacity: 0;
   outline: none;
+  pointer-events: none;                                   /* at 0:00 it would lie over the play stone and take its taps */
 }
 /* Focus: a ring of emerald light around the cut of now, the height of the crown. */
 .cut-rule:has(.cut-thumb:focus-visible)::after {
@@ -360,6 +370,16 @@
 }
 .cut-now-n { color: #4fb68a; }
 .cut-now-t { overflow: hidden; text-overflow: ellipsis; unicode-bidi: plaintext; color: transparent; }
+/* Over the picture the band can't darken a bright shot as much as the metal is dark: the words take more light there. */
+@media (forced-colors: none) {
+  .cut-skin[data-overlay] .cut-clock, .cut-skin[data-overlay] .cut-key > span, .cut-skin[data-overlay] .cut-now-t {
+    background-image: linear-gradient(180deg, #ffffff 0%, #e3e7ea 55%, #c8ced3 100%);
+  }
+  .cut-skin[data-overlay] .cut-key:hover > span { background-image: linear-gradient(180deg, #ffffff 0%, #f2f4f6 55%, #dde2e6 100%); }
+  .cut-skin[data-overlay] .cut-of, .cut-skin[data-overlay] .cut-clock .cut-of { color: #b9c0c6; -webkit-text-fill-color: #b9c0c6; }
+  .cut-skin[data-overlay] .cut-now-n { color: #6fd3a8; }
+  .cut-skin[data-overlay] .cut-rate::before { color: #c8ced3; }
+}
 
 /* Keys: words engraved straight into the setting, no plates. Quiet: the wheel and the stone carry the player. */
 .cut-key {

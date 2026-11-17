@@ -39,7 +39,7 @@ export function geometry(W, H, aspect, narrow = false, gemScale = 1.15) {
   };
 }
 
-// Over the picture: when there is no room under it (full screen, a 16:9 box, a phone on its side) the picture fills
+// Over the picture: when there is no room under it (full screen, a short window, a phone on its side) the picture fills
 // the box and the stones and the row lie on a dark band at its foot. The canvas then draws the picture itself.
 export function overlayGeometry(W, H, aspect, gemScale = 1.15) {
   const pad = W < 640 ? 10 : 18;
@@ -48,10 +48,13 @@ export function overlayGeometry(W, H, aspect, gemScale = 1.15) {
   const D = Math.round(clamp(bh * gemScale, 34, 64));
   const vw = Math.round(Math.min(W, H * aspect)), vh = Math.round(vw / aspect);
   const vx = Math.round((W - vw) / 2), vy = Math.round((H - vh) / 2);
+  // The band keeps to the picture's own width, unless the picture is too narrow for the row (a phone on its side).
+  const own = vw >= 760;
+  const left = own ? vx + pad : pad, right = own ? vx + vw - pad : W - pad;
   const rowY = Math.round(H - pad - row);
   const by = Math.round(rowY - 4 - D / 2);
-  const wr = D / 2, wx = pad + wr;
-  const x0 = Math.round(pad + D + Math.max(5, D * 0.08)), x1 = W - pad;
+  const wr = D / 2, wx = left + wr;
+  const x0 = Math.round(left + D + Math.max(5, D * 0.08)), x1 = right;
   return {
     vx, vy, vw, vh, by, bh, wx, wr, x0, x1, cx: (x0 + x1) / 2, A: (x1 - x0) / 2,
     K: Math.round(bh * 0.34), S: Math.round(bh * 0.22), row, rowY, compact: false, overlay: true, bandTop: Math.round(by - D / 2 - 28),
@@ -92,8 +95,12 @@ export function cut(root) {
     const reserveB = full ? 0 : Number(root.dataset.reserveBottom) || 0;   // and under it (a line of credits)
     const gs = Number(root.dataset.gem) || 1.15;
     const lay = (narrow, over) => {
-      if (over) geo = overlayGeometry(W, H, aspect, gs);
-      else {
+      if (over) {
+        // In a window the player lies over its picture between the page's title and its credits, so nothing of the
+        // page hides; full screen has no room kept and takes the whole box.
+        geo = overlayGeometry(W, H - reserve - reserveB, aspect, gs);
+        if (reserve) { geo.vy += reserve; geo.by += reserve; geo.rowY += reserve; geo.bandTop += reserve; }
+      } else {
         geo = geometry(W, H - reserve - reserveB, aspect, narrow, gs);
         if (reserve) { geo.vy += reserve; geo.by += reserve; geo.rowY += reserve; }
       }
@@ -109,14 +116,18 @@ export function cut(root) {
       root.toggleAttribute("data-compact", geo.compact);
     };
     lay(false, false);
-    // No room under the picture (it had to shrink well below the box's width), or full screen: lie over it. Only with
-    // the canvas able to draw the picture (WebGL and a readable frame).
+    // No room under the picture (it had to shrink to well under two thirds of the box's width: a short window, a phone
+    // on its side), or full screen: lie over it. Only with the canvas able to draw the picture (WebGL and a readable
+    // frame).
     const pad0 = W < 640 ? 24 : 2 * clamp(Math.min(W, H) * 0.045, 18, 72);
-    if (stone.ok && stone.has && (full || root.hasAttribute("data-over") || geo.vw < 0.82 * (W - pad0))) lay(false, true);
+    if (stone.ok && stone.has && (full || root.hasAttribute("data-over") || geo.vw < 0.6 * (W - pad0))) lay(false, true);
     // The words of the row take the room they need (longer in Russian or Spanish, one more with captions): when the
     // time, a short chapter line and the keys don't fit the stone's length, the row goes to two lines.
     const clock = root.querySelector(".cut-clock"), keys = root.querySelector(".cut-keys");
-    if (!geo.overlay && !geo.compact && clock && keys && clock.offsetWidth + keys.scrollWidth + 24 + 120 > geo.x1 - geo.x0) lay(true, false);
+    // Over the picture there is one line only, where the chapter's name may shorten to its number: when even the time
+    // and the keys don't fit there (full screen on an upright phone), the player lays out under the picture, two lines.
+    const chapterRoom = geo.overlay ? 48 : 120;
+    if (!geo.compact && clock && keys && clock.offsetWidth + keys.scrollWidth + 24 + chapterRoom > geo.x1 - geo.x0) lay(true, false);
     const vr = volEl?.getBoundingClientRect(), rr = root.getBoundingClientRect();
     stone.vol = vr && vr.width > 0 ? [vr.x - rr.x + vr.width / 2, vr.y - rr.y + vr.height / 2, vr.width / 2 - 3, geo.compact ? 6 : 8.5] : [0, 0, 0, 0];
     stone.geo = geo;
@@ -144,14 +155,20 @@ export function cut(root) {
   });
 
   // ---- Frames for the crown: each new video frame, else the poster.
-  let dirty = true, posterImg = null;
+  let dirty = true, posterImg = null, drawnOver = false;
   const poster = () => {
     const src = host?.getAttribute("poster") || media()?.poster;
     if (!src || posterImg?.dataset.src === src) return;
     posterImg = new Image();
     posterImg.crossOrigin = "anonymous";
     posterImg.dataset.src = src;
-    posterImg.onload = () => { if ((media()?.readyState ?? 0) < 2) { stone.upload(posterImg); wake(); } };
+    posterImg.onload = () => {
+      const had = stone.has;
+      if ((media()?.readyState ?? 0) < 2) stone.upload(posterImg);
+      if (!had && stone.has) place();                                // a readable picture: lying over it is possible now
+      dirty = true;
+      wake();
+    };
     posterImg.src = src;
   };
   const hooked = new WeakSet();
@@ -456,6 +473,7 @@ export function cut(root) {
     if (!geo) return;
     const v = media();
     const playing = v && !v.paused && !v.ended && v.readyState > 2;
+    if (geo.overlay !== drawnOver) { drawnOver = geo.overlay; dirty = true; }   // lying over the picture or not: the poster or the frame
     if (v && v.readyState >= 2 && (dirty || (playing && !v.requestVideoFrameCallback))) {
       const had = stone.has;
       // Over the picture the canvas is the picture: until the reel has started, it shows the poster, as <video> does.

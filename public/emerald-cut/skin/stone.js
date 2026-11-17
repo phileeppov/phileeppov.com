@@ -368,7 +368,7 @@ void main() {
     if (dv >= 0.0) col = vec3(0.0015);
     bare = col;
     float band = smoothstep(uOverlay.y - 40.0, uOverlay.y + 36.0, px.y);
-    col *= 1.0 - 0.84 * band;
+    col *= 1.0 - 0.9 * band;
   }
 
   if (f < 0.0) {
