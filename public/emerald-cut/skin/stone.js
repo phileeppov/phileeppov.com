@@ -474,8 +474,16 @@ void main() {
   col += sp * cutv;
   // Now: a thin line of light across the stone where the cutter stands. At work over raw stone it glows and throws a
   // little glittering dust; over stone already cut it only passes, as light.
-  float nl = 1.0 - smoothstep(0.3, 1.1, abs(px.x - nowX));
-  col = mix(col, vec3(0.86, 1.0, 0.93), nl * inStone * (0.5 + 0.45 * uCut));
+  // Now: a needle of light across the stone and a little past both its edges, so the position reads at a glance,
+  // paused or playing, among facets and frames; a small notch above and below marks it from afar.
+  float nx = abs(px.x - nowX);
+  float over = bh.y * 1.28;                                          // how far past the stone's edges it reaches
+  float inNeedle = 1.0 - smoothstep(over - 0.8, over + 0.8, abs(p.y));
+  float nl = (1.0 - smoothstep(0.6, 1.4, nx)) * inNeedle;
+  float halo = exp(-nx * nx / 9.0) * inNeedle * 0.35;
+  float notch = (1.0 - smoothstep(0.0, 1.0, nx - max(0.0, (abs(p.y) - bh.y * 1.08) * 0.9))) * step(bh.y * 1.08, abs(p.y)) * inNeedle;
+  col = mix(col, vec3(0.9, 1.0, 0.95), clamp(nl * (0.75 + 0.25 * uCut) + notch * 0.85, 0.0, 1.0));
+  col += vec3(0.25, 0.75, 0.55) * halo;
   if (uSpan.w >= 0.0) col += vec3(0.3, 0.55, 0.42) * (1.0 - smoothstep(0.3, 1.0, abs(px.x - aimX))) * inStone * 0.7;
   if (uCut > 0.001) {
     vec2 hot = vec2(nowX, bc.y);

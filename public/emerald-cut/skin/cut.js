@@ -198,9 +198,7 @@ export function cut(root) {
   const rebuild = (live) => {
     const v = media(), d = v?.duration;
     if (!isFinite(d) || d <= 0) return;
-    const rs = [...kept], pl = v.played;
-    for (let i = 0; i < (pl?.length || 0); i++) rs.push([pl.start(i), pl.end(i)]);
-    seen = merge(rs, d);
+    seen = merge([...kept, ...session], d);
     map.fill(0);
     let total = 0;
     for (const [s, e] of seen) {
@@ -238,7 +236,21 @@ export function cut(root) {
   };
   host?.addEventListener("loadedmetadata", () => { load(); rebuild(false); });
   for (const ev of ["seeked", "durationchange", "emptied"]) host?.addEventListener(ev, () => rebuild(false));
-  for (const ev of ["pause", "ended"]) host?.addEventListener(ev, () => { rebuild(true); save(); });
+  // What this page has played, stretch by stretch: kept by the skin itself, so a fresh start can clear it (the
+  // media's own played ranges stay until the source changes). Time that runs on without a jump counts.
+  let session = [], lastT = null;
+  const note = () => {
+    const v = media();
+    if (!v) return;
+    const t = v.currentTime;
+    if (!v.paused && !v.seeking && lastT !== null && t > lastT && t - lastT < 2.5) session = merge([...session, [lastT, t]], v.duration || Infinity);
+    lastT = v.paused || v.seeking ? null : t;
+  };
+  host?.addEventListener("timeupdate", note);
+  host?.addEventListener("playing", () => { lastT = media()?.currentTime ?? null; });
+  host?.addEventListener("seeking", () => { lastT = null; });
+  host?.addEventListener("emptied", () => { session = []; lastT = null; });
+  for (const ev of ["pause", "ended"]) host?.addEventListener(ev, () => { note(); rebuild(true); save(); });
   addEventListener("pagehide", save);
   // For a page that shows the stone at a given state, and for a viewer who wants the raw stone back.
   // ---- What you saw, kept: a small frame for each of SLOTS stretches of the reel, taken the first time the cutter
@@ -306,9 +318,9 @@ export function cut(root) {
 
   root.cutMemory = {
     get: () => seen.map((r) => [...r]),
-    set: (ranges, at) => { kept = ranges.map((r) => [...r]); markAt = at || 0; done = []; whole = false; rebuild(false); save(); wake(); },
+    set: (ranges, at) => { kept = ranges.map((r) => [...r]); session = []; lastT = null; markAt = at || 0; done = []; whole = false; rebuild(false); save(); wake(); },
     forget: () => {
-      kept = []; markAt = 0; framesSeq++;
+      kept = []; session = []; lastT = null; markAt = 0; framesSeq++;
       try { localStorage.removeItem(keyOf()); localStorage.removeItem(framesKey()); } catch {}
       filled = new Uint8Array(SLOTS); actx.clearRect(0, 0, atlas.width, atlas.height); atlasDirty = true; pushAtlas();
       rebuild(false); wake();
@@ -427,6 +439,7 @@ export function cut(root) {
 
     // The record grows while the reel plays; the cutter works only where nothing has been seen ahead of it.
     if (playing) {
+      note();
       rebuild(true);
       if (performance.now() - savedAt > 3000) save();
       if (!dragging && isFinite(d) && d > 0) {
