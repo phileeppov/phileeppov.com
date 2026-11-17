@@ -25,6 +25,7 @@ uniform vec4 uSpan;     // time runs from x = uSpan.x to uSpan.y; uSpan.z = now 
 uniform vec3 uLight;    // pointer x, y (css px) and how present it is
 uniform float uTime;
 uniform vec2 uPress;     // the play key: pressed (0..1), the hand over it (0..1)
+uniform vec2 uOverlay;   // over the picture (1/0), and where the dark band at its foot begins (css px)
 uniform float uGemMode;  // the play key: 0 a square step cut, 1 an emerald cabochon, 2 a seal in the setting's metal
 uniform float uRawMode;  // what the unwatched stone is: 0 natural beryl, 1 crystal still in its rock
 uniform float uCalm;    // reduced motion: nothing flies, nothing twinkles
@@ -340,8 +341,8 @@ void main() {
   vec2 pv = px - uC;
   vec2 qv = abs(pv) - uH;
   float dv = length(max(qv, 0.0)) + min(max(qv.x, qv.y), 0.0);
-  if (dv < -14.0) { o = vec4(0.0, 0.0, 0.0, 1.0); return; }        // the <video> covers this; only its cut corners show
-  col += pic(clamp(pv, -uH, uH), 6.5) * exp(-max(dv, 0.0) / (0.1 * uH.y)) * 0.042 * step(0.0, dv);
+  if (uOverlay.x < 0.5 && dv < -14.0) { o = vec4(0.0, 0.0, 0.0, 1.0); return; }   // the <video> covers this; only its cut corners show
+  col += pic(clamp(pv, -uH, uH), 6.5) * exp(-max(dv, 0.0) / (0.1 * uH.y)) * 0.042 * step(0.0, dv) * (1.0 - uOverlay.x);
   col += vec3(0.5, 0.55, 0.53) * (1.0 - smoothstep(0.0, 1.3, abs(dv - 0.6))) * smoothstep(0.2, -0.6, pv.y / uH.y) * 0.05;
   float fo = mix(rawF, f, cutv);
   if (fo > 0.0) {
@@ -361,6 +362,11 @@ void main() {
     col *= 1.0 - (0.5 + 0.3 * below) * exp(-fo / (3.0 + 5.0 * below));
   }
   if (dv < 0.0) col = pic(pv, 0.0);                                // under the <video>; covers any seam
+  if (uOverlay.x > 0.5) {                                          // over the picture: black round it, a dark band at its foot
+    if (dv >= 0.0) col = vec3(0.0015);
+    float band = smoothstep(uOverlay.y - 40.0, uOverlay.y + 36.0, px.y);
+    col *= 1.0 - 0.84 * band;
+  }
 
   if (f < 0.0) {
     // The cut stone: three steps of the crown from the girdle in, then the table, one flat facet per chapter. Each
@@ -561,7 +567,7 @@ export class Stone {
     gl.enableVertexAttribArray(loc);
     gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
     this.u = {};
-    for (const k of ["uRes", "uDpr", "uC", "uH", "uBar", "uK", "uS", "uWheel", "uSmear", "uVol", "uVolLevel", "uSpan", "uLight", "uTime", "uCalm", "uRawMode", "uGemMode", "uPress", "uHas", "uCut", "uFlash", "uCh", "uChN", "uVid", "uSeen", "uAtlas", "uAtlasInfo", "uAtlasOn"]) this.u[k] = gl.getUniformLocation(pr, k);
+    for (const k of ["uRes", "uDpr", "uC", "uH", "uBar", "uK", "uS", "uWheel", "uSmear", "uVol", "uVolLevel", "uSpan", "uLight", "uTime", "uCalm", "uRawMode", "uGemMode", "uPress", "uOverlay", "uHas", "uCut", "uFlash", "uCh", "uChN", "uVid", "uSeen", "uAtlas", "uAtlasInfo", "uAtlasOn"]) this.u[k] = gl.getUniformLocation(pr, k);
     const tex = (unit) => {
       const t = gl.createTexture();
       gl.activeTexture(gl.TEXTURE0 + unit);
@@ -669,6 +675,7 @@ export class Stone {
     gl.uniform1f(u.uRawMode, this.rawMode || 0);
     gl.uniform1f(u.uGemMode, this.gemMode || 0);
     gl.uniform2f(u.uPress, ...(this.press || [0, 0]));
+    gl.uniform2f(u.uOverlay, g.overlay ? 1 : 0, g.bandTop || 0);
     gl.uniform1f(u.uHas, this.has);
     gl.uniform1f(u.uCut, this.cut);
     gl.uniform3f(u.uFlash, ...this.flash);

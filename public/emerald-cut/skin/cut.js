@@ -39,6 +39,25 @@ export function geometry(W, H, aspect, narrow = false, gemScale = 1.15) {
   };
 }
 
+// Over the picture: when there is no room under it (full screen, a 16:9 box, a phone on its side) the picture fills
+// the box and the stones and the row lie on a dark band at its foot. The canvas then draws the picture itself.
+export function overlayGeometry(W, H, aspect, gemScale = 1.15) {
+  const pad = W < 640 ? 10 : 18;
+  const row = 48;
+  const bh = Math.round(clamp(Math.min(W, H) * 0.05, 30, 52));
+  const D = Math.round(clamp(bh * gemScale, 34, 64));
+  const vw = Math.round(Math.min(W, H * aspect)), vh = Math.round(vw / aspect);
+  const vx = Math.round((W - vw) / 2), vy = Math.round((H - vh) / 2);
+  const rowY = Math.round(H - pad - row);
+  const by = Math.round(rowY - 4 - D / 2);
+  const wr = D / 2, wx = pad + wr;
+  const x0 = Math.round(pad + D + Math.max(5, D * 0.08)), x1 = W - pad;
+  return {
+    vx, vy, vw, vh, by, bh, wx, wr, x0, x1, cx: (x0 + x1) / 2, A: (x1 - x0) / 2,
+    K: Math.round(bh * 0.34), S: Math.round(bh * 0.22), row, rowY, compact: false, overlay: true, bandTop: Math.round(by - D / 2 - 28),
+  };
+}
+
 export function cut(root) {
   const host = root.querySelector("video, mux-video, hls-video, hlsjs-video");
   const media = () => (host?.tagName === "VIDEO" ? host : host?.nativeEl ?? host?.shadowRoot?.querySelector("video") ?? host);
@@ -49,10 +68,11 @@ export function cut(root) {
   root.toggleAttribute("data-flat", !stone.ok);
   // The GPU can drop the canvas (a phone tab in the background, a driver reset): the CSS stones stand in until it
   // comes back, then the canvas is rebuilt with what has been watched.
-  canvas.addEventListener("webglcontextlost", (e) => { e.preventDefault(); stone.ok = false; root.toggleAttribute("data-flat", true); });
+  canvas.addEventListener("webglcontextlost", (e) => { e.preventDefault(); stone.ok = false; root.toggleAttribute("data-flat", true); place(); });
   canvas.addEventListener("webglcontextrestored", () => {
     stone.restore();
     root.toggleAttribute("data-flat", !stone.ok);
+    place();
     atlasDirty = true;
     pushAtlas();
     rebuild(false);
@@ -70,22 +90,32 @@ export function cut(root) {
     const full = document.fullscreenElement === root;
     const reserve = full ? 0 : Number(root.dataset.reserve) || 0;     // room a page keeps above the player (a title)
     const reserveB = full ? 0 : Number(root.dataset.reserveBottom) || 0;   // and under it (a line of credits)
-    const lay = (narrow) => {
-      geo = geometry(W, H - reserve - reserveB, aspect, narrow, Number(root.dataset.gem) || 1.15);
-      if (reserve) { geo.vy += reserve; geo.by += reserve; geo.rowY += reserve; }
+    const gs = Number(root.dataset.gem) || 1.15;
+    const lay = (narrow, over) => {
+      if (over) geo = overlayGeometry(W, H, aspect, gs);
+      else {
+        geo = geometry(W, H - reserve - reserveB, aspect, narrow, gs);
+        if (reserve) { geo.vy += reserve; geo.by += reserve; geo.rowY += reserve; }
+      }
       const { vx, vy, vw, vh, by, bh, wx, wr, x0, x1, row, rowY } = geo;
       const set = (n, x) => root.style.setProperty(n, `${x}px`);
-      set("--cut-x", vx); set("--cut-y", vy); set("--cut-w", vw); set("--cut-h", vh); set("--cut-k", Math.round(Math.min(10, vh * 0.014)));
+      set("--cut-x", vx); set("--cut-y", vy); set("--cut-w", vw); set("--cut-h", vh); set("--cut-k", over ? 0 : Math.round(Math.min(10, vh * 0.014)));
+      set("--cut-band-top", geo.bandTop ?? 0);
+      root.toggleAttribute("data-overlay", !!over);
       set("--cut-s", bh); set("--cut-girdle-x", x0); set("--cut-girdle-w", x1 - x0); set("--cut-end-x", x1);
       set("--cut-band-y", by); set("--cut-row-y", rowY); set("--cut-row-h", row);
       set("--cut-wheel-x", wx); set("--cut-wheel-d", 2 * wr);
       root.toggleAttribute("data-compact", geo.compact);
     };
-    lay(false);
+    lay(false, false);
+    // No room under the picture (it had to shrink well below the box's width), or full screen: lie over it. Only with
+    // the canvas able to draw the picture (WebGL and a readable frame).
+    const pad0 = W < 640 ? 24 : 2 * clamp(Math.min(W, H) * 0.045, 18, 72);
+    if (stone.ok && stone.has && (full || root.hasAttribute("data-over") || geo.vw < 0.82 * (W - pad0))) lay(false, true);
     // The words of the row take the room they need (longer in Russian or Spanish, one more with captions): when the
     // time, a short chapter line and the keys don't fit the stone's length, the row goes to two lines.
     const clock = root.querySelector(".cut-clock"), keys = root.querySelector(".cut-keys");
-    if (!geo.compact && clock && keys && clock.offsetWidth + keys.scrollWidth + 24 + 120 > geo.x1 - geo.x0) lay(true);
+    if (!geo.overlay && !geo.compact && clock && keys && clock.offsetWidth + keys.scrollWidth + 24 + 120 > geo.x1 - geo.x0) lay(true, false);
     const vr = volEl?.getBoundingClientRect(), rr = root.getBoundingClientRect();
     stone.vol = vr && vr.width > 0 ? [vr.x - rr.x + vr.width / 2, vr.y - rr.y + vr.height / 2, vr.width / 2 - 3, geo.compact ? 6 : 8.5] : [0, 0, 0, 0];
     stone.geo = geo;
@@ -93,6 +123,7 @@ export function cut(root) {
     wake();
   };
   new ResizeObserver(place).observe(root);
+  document.addEventListener("fullscreenchange", () => requestAnimationFrame(place));
   root.cutRelayout = place;                                           // for a page whose title or credits change size
   host?.addEventListener("loadedmetadata", place);
 
@@ -124,6 +155,10 @@ export function cut(root) {
   };
   frames();
   host?.addEventListener("loadstart", frames);
+  let started = false;
+  host?.addEventListener("playing", () => { started = true; dirty = true; wake(); });
+  host?.addEventListener("seeked", () => { if ((media()?.currentTime ?? 0) > 0.05) { started = true; dirty = true; } });
+  host?.addEventListener("emptied", () => { started = false; });
   for (const ev of ["loadeddata", "seeked", "emptied"]) host?.addEventListener(ev, () => { dirty = true; poster(); wake(); });
   poster();
 
@@ -413,8 +448,12 @@ export function cut(root) {
     const v = media();
     const playing = v && !v.paused && !v.ended && v.readyState > 2;
     if (v && v.readyState >= 2 && (dirty || (playing && !v.requestVideoFrameCallback))) {
-      stone.upload(v);
+      const had = stone.has;
+      // Over the picture the canvas is the picture: until the reel has started, it shows the poster, as <video> does.
+      const usePoster = geo.overlay && !started && posterImg?.complete && posterImg.naturalWidth > 0;
+      stone.upload(usePoster ? posterImg : v);
       dirty = false;
+      if (!had && stone.has) place();                                // a readable frame: lying over the picture is possible now
     }
     const d = v?.duration;
     let now = isFinite(d) && d > 0 ? v.currentTime / d : 0;

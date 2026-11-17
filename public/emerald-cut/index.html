@@ -18,6 +18,8 @@
   .stage .cut-skin { aspect-ratio: auto; height: 100%; }
   .head, .foot { position: fixed; z-index: 5; left: var(--side, 6%); right: var(--side, 6%); margin: 0; pointer-events: none; }
   :fullscreen ~ .head, :fullscreen ~ .foot, .stage:has(:fullscreen) ~ .foot { display: none; }
+  /* The player lying over its picture (a phone on its side, a short window) takes the whole screen. */
+  body:has(.cut-skin[data-overlay]) .head, body:has(.cut-skin[data-overlay]) .foot { display: none; }
   .head { top: clamp(16px, 5.5vh, 64px); display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
   .head h1 { margin: 0; font-family: "Instrument Serif", Georgia, serif; font-size: clamp(36px, 5vw, 84px); line-height: 0.95; font-weight: 400; letter-spacing: -0.01em; color: #eef1f3; }
   .head p { margin: 0.45em 0 0; font-size: clamp(15px, 1.5vw, 24px); line-height: 1.25; letter-spacing: -0.01em; color: #8f979e; }

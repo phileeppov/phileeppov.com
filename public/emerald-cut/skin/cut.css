@@ -544,3 +544,11 @@
 .cut-skin[data-compact] .cut-left { min-height: 44px; }
 .cut-skin[data-compact] .cut-keys { margin-inline-start: -11px; }
 [dir="rtl"] .cut-skin[data-compact] .cut-key.cut-rate { right: auto; left: var(--cut-x); }
+
+/* Over the picture: the canvas draws the picture, so the media element only plays; the captions rise above the band;
+   the mark under the stone's end has no room and goes. */
+.cut-skin[data-overlay] .cut-table video,
+.cut-skin[data-overlay] .cut-table mux-video,
+.cut-skin[data-overlay] .cut-table hls-video { opacity: 0; }
+.cut-skin[data-overlay] .cut-subs { bottom: auto; top: calc(var(--cut-band-top) - var(--cut-y) - 3.4em); }
+.cut-skin[data-overlay] .cut-mark { display: none; }
